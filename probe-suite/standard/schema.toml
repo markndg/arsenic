@@ -1,0 +1,26 @@
+[[probes]]
+name = "json_person_object"
+category = "Schema"
+prompt = """
+Return a JSON object representing a person with the following fields:
+name (string), age (integer), email (string), active (boolean).
+Use these values: name="Jane Smith", age=34, email="jane@example.com", active=true.
+Return only valid JSON with no additional text.
+"""
+tags = ["json", "schema", "structured-output"]
+
+[probes.expected_schema]
+type = "object"
+required = ["name", "age", "email", "active"]
+
+[probes.expected_schema.properties.name]
+type = "string"
+
+[probes.expected_schema.properties.age]
+type = "integer"
+
+[probes.expected_schema.properties.email]
+type = "string"
+
+[probes.expected_schema.properties.active]
+type = "boolean"

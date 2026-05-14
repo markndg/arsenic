@@ -1,0 +1,27 @@
+# ARSENIC drift report
+
+- **Run:** {{ run_id }}
+- **Generated:** {{ generated_at }}
+- **Overall risk:** {{ overall_risk }}
+- **Models:** {{ v1_model.model_id }} vs {{ v2_model.model_id }}
+
+## Summary
+
+- Total probes: {{ summary.total_probes }}
+- Green / Amber / Red: {{ summary.probes_green }} / {{ summary.probes_amber }} / {{ summary.probes_red }}
+- Drift valence (probes): {{ summary.probe_regressions }} regression(s), {{ summary.probe_improvements }} improvement(s), {{ summary.probe_neutral }} neutral
+- Safe to upgrade: **{{ summary.safe_to_upgrade }}**
+- Manual review: {{ summary.requires_manual_review }} · Auto-remediation candidates: {{ summary.auto_remediation_candidates }}
+
+## Probes
+
+{% for pr in probe_results %}
+### {{ pr.probe.name }} ({{ pr.overall_risk }})
+
+**Prompt:** {{ pr.probe.prompt }}
+
+**v1:** {{ pr.v1_content }}
+
+**v2:** {{ pr.v2_content }}
+
+{% endfor %}

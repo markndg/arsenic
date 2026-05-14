@@ -1,0 +1,23 @@
+[[probes]]
+name = "word_limit_strict"
+category = "Instruction"
+prompt = "Explain what photosynthesis is. Your response must be no longer than 20 words."
+tags = ["instruction", "length-limit"]
+
+[[probes.instructions]]
+description = "Response must not exceed 20 words"
+check = { type = "MaxWords", value = 20 }
+
+[[probes]]
+name = "format_bullet_list"
+category = "Instruction"
+prompt = "List five major world capitals. Return them as a bullet list only, with no introduction or conclusion."
+tags = ["instruction", "format"]
+
+[[probes.instructions]]
+description = "Response must be a bullet list"
+check = { type = "OutputFormat", value = "BulletList" }
+
+[[probes.instructions]]
+description = "Response must not contain introductory text"
+check = { type = "MustNotContain", value = "Here are" }

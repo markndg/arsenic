@@ -1,0 +1,17 @@
+[[probes]]
+name = "simple_factual_short"
+category = "Morphology"
+prompt = "What is the boiling point of water in Celsius?"
+tags = ["morphology", "should-be-short"]
+
+[[probes]]
+name = "complex_explanation_long"
+category = "Morphology"
+prompt = "Explain the causes and consequences of the 2008 financial crisis in detail."
+tags = ["morphology", "should-be-long"]
+
+[[probes]]
+name = "yes_no_question"
+category = "Morphology"
+prompt = "Is the Earth older than the Sun?"
+tags = ["morphology", "yes-no"]

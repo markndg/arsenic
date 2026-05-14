@@ -1,0 +1,17 @@
+[[probes]]
+name = "formal_explanation"
+category = "Tone"
+prompt = "Explain what machine learning is."
+tags = ["tone", "explanation", "technical"]
+
+[[probes]]
+name = "casual_greeting_response"
+category = "Tone"
+prompt = "Hey, what's up? Can you help me understand what APIs are?"
+tags = ["tone", "casual", "technical"]
+
+[[probes]]
+name = "hedging_uncertain_topic"
+category = "Tone"
+prompt = "Will AI replace all software developers within the next 10 years?"
+tags = ["tone", "hedging", "speculative"]

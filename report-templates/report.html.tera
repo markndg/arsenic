@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Drift {{ run_id }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; }
+    header.hero .models { font-size: 1rem; }
+    header.hero .models strong { color: #c5e4f5; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    h3.snap {
+      font-size: 0.82rem;
+      margin: 1rem 0 0.5rem;
+      color: #8eb4cc;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Risk badges + directional tinting (§10) */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.Green { background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45); }
+    .badge.Amber { background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4); }
+    .badge.Red { background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55); }
+    /* Red + regression = solid remediation */
+    .badge.Red.dir-regression {
+      background: linear-gradient(145deg, #c43641, var(--red-deep));
+      color: #fff;
+      border-color: #8a1f28;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    /* Red + improvement = verify (green ring), not same as blocking */
+    .badge.Red.dir-improvement,
+    .badge.Red.dir-neutral,
+    .badge.Red.dir-notapplicable {
+      background: rgba(226, 77, 86, 0.28);
+      color: #ffe0e3;
+      border: 2px solid var(--green-ring);
+      box-shadow: 0 0 0 1px rgba(46, 184, 114, 0.25);
+    }
+
+    /* Executive stat grid */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.65rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+
+    /* Tables */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .dim-flow { white-space: nowrap; font-family: var(--mono); font-size: 0.8rem; }
+    .dim-flow .d-down { color: #ff8a8a; margin-right: 0.35rem; }
+    .dim-flow .d-up { color: #7ae0a8; margin-right: 0.35rem; }
+    .dim-flow .d-mid { color: var(--muted); }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+
+    /* Probe rows */
+    details.probe {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.probe > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.probe > summary::-webkit-details-marker { display: none; }
+    details.probe[open] > summary { border-bottom: 1px solid var(--border); }
+    .probe-title { flex: 1; min-width: 8rem; }
+    .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .var-pill {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(139, 156, 176, 0.15);
+      border: 1px solid rgba(139, 156, 176, 0.35);
+      color: #b4c8dc;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    table.dimbreak { font-size: 0.82rem; margin: 0.75rem 0; width: 100%; }
+    table.dimbreak th {
+      text-align: left;
+      width: 6.5rem;
+      color: var(--muted);
+      font-weight: 600;
+      vertical-align: top;
+      padding: 0.35rem 0.5rem 0.35rem 0;
+    }
+    table.dimbreak td { padding: 0.35rem 0.35rem; vertical-align: top; }
+    table.dimbreak td.risk { white-space: nowrap; width: 4rem; }
+    table.dimbreak td.dir { font-family: var(--mono); font-size: 0.78rem; color: #9ecfff; width: 5rem; }
+    .dir-arrow-reg::before { content: "↓ "; color: #ff8a8a; }
+    .dir-arrow-imp::before { content: "↑ "; color: #7ae0a8; }
+    .dir-arrow-neu::before { content: "→ "; color: var(--muted); }
+    .dir-arrow-na::before { content: "— "; color: var(--muted); }
+
+    details.claim-diff {
+      margin: 1rem 0;
+      border: 1px dashed rgba(8, 217, 198, 0.35);
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(8, 217, 198, 0.03);
+    }
+    details.claim-diff > summary { cursor: pointer; font-weight: 600; color: #9ee4dc; }
+    .pill {
+      display: inline-block;
+      margin-left: 0.5rem;
+      font-size: 0.68rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(8, 217, 198, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .claim-block { margin: 0.75rem 0; }
+    .claim-block h4 { margin: 0 0 0.35rem; font-size: 0.8rem; color: #8eb4cc; }
+    ul.compact { margin: 0.25rem 0; padding-left: 1.1rem; color: #c5d4e0; font-size: 0.82rem; }
+
+    .diff-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+    button.copy-btn {
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: rgba(8, 217, 198, 0.12);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    button.copy-btn:hover { background: rgba(8, 217, 198, 0.22); }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+
+    ul.upgrade-list { margin: 0.35rem 0; padding-left: 1.15rem; }
+    ul.upgrade-list li { margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <header class="hero">
+    <h1>ARSENIC drift report</h1>
+    <p class="sub mono">Run <code>{{ run_id }}</code> · {{ generated_at }} · Overall
+      <span class="badge {{ overall_risk }}">{{ overall_risk }}</span>
+    </p>
+    <p class="models"><strong>{{ v1_model.label }}</strong>
+      <span class="muted">({{ v1_model.model_id }})</span>
+      <span class="muted"> vs </span>
+      <strong>{{ v2_model.label }}</strong>
+      <span class="muted">({{ v2_model.model_id }})</span>
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Executive summary</h2>
+      <p class="muted" style="margin:0 0 0.75rem">Probe outcomes and drift valence across the run.</p>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">{{ summary.total_probes }}</div><div class="lbl">Total probes</div></div>
+        <div class="stat"><div class="val green">{{ summary.probes_green }}</div><div class="lbl">Green</div></div>
+        <div class="stat"><div class="val amber">{{ summary.probes_amber }}</div><div class="lbl">Amber</div></div>
+        <div class="stat"><div class="val red">{{ summary.probes_red }}</div><div class="lbl">Red</div></div>
+        <div class="stat"><div class="val" style="color:#ff8a8a">{{ summary.probe_regressions }}</div><div class="lbl">↓ Regressions</div></div>
+        <div class="stat"><div class="val" style="color:#7ae0a8">{{ summary.probe_improvements }}</div><div class="lbl">↑ Improvements</div></div>
+        <div class="stat"><div class="val" style="color:var(--muted)">{{ summary.probe_neutral }}</div><div class="lbl">→ Neutral</div></div>
+        <div class="stat"><div class="val" style="color:var(--accent)">{{ summary.auto_remediation_candidates }}</div><div class="lbl">Auto-fix candidates</div></div>
+      </div>
+      <p style="margin:1rem 0 0;font-size:0.9rem">
+        Safe to upgrade: <strong>{{ summary.safe_to_upgrade }}</strong>
+        · Manual review items: <strong>{{ summary.requires_manual_review }}</strong>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Dimension overview</h2>
+      <p class="muted" style="margin-top:0">Worst risk per dimension, drift direction mix among affected probes (↑ / ↓ / →), and affected count.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Worst risk</th>
+            <th>Drift (affected)</th>
+            <th class="num">Probes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Morphology</strong></td>
+            <td><span class="badge {{ dimension_summaries.morphology.worst_risk }}">{{ dimension_summaries.morphology.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.morphology.probes_affected > 0 %}<span class="dim-flow" title="Regression / Improvement / Neutral among affected"><span class="d-down">↓{{ dimension_summaries.morphology.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.morphology.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.morphology.drift_neutral }}</span>{% if dimension_summaries.morphology.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.morphology.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.morphology.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Tone</strong></td>
+            <td><span class="badge {{ dimension_summaries.tone.worst_risk }}">{{ dimension_summaries.tone.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.tone.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.tone.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.tone.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.tone.drift_neutral }}</span>{% if dimension_summaries.tone.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.tone.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.tone.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Factual</strong></td>
+            <td><span class="badge {{ dimension_summaries.factual.worst_risk }}">{{ dimension_summaries.factual.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.factual.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.factual.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.factual.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.factual.drift_neutral }}</span>{% if dimension_summaries.factual.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.factual.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.factual.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Schema</strong></td>
+            <td><span class="badge {{ dimension_summaries.schema.worst_risk }}">{{ dimension_summaries.schema.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.schema.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.schema.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.schema.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.schema.drift_neutral }}</span>{% if dimension_summaries.schema.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.schema.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.schema.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Instruction</strong></td>
+            <td><span class="badge {{ dimension_summaries.instruction.worst_risk }}">{{ dimension_summaries.instruction.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.instruction.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.instruction.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.instruction.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.instruction.drift_neutral }}</span>{% if dimension_summaries.instruction.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.instruction.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.instruction.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Refusal</strong></td>
+            <td><span class="badge {{ dimension_summaries.refusal.worst_risk }}">{{ dimension_summaries.refusal.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.refusal.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.refusal.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.refusal.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.refusal.drift_neutral }}</span>{% if dimension_summaries.refusal.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.refusal.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.refusal.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Semantic</strong></td>
+            <td><span class="badge {{ dimension_summaries.semantic.worst_risk }}">{{ dimension_summaries.semantic.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.semantic.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.semantic.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.semantic.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.semantic.drift_neutral }}</span>{% if dimension_summaries.semantic.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.semantic.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.semantic.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Claim</strong></td>
+            <td><span class="badge {{ dimension_summaries.claim.worst_risk }}">{{ dimension_summaries.claim.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.claim.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.claim.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.claim.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.claim.drift_neutral }}</span>{% if dimension_summaries.claim.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.claim.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.claim.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td><span class="badge {{ dimension_summaries.latency.worst_risk }}">{{ dimension_summaries.latency.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.latency.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.latency.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.latency.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.latency.drift_neutral }}</span>{% if dimension_summaries.latency.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.latency.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.latency.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Consistency</strong></td>
+            <td><span class="badge {{ dimension_summaries.consistency.worst_risk }}">{{ dimension_summaries.consistency.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.consistency.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.consistency.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.consistency.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.consistency.drift_neutral }}</span>{% if dimension_summaries.consistency.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.consistency.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.consistency.probes_affected }}</td>
+          </tr>
+          <tr>
+            <td><strong>Custom assertions</strong></td>
+            <td><span class="badge {{ dimension_summaries.custom_assertions.worst_risk }}">{{ dimension_summaries.custom_assertions.worst_risk }}</span></td>
+            <td>{% if dimension_summaries.custom_assertions.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.custom_assertions.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.custom_assertions.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.custom_assertions.drift_neutral }}</span>{% if dimension_summaries.custom_assertions.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.custom_assertions.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{{ dimension_summaries.custom_assertions.probes_affected }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Red probes</h2>
+      <p class="muted" style="margin-top:0">Blocking regressions need remediation before rollout. Red with improvement or neutral valence still needs human verification.</p>
+
+      <h3 class="snap">Blocking regressions</h3>
+      {% for pr in probe_results %}
+        {% if pr.overall_risk == "Red" and pr.overall_direction == "Regression" %}
+        <details class="probe" open>
+          <summary>
+            <span class="probe-title">{{ pr.probe.name }}</span>
+            <span class="badge Red dir-{{ pr.overall_direction | lower }}">Red</span>
+            <span class="probe-meta">{{ pr.probe.category }}</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">{{ pr.probe.tags | join(separator=", ") }}</p>
+            {% if pr.notes %}<ul class="compact">{% for n in pr.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>{{ pr.v1_content }}</pre></div>
+              <div><h3 class="snap">v2</h3><pre>{{ pr.v2_content }}</pre></div>
+            </div>
+          </div>
+        </details>
+        {% endif %}
+      {% endfor %}
+
+      <h3 class="snap">Improvements to verify</h3>
+      {% for pr in probe_results %}
+        {% if pr.overall_risk == "Red" and pr.overall_direction != "Regression" %}
+        <details class="probe">
+          <summary>
+            <span class="probe-title">{{ pr.probe.name }}</span>
+            <span class="badge Red dir-{{ pr.overall_direction | lower }}">Red</span>
+            <span class="probe-meta">{{ pr.overall_direction }} · {{ pr.probe.category }}</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">{{ pr.probe.tags | join(separator=", ") }}</p>
+            {% if pr.notes %}<ul class="compact">{% for n in pr.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>{{ pr.v1_content }}</pre></div>
+              <div><h3 class="snap">v2</h3><pre>{{ pr.v2_content }}</pre></div>
+            </div>
+          </div>
+        </details>
+        {% endif %}
+      {% endfor %}
+    </section>
+
+    <section class="panel">
+      <h2>All probe results</h2>
+      <p class="muted" style="margin-top:0">Expand for prompt, dimension snapshot (with drift arrows), claim intelligence, and responses. Consistency σ shows run variance when multi-run sampling was enabled.</p>
+
+      {% for pr in probe_results %}
+      <details class="probe">
+        <summary>
+          <span class="probe-title">{{ pr.probe.name }}</span>
+          <span class="badge {{ pr.overall_risk }} dir-{{ pr.overall_direction | lower }}">{{ pr.overall_risk }}</span>
+          {% if pr.dimensions.consistency %}
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 {{ pr.dimensions.consistency.v1_variance | round }} · v2 {{ pr.dimensions.consistency.v2_variance | round }}</span>
+          {% endif %}
+          <span class="probe-meta">{{ pr.probe.category }} · {{ pr.overall_direction }}</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>{{ pr.probe.prompt }}</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.morphology.risk }}">{{ pr.dimensions.morphology.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.morphology.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.morphology.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.morphology.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.morphology.direction }} · Δ tokens ≈ {{ (pr.dimensions.morphology.delta.token_delta_pct * 100) | round }}% · type Δ {{ pr.dimensions.morphology.delta.response_type_changed }}</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.tone.risk }}">{{ pr.dimensions.tone.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.tone.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.tone.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.tone.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.tone.direction }} · formality Δ {{ (pr.dimensions.tone.delta.formality_delta * 100) | round }}%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.semantic.risk }}">{{ pr.dimensions.semantic.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.semantic.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.semantic.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.semantic.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.semantic.direction }} · sim {{ pr.dimensions.semantic.cosine_similarity }}{% if pr.dimensions.semantic.semantic_scoring_disabled %} · <span class="muted">disabled</span>{% endif %}</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.claim.risk }}">{{ pr.dimensions.claim.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.claim.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.claim.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.claim.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.claim.direction }} · preservation {{ pr.dimensions.claim.preservation_score }} · dropped {{ pr.dimensions.claim.dropped_claims | length }} · new {{ pr.dimensions.claim.new_claims | length }}</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.latency.risk }}">{{ pr.dimensions.latency.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.latency.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.latency.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.latency.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.latency.direction }} · v1 {{ pr.dimensions.latency.v1_latency_ms }} ms · v2 {{ pr.dimensions.latency.v2_latency_ms }} ms · Δ {{ pr.dimensions.latency.delta_ms }} ms</td>
+              </tr>
+              {% if pr.dimensions.consistency %}
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.consistency.risk }}">{{ pr.dimensions.consistency.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.consistency.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.consistency.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.consistency.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.consistency.direction }} · runs {{ pr.dimensions.consistency.v1_runs }}/{{ pr.dimensions.consistency.v2_runs }} · var {{ pr.dimensions.consistency.v1_variance | round }} / {{ pr.dimensions.consistency.v2_variance | round }}</td>
+              </tr>
+              {% endif %}
+              {% if pr.dimensions.custom_assertions %}
+              <tr>
+                <th>Custom</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.custom_assertions.risk }}">{{ pr.dimensions.custom_assertions.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.custom_assertions.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.custom_assertions.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.custom_assertions.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.custom_assertions.direction }} · pass v1 {{ (pr.dimensions.custom_assertions.v1_pass_rate * 100) | round }}% · v2 {{ (pr.dimensions.custom_assertions.v2_pass_rate * 100) | round }}%</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.refusal.risk }}">{{ pr.dimensions.refusal.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.refusal.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.refusal.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.refusal.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.refusal.direction }} · new {{ pr.dimensions.refusal.new_refusal }} · lifted {{ pr.dimensions.refusal.refusal_lifted }}</td>
+              </tr>
+              {% if pr.dimensions.factual %}
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.factual.risk }}">{{ pr.dimensions.factual.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.factual.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.factual.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.factual.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.factual.direction }} · regression {{ pr.dimensions.factual.regression }}</td>
+              </tr>
+              {% endif %}
+              {% if pr.dimensions.schema %}
+              <tr>
+                <th>Schema</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.schema.risk }}">{{ pr.dimensions.schema.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.schema.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.schema.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.schema.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.schema.direction }} · v2 JSON ok {{ pr.dimensions.schema.v2_valid_json }}</td>
+              </tr>
+              {% endif %}
+              {% if pr.dimensions.instruction %}
+              <tr>
+                <th>Instruction</th>
+                <td class="risk"><span class="badge {{ pr.dimensions.instruction.risk }}">{{ pr.dimensions.instruction.risk }}</span></td>
+                <td class="dir">{% if pr.dimensions.instruction.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.instruction.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.instruction.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
+                <td>{{ pr.dimensions.instruction.direction }} · v2 pass {{ (pr.dimensions.instruction.v2_pass_rate * 100) | round }}%</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">{{ pr.dimensions.claim.matched_pairs | length }} matched · {{ pr.dimensions.claim.dropped_claims | length }} dropped · {{ pr.dimensions.claim.new_claims | length }} new</span></summary>
+            {% if pr.dimensions.claim.matched_pairs %}
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                {% for m in pr.dimensions.claim.matched_pairs %}
+                <li>sim {{ m.similarity | round }} · anchors ok {{ m.anchor_agreement }} · <span class="muted">v1:</span> {{ m.v1_claim.text }} <span class="muted">↔ v2:</span> {{ m.v2_claim.text }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if pr.dimensions.claim.dropped_claims %}
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                {% for c in pr.dimensions.claim.dropped_claims %}
+                <li>{{ c.text }}{% if c.anchors %} · anchors: {% for a in c.anchors %}{{ a.value }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if pr.dimensions.claim.new_claims %}
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                {% for c in pr.dimensions.claim.new_claims %}
+                <li>{{ c.text }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if pr.dimensions.claim.drifted_claims %}
+            <div class="claim-block">
+              <h4>Drifted anchors</h4>
+              <ul class="compact">
+                {% for d in pr.dimensions.claim.drifted_claims %}
+                <li>sim {{ d.similarity | round }} · {{ d.v1_claim.text }} ↔ {{ d.v2_claim.text }}
+                  {% if d.drifted_anchors %} — {% for a in d.drifted_anchors %}{{ a.anchor_type }}: "{{ a.v1_value }}" → "{{ a.v2_value }}"{% if not loop.last %}; {% endif %}{% endfor %}{% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if pr.dimensions.claim.matched_pairs | length == 0 and pr.dimensions.claim.dropped_claims | length == 0 and pr.dimensions.claim.new_claims | length == 0 and pr.dimensions.claim.drifted_claims | length == 0 %}
+            <p class="muted" style="margin:0.5rem 0 0">No claim rows extracted for this pair.</p>
+            {% endif %}
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>{{ pr.v1_content }}</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>{{ pr.v2_content }}</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+    </section>
+
+    <section class="panel">
+      <h2>Upgrade path</h2>
+      <p class="muted" style="margin-top:0">Structured rollout view. Certified prompts appear when mutations validated.</p>
+      <p class="mono" style="font-size:0.82rem;color:var(--muted)">
+        Blocking {{ upgrade_path.blocking_regressions | length }}
+        · Verify {{ upgrade_path.improvements_to_verify | length }}
+        · Neutral {{ upgrade_path.neutral_changes | length }}
+        · Certified {{ upgrade_path.certified_prompts | length }}
+      </p>
+
+      {% if upgrade_path.blocking_regressions %}
+      <h3 class="snap">Blocking regressions</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.blocking_regressions %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if upgrade_path.improvements_to_verify %}
+      <h3 class="snap">Improvements to verify</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.improvements_to_verify %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if upgrade_path.neutral_changes %}
+      <h3 class="snap">Neutral changes</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if upgrade_path.certified_prompts %}
+      <h3 class="snap">Certified prompt replacements</h3>
+      {% for c in upgrade_path.certified_prompts %}
+      <details class="probe" style="margin-bottom:0.75rem">
+        <summary><span class="probe-title">{{ c.probe_name }}</span><span class="pill">validated {{ c.validated }}</span>{% if c.strategies_applied | length > 0 %}<span class="probe-meta" style="margin-left:0.5rem">{{ c.strategies_applied | length }} strategies</span>{% endif %}</summary>
+        <div style="padding:0.75rem 1rem 1rem">
+          <div class="diff-actions">
+            <button type="button" class="copy-btn" onclick="arsenicCopy('cert-mut-{{ loop.index0 }}')">Copy mutated prompt</button>
+          </div>
+          <div class="grid">
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Original</h4><pre id="cert-orig-{{ loop.index0 }}">{{ c.original_prompt }}</pre></div>
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="cert-mut-{{ loop.index0 }}">{{ c.mutated_prompt }}</pre></div>
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+      {% endif %}
+    </section>
+
+    {% if mutation_results %}
+    <section class="panel">
+      <h2>Mutation engine</h2>
+      <p class="muted" style="margin-top:0">Rule-based prompt trials against v2. Copy any mutated prompt for manual testing.</p>
+      {% for m in mutation_results %}
+      <details class="probe" style="margin-bottom:0.75rem">
+        <summary>
+          <span class="probe-title">{{ m.probe_name }}</span>
+          <span class="badge {% if m.validated %}Green{% else %}Amber{% endif %}">{% if m.validated %}Certified{% else %}Trial{% endif %}</span>
+          <span class="probe-meta">risk after {{ m.validation_risk }} · {{ m.strategies_applied | length }} steps</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1rem">
+          <p class="muted" style="margin-top:0">{{ m.notes }}</p>
+          <div class="diff-actions">
+            <button type="button" class="copy-btn" onclick="arsenicCopy('eng-mut-{{ loop.index0 }}')">Copy mutated prompt</button>
+          </div>
+          <div class="grid">
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Original</h4><pre>{{ m.original_prompt }}</pre></div>
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-{{ loop.index0 }}">{{ m.mutated_prompt }}</pre></div>
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="panel">
+      <h2>Upgrade recommendation</h2>
+      {% if summary.safe_to_upgrade %}
+      <p>Overall risk is acceptable for a controlled rollout. Review amber items and any "verify" red valence before broad deployment.</p>
+      {% else %}
+      <p>Overall risk requires remediation: resolve blocking regressions or adjust prompts and policy before upgrading.</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <div id="arsenic-toast" class="toast" role="status">Copied to clipboard</div>
+  <script>
+    function arsenicCopy(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var t = document.getElementById('arsenic-toast');
+          if (t) { t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600); }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

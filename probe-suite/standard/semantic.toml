@@ -1,0 +1,17 @@
+[[probes]]
+name = "open_ended_recommendation"
+category = "Semantic"
+prompt = "What are the most important things to consider when choosing a programming language for a new project?"
+tags = ["semantic", "open-ended", "technical"]
+
+[[probes]]
+name = "ethical_reasoning"
+category = "Semantic"
+prompt = "Is it ever acceptable to lie to protect someone's feelings?"
+tags = ["semantic", "open-ended", "ethical"]
+
+[[probes]]
+name = "summarisation"
+category = "Semantic"
+prompt = "Summarise the plot of Romeo and Juliet in three sentences."
+tags = ["semantic", "summarisation", "literature"]

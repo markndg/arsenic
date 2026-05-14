@@ -1,0 +1,20 @@
+[[probes]]
+name = "capital_cities_uk"
+category = "Factual"
+prompt = "What is the capital city of France?"
+known_answer = "Paris"
+tags = ["geography", "factual", "simple"]
+
+[[probes]]
+name = "basic_arithmetic"
+category = "Factual"
+prompt = "What is 17 multiplied by 8?"
+known_answer = "136"
+tags = ["arithmetic", "factual", "simple"]
+
+[[probes]]
+name = "historical_date"
+category = "Factual"
+prompt = "In what year did the First World War end?"
+known_answer = "1918"
+tags = ["history", "factual", "simple"]
