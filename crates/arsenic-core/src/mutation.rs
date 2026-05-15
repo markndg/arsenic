@@ -93,6 +93,11 @@ pub fn apply_mutations(probe: &Probe, strategies: &[MutationStrategy]) -> String
             MutationStrategy::AddLengthConstraint { max_words } => {
                 suffixes.push(format!(" Respond concisely in {max_words} words or fewer."));
             }
+            MutationStrategy::AddDetailInstruction { min_words } => {
+                suffixes.push(format!(
+                    " Provide a thorough and detailed answer of at least {min_words} words."
+                ));
+            }
             MutationStrategy::AddDirectnessInstruction => {
                 suffixes.push(" Provide a direct answer without elaboration.".into());
             }
@@ -112,6 +117,12 @@ pub fn apply_mutations(probe: &Probe, strategies: &[MutationStrategy]) -> String
                 let joined = required_values.join(", ");
                 suffixes.push(format!(
                     " Your answer must address or include these specific values: {joined}."
+                ));
+            }
+            MutationStrategy::AddTopicCoverageInstruction { topics } => {
+                let joined = topics.join(", ");
+                suffixes.push(format!(
+                    " Ensure your response covers the following topics: {joined}."
                 ));
             }
             MutationStrategy::AddPrecisionInstruction => {

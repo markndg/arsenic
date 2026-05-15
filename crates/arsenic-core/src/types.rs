@@ -570,12 +570,15 @@ pub struct MutationResult {
 #[serde(rename_all = "snake_case")]
 pub enum MutationStrategy {
     AddLengthConstraint { max_words: usize },
+    AddDetailInstruction { min_words: usize },
     AddDirectnessInstruction,
     AddFormalityInstruction,
     AddConfidenceInstruction,
     SoftenPhrasing,
     AddEducationalContext,
     AddClaimInstruction { required_values: Vec<String> },
+    /// Long-form drift: require coverage of baseline section topics (not specific values).
+    AddTopicCoverageInstruction { topics: Vec<String> },
     AddPrecisionInstruction,
     ReinforceInstruction { instruction_text: String },
     Custom { hint: String },
