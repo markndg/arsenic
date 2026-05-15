@@ -31,7 +31,7 @@ pub struct Probe {
     pub custom_assertions: Vec<CustomAssertion>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "PascalCase")]
 pub enum ProbeCategory {
     Morphology,
@@ -41,6 +41,29 @@ pub enum ProbeCategory {
     Instruction,
     Refusal,
     Semantic,
+}
+
+impl ProbeCategory {
+    /// Minimum preservation score before claim drift is Red (category-specific).
+    pub fn preservation_threshold(self) -> f64 {
+        match self {
+            Self::Factual | Self::Schema | Self::Instruction => 0.70,
+            Self::Morphology | Self::Tone | Self::Semantic | Self::Refusal => 0.50,
+        }
+    }
+
+    /// Upper preservation band before Green (Amber between this and [`Self::preservation_threshold`]).
+    pub fn preservation_amber_threshold(self) -> f64 {
+        match self {
+            Self::Factual | Self::Schema | Self::Instruction => 0.90,
+            Self::Morphology | Self::Tone | Self::Semantic | Self::Refusal => 0.70,
+        }
+    }
+
+    /// Unmatched v1 claims alone force Red (tight factual/schema probes).
+    pub fn dropped_claims_force_red(self) -> bool {
+        matches!(self, Self::Factual | Self::Schema | Self::Instruction)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -220,9 +243,10 @@ pub struct ProbeDimensions {
     pub custom_assertions: Option<CustomAssertionDiff>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "PascalCase")]
 pub enum RiskLevel {
+    #[default]
     Green,
     Amber,
     Red,
@@ -416,6 +440,13 @@ pub struct ClaimDiff {
     pub new_claims: Vec<Claim>,
     pub drifted_claims: Vec<ClaimDrift>,
     pub preservation_score: f64,
+    /// Red-band preservation cutoff used for this probe (from [`ProbeCategory::preservation_threshold`]).
+    #[serde(default = "default_preservation_threshold")]
+    pub preservation_threshold: f64,
+}
+
+fn default_preservation_threshold() -> f64 {
+    0.70
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -508,6 +539,9 @@ pub struct CertifiedPromptDiff {
     pub original_prompt: String,
     pub mutated_prompt: String,
     pub validated: bool,
+    /// Overall probe risk after re-running the mutated prompt against v2.
+    #[serde(default)]
+    pub validation_risk: RiskLevel,
     /// Strategies cumulatively applied to produce `mutated_prompt` (mirrors validated [`MutationResult`]).
     #[serde(default)]
     pub strategies_applied: Vec<MutationStrategy>,
@@ -608,6 +642,7 @@ impl Default for ClaimDiff {
             new_claims: Vec::new(),
             drifted_claims: Vec::new(),
             preservation_score: 1.0,
+            preservation_threshold: ProbeCategory::Semantic.preservation_threshold(),
         }
     }
 }

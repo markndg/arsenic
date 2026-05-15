@@ -9,7 +9,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::embedding::{cosine_f32, embed_batch_hash};
 use crate::types::{
     AnchorDrift, AnchorType, Claim, ClaimAnchor, ClaimDiff, ClaimDrift, ClaimMatch, DriftDirection,
-    RiskLevel,
+    ProbeCategory, RiskLevel,
 };
 
 pub struct ClaimExtractor;
@@ -105,6 +105,11 @@ fn is_noise_numeric_token(raw: &str) -> bool {
             | "9200"
             | "27017"
     )
+}
+
+/// Whether a capitalised token is too generic to use as a mutation anchor or required value.
+pub fn is_spurious_anchor_value(word: &str) -> bool {
+    is_spurious_proper_noun_token(word)
 }
 
 fn is_spurious_proper_noun_token(word: &str) -> bool {
@@ -260,7 +265,16 @@ impl ClaimMatcher {
         }
     }
 
-    pub fn match_claims(&self, v1_claims: Vec<Claim>, v2_claims: Vec<Claim>) -> anyhow::Result<ClaimDiff> {
+    pub fn match_claims(
+        &self,
+        v1_claims: Vec<Claim>,
+        v2_claims: Vec<Claim>,
+        category: ProbeCategory,
+    ) -> anyhow::Result<ClaimDiff> {
+        let preservation_threshold = category.preservation_threshold();
+        let preservation_amber = category.preservation_amber_threshold();
+        let dropped_force_red = category.dropped_claims_force_red();
+
         if v1_claims.is_empty() && v2_claims.is_empty() {
             return Ok(ClaimDiff {
                 risk: RiskLevel::Green,
@@ -272,6 +286,7 @@ impl ClaimMatcher {
                 new_claims: vec![],
                 drifted_claims: vec![],
                 preservation_score: 1.0,
+                preservation_threshold,
             });
         }
 
@@ -346,9 +361,15 @@ impl ClaimMatcher {
 
         let preservation = Self::preservation_score(matched_pairs.len(), v1_claims.len());
         let any_drift_anchors = drifted.iter().any(|d| !d.drifted_anchors.is_empty());
-        let risk = if preservation < 0.70 || !dropped.is_empty() || any_drift_anchors {
+        let risk = if preservation < preservation_threshold
+            || (dropped_force_red && !dropped.is_empty())
+            || any_drift_anchors
+        {
             RiskLevel::Red
-        } else if preservation < 0.90 || !drifted.is_empty() {
+        } else if preservation < preservation_amber
+            || (!dropped_force_red && !dropped.is_empty())
+            || !drifted.is_empty()
+        {
             RiskLevel::Amber
         } else {
             RiskLevel::Green
@@ -372,6 +393,7 @@ impl ClaimMatcher {
             new_claims,
             drifted_claims: drifted,
             preservation_score: preservation,
+            preservation_threshold,
         })
     }
 
@@ -646,6 +668,29 @@ mod anchor_tests {
             assert!(
                 !proper.iter().any(|v| *v == banned),
                 "did not expect {banned} in {proper:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn preservation_thresholds_by_category() {
+        assert!((ProbeCategory::Factual.preservation_threshold() - 0.70).abs() < f64::EPSILON);
+        assert!((ProbeCategory::Schema.preservation_threshold() - 0.70).abs() < f64::EPSILON);
+        assert!((ProbeCategory::Instruction.preservation_threshold() - 0.70).abs() < f64::EPSILON);
+        assert!((ProbeCategory::Semantic.preservation_threshold() - 0.50).abs() < f64::EPSILON);
+        assert!((ProbeCategory::Tone.preservation_threshold() - 0.50).abs() < f64::EPSILON);
+        assert!(ProbeCategory::Factual.dropped_claims_force_red());
+        assert!(!ProbeCategory::Tone.dropped_claims_force_red());
+    }
+
+    #[test]
+    fn section_header_tokens_are_spurious_anchors() {
+        for w in [
+            "Select", "Choose", "Static", "System", "Management", "Experience", "Requirements",
+        ] {
+            assert!(
+                is_spurious_anchor_value(w),
+                "expected {w} to be filtered"
             );
         }
     }
