@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 mod model_download;
 mod mutation_validate;
+mod reconcile;
 
 #[derive(Parser)]
 #[command(name = "arsenic", version, about = "ARSENIC — model drift certification")]
@@ -100,6 +101,53 @@ enum Commands {
     Models {
         #[command(subcommand)]
         sub: ModelsCmd,
+    },
+    /// Reconcile a single prompt: analyse drift and certify a prompt for the target model
+    Reconcile {
+        #[arg(long)]
+        prompt: Option<String>,
+        #[arg(long)]
+        prompt_file: Option<PathBuf>,
+        #[arg(long)]
+        v1: Option<String>,
+        #[arg(long)]
+        v2: String,
+        #[arg(long)]
+        v1_endpoint: Option<String>,
+        #[arg(long)]
+        v2_endpoint: String,
+        #[arg(long)]
+        v1_key_env: Option<String>,
+        #[arg(long)]
+        v2_key_env: String,
+        #[arg(long)]
+        v1_response: Option<PathBuf>,
+        #[arg(long)]
+        v2_response: Option<PathBuf>,
+        #[arg(long)]
+        v1_response_inline: Option<String>,
+        #[arg(long)]
+        v2_response_inline: Option<String>,
+        #[arg(long)]
+        system_prompt: Option<String>,
+        #[arg(long)]
+        system_prompt_file: Option<PathBuf>,
+        #[arg(long, default_value_t = 5)]
+        max_strategies: usize,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+        #[arg(long)]
+        output: Option<PathBuf>,
+        #[arg(long)]
+        json: Option<PathBuf>,
+        #[arg(long)]
+        no_semantic: bool,
+        #[arg(long, default_value = "baseline")]
+        v1_label: String,
+        #[arg(long, default_value = "target")]
+        v2_label: String,
+        #[arg(long, default_value_t = 0.0)]
+        temperature: f64,
     },
 }
 
@@ -440,6 +488,56 @@ async fn main() -> anyhow::Result<()> {
         Commands::Validate { path } => {
             validate_corpus(&path)?;
             println!("{}", "OK".green());
+        }
+        Commands::Reconcile {
+            prompt,
+            prompt_file,
+            v1,
+            v2,
+            v1_endpoint,
+            v2_endpoint,
+            v1_key_env,
+            v2_key_env,
+            v1_response,
+            v2_response,
+            v1_response_inline,
+            v2_response_inline,
+            system_prompt,
+            system_prompt_file,
+            max_strategies,
+            timeout_secs,
+            output,
+            json,
+            no_semantic,
+            v1_label,
+            v2_label,
+            temperature,
+        } => {
+            reconcile::run_reconcile_command(reconcile::ReconcileArgs {
+                prompt,
+                prompt_file,
+                v1,
+                v2,
+                v1_endpoint,
+                v2_endpoint,
+                v1_key_env,
+                v2_key_env,
+                v1_response,
+                v2_response,
+                v1_response_inline,
+                v2_response_inline,
+                system_prompt,
+                system_prompt_file,
+                max_strategies,
+                timeout_secs,
+                output,
+                json,
+                no_semantic,
+                v1_label,
+                v2_label,
+                temperature,
+            })
+            .await?;
         }
         Commands::Models { sub } => match sub {
             ModelsCmd::Download { model, output } => {

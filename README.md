@@ -229,10 +229,78 @@ json = "./reports/latest.json"
  
 ---
  
+## Reconcile (single prompt)
+
+`reconcile` is the inverse of `compare --mutate`. You supply one prompt you care about; ARSENIC analyses the behavioural gap between a baseline and target model response, ranks drift signals by magnitude, and tries cumulative prompt mutations until overall risk improves or the attempt budget is exhausted. Output is a compact HTML/JSON report with a **certified prompt** (when validation succeeds) or a **manual review** flag (when the gap is too large to close with instructions alone).
+
+That second outcome is valid: you cannot always prompt-engineer a smaller model into matching a larger one on a complex open-ended question. Reconcile tells you when it worked and when it did not.
+
+### Input modes
+
+| Mode | How baseline response is supplied | Target endpoint |
+|------|-----------------------------------|-----------------|
+| **1 — Generate** | `--v1` + `--v1-endpoint` + `--v1-key-env` (both models called) | Required (`--v2`, `--v2-endpoint`, `--v2-key-env`) |
+| **2 — Files** | `--v1-response` (and optionally `--v2-response`) | Required for validation |
+| **3 — Inline** | `--v1-response-inline` + `--v2-response-inline` | Required for validation |
+
+`--prompt` (or `--prompt-file`) is always required. Modes cannot be mixed (e.g. inline flags with `--v1`).
+
+```bash
+# Mode 1 — generate both responses, certify against target
+./target/release/arsenic reconcile \
+  --prompt "Explain what APIs are to a junior developer" \
+  --v1 "openai:llama3.1:8b" --v2 "openai:llama3.2:3b" \
+  --v1-endpoint "http://localhost:11434/v1" --v2-endpoint "http://localhost:11434/v1" \
+  --v1-key-env OLLAMA_KEY --v2-key-env OLLAMA_KEY \
+  --max-strategies 5 \
+  --output ./reconcile.html --json ./reconcile.json
+
+# Mode 2 — baseline from production log; target response from file or live call
+./target/release/arsenic reconcile \
+  --prompt "Explain what APIs are to a junior developer" \
+  --v1-response ./baseline_output.txt \
+  --v2-response ./target_output.txt \
+  --v2 "openai:llama3.2:3b" \
+  --v2-endpoint "http://localhost:11434/v1" \
+  --v2-key-env OLLAMA_KEY \
+  --output ./reconcile.html
+
+# Mode 3 — inline responses (scripting / CI); target endpoint still used for validation
+./target/release/arsenic reconcile \
+  --prompt "What is the capital of France?" \
+  --v1-response-inline "Paris is the capital of France." \
+  --v2-response-inline "The capital city of France is Paris." \
+  --v2 "openai:llama3.2:3b" \
+  --v2-endpoint "http://localhost:11434/v1" \
+  --v2-key-env OLLAMA_KEY
+```
+
+Use Mode 2 when you already have a baseline reply from real traffic and only need to find the prompt fix against the new model. A truncated or partial target file in Mode 2 will inflate claim and semantic drift versus Mode 1 with the full live response — the engine will work harder and may correctly end in manual review.
+
+### How mutations are chosen
+
+Unlike `compare --mutate`, which applies strategies in a fixed order, reconcile **ranks signals by magnitude** (anchor drift and factual regression first, then schema, morphology, tone, semantic drift) and maps each signal to one or more strategies. Large anchor lists are split into chunks so each attempt adds the next cumulative prefix. Identical strategies never appear twice in the sequence.
+
+Long-form semantic probes with many dropped claims get **topic coverage** instructions (from `**bold headings**` in the baseline, capped at six topics) rather than a wall of required values. Shorter gaps use value-inclusion instructions.
+
+Validation runs up to `--max-strategies` attempts (default **5**). Each attempt fires the mutated prompt at the target endpoint and re-scores against the baseline response. The loop stops early on the first improvement (Red→Amber, Red→Green, or Amber→Green); otherwise all attempts are recorded and manual review is recommended.
+
+### Useful flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--max-strategies` | `5` | Cumulative mutation attempts |
+| `--timeout-secs` | `30` | API timeout per validation call |
+| `--no-semantic` | off | Disable semantic similarity dimension |
+| `--system-prompt` / `--system-prompt-file` | — | Shared system prompt for generation |
+
+---
+
 ## Commands
- 
+
 ```
 arsenic compare                    Run probe suite, write reports
+arsenic reconcile                  Single-prompt drift fix (see above)
 arsenic probe list                 List standard probes
 arsenic probe list --category tone Filter by category
 arsenic probe show <name>          Show one probe as JSON

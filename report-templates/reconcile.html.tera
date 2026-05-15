@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Reconcile {{ run_id }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-card: #151c26;
+      --border: #243044;
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --green: #2eb872;
+      --amber: #e8a838;
+      --red: #e24d56;
+      --font: "DM Sans", system-ui, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font); background: var(--bg-deep); color: var(--fg); line-height: 1.55; }
+    code, pre { font-family: var(--mono); font-size: 0.88em; }
+    .top-bar { height: 3px; background: linear-gradient(90deg, #067a70, var(--accent), #067a70); }
+    header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); }
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header .sub { color: var(--muted); margin-top: 0.35rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+    section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    h2 { margin: 0 0 0.75rem; font-size: 1.1rem; color: var(--accent); }
+    .badge { display: inline-block; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+    .badge.Green { background: rgba(46,184,114,0.2); color: var(--green); }
+    .badge.Amber { background: rgba(232,168,56,0.2); color: var(--amber); }
+    .badge.Red { background: rgba(226,77,86,0.2); color: var(--red); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    pre { background: #0d1218; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; overflow-x: auto; white-space: pre-wrap; margin: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
+    .signal-list { list-style: none; padding: 0; margin: 0; }
+    .signal-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .copy-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 0.35rem 0.75rem; cursor: pointer; font-family: var(--font); }
+    details { margin-top: 0.5rem; }
+    summary { cursor: pointer; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <header>
+    <h1>ARSENIC Reconcile</h1>
+    <p class="sub">Run {{ run_id }} · {{ generated_at }}</p>
+    <p class="sub">{{ v1_model.label }} ({{ v1_model.model_id }}) → {{ v2_model.label }} ({{ v2_model.model_id }})</p>
+    {% if certified %}
+    <p><span class="badge Green">CERTIFIED</span> validation risk: {{ validation_risk | default(value="—") }}</p>
+    {% else %}
+    <p><span class="badge Amber">MANUAL REVIEW</span></p>
+    {% endif %}
+  </header>
+  <main>
+    <section>
+      <h2>Prompt</h2>
+      <pre>{{ prompt }}</pre>
+    </section>
+
+    <section>
+      <h2>Response comparison</h2>
+      <div class="grid">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem">Baseline</p>
+          <pre>{{ v1_response }}</pre>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem">Target (initial)</p>
+          <pre>{{ v2_response }}</pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Delta analysis</h2>
+      <p>Overall risk: <span class="badge {{ delta.overall_risk }}">{{ delta.overall_risk }}</span>
+         · direction: {{ delta.overall_direction }}</p>
+      <table>
+        <thead><tr><th>Dimension</th><th>Risk</th><th>Direction</th></tr></thead>
+        <tbody>
+          <tr><td>Morphology</td><td><span class="badge {{ delta.dimensions.morphology.risk }}">{{ delta.dimensions.morphology.risk }}</span></td><td>{{ delta.dimensions.morphology.direction }}</td></tr>
+          <tr><td>Tone</td><td><span class="badge {{ delta.dimensions.tone.risk }}">{{ delta.dimensions.tone.risk }}</span></td><td>{{ delta.dimensions.tone.direction }}</td></tr>
+          <tr><td>Claim</td><td><span class="badge {{ delta.dimensions.claim.risk }}">{{ delta.dimensions.claim.risk }}</span></td><td>{{ delta.dimensions.claim.direction }}</td></tr>
+          <tr><td>Semantic</td><td><span class="badge {{ delta.dimensions.semantic.risk }}">{{ delta.dimensions.semantic.risk }}</span></td><td>{{ delta.dimensions.semantic.direction }}</td></tr>
+          <tr><td>Refusal</td><td><span class="badge {{ delta.dimensions.refusal.risk }}">{{ delta.dimensions.refusal.risk }}</span></td><td>{{ delta.dimensions.refusal.direction }}</td></tr>
+          {% if delta.dimensions.factual %}
+          <tr><td>Factual</td><td><span class="badge {{ delta.dimensions.factual.risk }}">{{ delta.dimensions.factual.risk }}</span></td><td>{{ delta.dimensions.factual.direction }}</td></tr>
+          {% endif %}
+          {% if delta.dimensions.schema %}
+          <tr><td>Schema</td><td><span class="badge {{ delta.dimensions.schema.risk }}">{{ delta.dimensions.schema.risk }}</span></td><td>{{ delta.dimensions.schema.direction }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Signal ranking</h2>
+      <ol class="signal-list">
+        {% for s in signals %}
+        <li>
+          <strong>{{ loop.index }}. {{ s.dimension }}</strong>
+          · magnitude {{ s.magnitude | round(precision=2) }}
+          · {{ s.direction }}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    {% if attempts %}
+    <section>
+      <h2>Mutation attempts</h2>
+      {% for a in attempts %}
+      <details>
+        <summary>Attempt {{ a.attempt_number }} — risk {{ a.risk_after }}{% if a.improved %} (improved){% endif %}</summary>
+        <p style="color:var(--muted)">Strategies: {% for st in a.strategies %}{{ st }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        <pre>{{ a.mutated_prompt }}</pre>
+        <p style="color:var(--muted)">Target response</p>
+        <pre>{{ a.v2_response }}</pre>
+      </details>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if certified and certified_prompt %}
+    <section>
+      <h2>Certified prompt</h2>
+      <button type="button" class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('cert-prompt').innerText)">Copy</button>
+      <pre id="cert-prompt">{{ certified_prompt }}</pre>
+      {% if validation_response %}
+      <p style="color:var(--muted);margin-top:1rem">Target response after certification</p>
+      <pre>{{ validation_response }}</pre>
+      {% endif %}
+    </section>
+    {% elif requires_manual_review %}
+    <section>
+      <h2>Manual review</h2>
+      <p>Automatic reconciliation did not reduce risk within the strategy budget.</p>
+      <ul>{% for n in notes %}<li>{{ n }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>
