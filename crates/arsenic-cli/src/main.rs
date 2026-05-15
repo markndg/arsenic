@@ -72,6 +72,9 @@ enum Commands {
         /// v2: completions per probe per endpoint for consistency scoring (1 disables extra runs).
         #[arg(long, default_value_t = 3)]
         consistency_runs: usize,
+        /// Request timeout in seconds for model API calls (default: 30). Increase for slow local models.
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
         /// v2: treat Amber latency like other dimensions when aggregating overall probe risk.
         #[arg(long)]
         latency_affects_risk: bool,
@@ -162,6 +165,7 @@ struct RunConfigSection {
     retry_attempts: Option<usize>,
     semantic_threshold: Option<f64>,
     consistency_runs: Option<usize>,
+    timeout_secs: Option<u64>,
     latency_affects_risk: Option<bool>,
 }
 
@@ -179,7 +183,6 @@ struct AdapterConfigSection {
     model_id: String,
     temperature: Option<f64>,
     max_tokens: Option<usize>,
-    timeout_secs: Option<u64>,
 }
 
 fn default_suite_path() -> PathBuf {
@@ -222,6 +225,7 @@ async fn main() -> anyhow::Result<()> {
             v1_label,
             v2_label,
             consistency_runs,
+            timeout_secs,
             latency_affects_risk,
             mutate,
         } => {
@@ -231,6 +235,11 @@ async fn main() -> anyhow::Result<()> {
                     .with_context(|| format!("read config {}", p.display()))?;
                 cfg_opt = Some(toml::from_str(&text).context("parse arsenic.toml")?);
             }
+            let timeout_secs_effective = cfg_opt
+                .as_ref()
+                .and_then(|c| c.run.timeout_secs)
+                .unwrap_or(timeout_secs);
+
             let (spec1, spec2, suite_str, corpus, conc, sem_thr, out_html, out_json) =
                 merge_compare_config(
                     cfg_opt.as_ref(),
@@ -247,6 +256,7 @@ async fn main() -> anyhow::Result<()> {
                     output,
                     json,
                     temperature,
+                    timeout_secs_effective,
                 )?;
 
             let consistency_runs_effective = cfg_opt
@@ -494,6 +504,7 @@ fn merge_compare_config(
     output_cli: Option<PathBuf>,
     json_cli: Option<PathBuf>,
     temperature_cli: f64,
+    timeout_secs: u64,
 ) -> anyhow::Result<(
     AdapterSpec,
     AdapterSpec,
@@ -510,6 +521,7 @@ fn merge_compare_config(
         v1_endpoint,
         v1_key_env,
         temperature_cli,
+        timeout_secs,
     )?;
     let spec2 = parse_model_cli_or_cfg(
         cfg.map(|c| &c.v2),
@@ -517,6 +529,7 @@ fn merge_compare_config(
         v2_endpoint,
         v2_key_env,
         temperature_cli,
+        timeout_secs,
     )?;
     let suite_str = standard_suite
         .or_else(|| cfg.and_then(|c| c.run.standard_suite.clone()))
@@ -539,6 +552,7 @@ fn parse_model_cli_or_cfg(
     endpoint_cli: Option<String>,
     key_env_cli: Option<String>,
     temperature_cli: f64,
+    timeout_secs: u64,
 ) -> anyhow::Result<AdapterSpec> {
     if let Some(s) = cli {
         let (adapter_type, model_id) = parse_model_spec(&s)?;
@@ -549,7 +563,7 @@ fn parse_model_cli_or_cfg(
             model_id,
             temperature: Some(temperature_cli),
             max_tokens: None,
-            timeout_secs: None,
+            timeout_secs: Some(timeout_secs),
         });
     }
     let sec = section.context("provide --v1/--v2 or a config file with [v1]/[v2]")?;
@@ -560,7 +574,7 @@ fn parse_model_cli_or_cfg(
         model_id: sec.model_id.clone(),
         temperature: sec.temperature.or(Some(temperature_cli)),
         max_tokens: sec.max_tokens,
-        timeout_secs: sec.timeout_secs,
+        timeout_secs: Some(timeout_secs),
     })
 }
 

@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 
+use crate::claim::is_spurious_anchor_value;
 use crate::types::{
     ClaimDiff, MorphologyDiff, MutationStrategy, Probe, RefusalDiff, ToneDiff,
 };
@@ -30,6 +31,9 @@ pub fn propose_strategies(
         .iter()
         .flat_map(|c| c.anchors.iter().map(|a| a.value.clone()))
     {
+        if is_spurious_anchor_value(&v) {
+            continue;
+        }
         if seen.insert(v.clone()) {
             dropped_values.push(v);
         }

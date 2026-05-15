@@ -225,7 +225,8 @@ impl ComparisonEngine {
         // from `raw` JSON or adapter endpoint strings.
         let c1 = ClaimExtractor::extract(&pair.v1.content);
         let c2 = ClaimExtractor::extract(&pair.v2.content);
-        self.claim_matcher.match_claims(c1, c2)
+        self.claim_matcher
+            .match_claims(c1, c2, pair.probe.category)
     }
 
     fn compare_morphology(&self, pair: &ResponsePair) -> MorphologyDiff {
@@ -347,8 +348,8 @@ impl ComparisonEngine {
 
     fn compare_schema(&self, pair: &ResponsePair) -> Option<SchemaDiff> {
         let schema = pair.probe.expected_schema.as_ref()?;
-        let v1_parsed = serde_json::from_str::<serde_json::Value>(pair.v1.content.trim());
-        let v2_parsed = serde_json::from_str::<serde_json::Value>(pair.v2.content.trim());
+        let v1_parsed = extract_json_value(&pair.v1.content);
+        let v2_parsed = extract_json_value(&pair.v2.content);
         let v1_valid_json = v1_parsed.is_ok();
         let v2_valid_json = v2_parsed.is_ok();
         let (v1_schema_ok, v1_miss, v1_extra, v1_types) = if let Ok(v) = &v1_parsed {
@@ -474,8 +475,15 @@ impl ComparisonEngine {
         let sim = weighted_sentence_similarity(&pair.v1.content, &pair.v2.content);
         let t = &self.risk_thresholds;
         let flagged = sim < self.semantic_threshold;
+        // Hash / token similarity: rephrased long answers often score below the red cutoff — cap at
+        // Amber so overall probe risk (max across dimensions) is not forced Red on semantic alone.
+        let hash_embedding_tier = self.claim_matcher.drift_threshold < 0.5;
         let risk = if sim < t.semantic_similarity_red {
-            RiskLevel::Red
+            if hash_embedding_tier {
+                RiskLevel::Amber
+            } else {
+                RiskLevel::Red
+            }
         } else if sim < t.semantic_similarity_amber {
             RiskLevel::Amber
         } else {
@@ -596,42 +604,10 @@ impl ComparisonEngine {
     }
 
     pub fn compute_probe_risk(&self, dimensions: &ProbeDimensions) -> RiskLevel {
-        let mut worst = RiskLevel::Green;
-        let semantic_risk = if dimensions.semantic.cosine_similarity.is_none() {
-            RiskLevel::Green
-        } else {
-            dimensions.semantic.risk.clone()
-        };
-        for r in [
-            &dimensions.morphology.risk,
-            &dimensions.tone.risk,
-            &dimensions.refusal.risk,
-            &semantic_risk,
-            &dimensions.claim.risk,
-        ] {
-            worst = worst.max((*r).clone());
-        }
-        if let Some(f) = &dimensions.factual {
-            worst = worst.max(f.risk.clone());
-        }
-        if let Some(s) = &dimensions.schema {
-            worst = worst.max(s.risk.clone());
-        }
-        if let Some(i) = &dimensions.instruction {
-            worst = worst.max(i.risk.clone());
-        }
-        if let Some(c) = &dimensions.custom_assertions {
-            worst = worst.max(c.risk.clone());
-        }
-        if let Some(co) = &dimensions.consistency {
-            worst = worst.max(co.risk.clone());
-        }
-        if self.latency_affects_risk {
-            worst = worst.max(dimensions.latency.risk.clone());
-        } else if matches!(dimensions.latency.risk, RiskLevel::Red) {
-            worst = worst.max(dimensions.latency.risk.clone());
-        }
-        worst
+        max_risk_level(probe_dimension_risk_levels(
+            dimensions,
+            self.latency_affects_risk,
+        ))
     }
 
     pub fn compute_overall_risk(&self, results: &[ProbeResult]) -> RiskLevel {
@@ -692,6 +668,58 @@ impl ComparisonEngine {
             }),
         }
     }
+}
+
+/// Overall probe risk = worst (max) risk among dimensions that count toward the rollup.
+/// Invariant: if no dimension is Red, the result is not Red.
+fn max_risk_level(levels: impl IntoIterator<Item = RiskLevel>) -> RiskLevel {
+    levels
+        .into_iter()
+        .max()
+        .unwrap_or(RiskLevel::Green)
+}
+
+/// Collect per-dimension risks that feed [`max_risk_level`] / [`ComparisonEngine::compute_probe_risk`].
+fn probe_dimension_risk_levels(
+    dimensions: &ProbeDimensions,
+    latency_affects_risk: bool,
+) -> Vec<RiskLevel> {
+    let semantic_for_overall = if dimensions.semantic.semantic_scoring_disabled {
+        RiskLevel::Green
+    } else {
+        dimensions.semantic.risk.clone()
+    };
+
+    let mut risks = vec![
+        dimensions.morphology.risk.clone(),
+        dimensions.tone.risk.clone(),
+        dimensions.refusal.risk.clone(),
+        semantic_for_overall,
+        dimensions.claim.risk.clone(),
+    ];
+    if let Some(f) = &dimensions.factual {
+        risks.push(f.risk.clone());
+    }
+    if let Some(s) = &dimensions.schema {
+        risks.push(s.risk.clone());
+    }
+    if let Some(i) = &dimensions.instruction {
+        risks.push(i.risk.clone());
+    }
+    if let Some(c) = &dimensions.custom_assertions {
+        risks.push(c.risk.clone());
+    }
+    if let Some(co) = &dimensions.consistency {
+        risks.push(co.risk.clone());
+    }
+    let latency = dimensions.latency.risk.clone();
+    if latency_affects_risk {
+        risks.push(latency);
+    } else if matches!(latency, RiskLevel::Red) {
+        // Per spec: Amber latency alone must not raise overall risk.
+        risks.push(latency);
+    }
+    risks
 }
 
 fn run_variance(runs: &[ModelResponse], _thresh: f64) -> f64 {
@@ -1119,6 +1147,7 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
                 original_prompt: m.original_prompt.clone(),
                 mutated_prompt: m.mutated_prompt.clone(),
                 validated: true,
+                validation_risk: m.validation_risk.clone(),
                 strategies_applied: m.strategies_applied.clone(),
             });
         }
@@ -1243,9 +1272,85 @@ fn run_instruction_check(ins: &ProbeInstruction, content: &str) -> InstructionCh
     }
 }
 
+/// Parse JSON from raw model text: whole body, fenced code blocks, or first balanced object/array.
+fn extract_json_value(content: &str) -> Result<serde_json::Value, serde_json::Error> {
+    let trimmed = content.trim();
+    if let Ok(v) = serde_json::from_str(trimmed) {
+        return Ok(v);
+    }
+    for block in extract_fenced_code_blocks(trimmed) {
+        if let Ok(v) = serde_json::from_str(block) {
+            return Ok(v);
+        }
+    }
+    if let Some(slice) = extract_balanced_json_slice(trimmed) {
+        return serde_json::from_str(slice);
+    }
+    serde_json::from_str(trimmed)
+}
+
+fn extract_fenced_code_blocks(content: &str) -> Vec<&str> {
+    let mut blocks = Vec::new();
+    let mut rest = content;
+    while let Some(start) = rest.find("```") {
+        rest = &rest[start + 3..];
+        rest = rest.trim_start();
+        if rest.starts_with("json") {
+            rest = rest[4..].trim_start();
+        } else if let Some((lang, tail)) = rest.split_once('\n') {
+            if !lang.contains(' ') && lang.len() <= 12 && !lang.contains('{') {
+                rest = tail;
+            }
+        }
+        if let Some(end) = rest.find("```") {
+            let block = rest[..end].trim();
+            if !block.is_empty() {
+                blocks.push(block);
+            }
+            rest = &rest[end + 3..];
+        } else {
+            break;
+        }
+    }
+    blocks
+}
+
+fn extract_balanced_json_slice(content: &str) -> Option<&str> {
+    let start = content.find(['{', '['])?;
+    let open = content.as_bytes()[start];
+    let close = if open == b'{' { b'}' } else { b']' };
+    let mut depth = 0i32;
+    let mut in_string = false;
+    let mut escape = false;
+    for (i, b) in content[start..].bytes().enumerate() {
+        if in_string {
+            if escape {
+                escape = false;
+            } else if b == b'\\' {
+                escape = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match b {
+            b'"' => in_string = true,
+            c if c == open => depth += 1,
+            c if c == close => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(&content[start..start + i + 1]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 fn check_output_format(content: &str, fmt: &OutputFormat) -> bool {
     match fmt {
-        OutputFormat::Json => serde_json::from_str::<serde_json::Value>(content.trim()).is_ok(),
+        OutputFormat::Json => extract_json_value(content).is_ok(),
         OutputFormat::Markdown => content.contains('#') || content.contains("**"),
         OutputFormat::PlainText => !content.contains("```") && !content.contains('|'),
         OutputFormat::BulletList => {
@@ -1359,6 +1464,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn extract_json_from_markdown_fence() {
+        let body = "Here is the JSON object representing a person:\n\n```\n{\n  \"name\": \"Jane Smith\",\n  \"age\": 34,\n  \"email\": \"jane@example.com\",\n  \"active\": true\n}\n```";
+        let v = extract_json_value(body).expect("parse fenced json");
+        assert_eq!(v["name"], "Jane Smith");
+        assert_eq!(v["age"], 34);
+    }
+
+    #[test]
+    fn certified_prompt_diff_carries_validation_risk() {
+        let mutations = vec![MutationResult {
+            probe_name: "p".into(),
+            original_prompt: "orig".into(),
+            mutated_prompt: "mut".into(),
+            strategies_applied: vec![],
+            validated: true,
+            validation_risk: RiskLevel::Amber,
+            requires_manual_review: false,
+            notes: String::new(),
+        }];
+        let path = build_upgrade_path(&[], &mutations);
+        assert_eq!(path.certified_prompts.len(), 1);
+        assert!(matches!(
+            path.certified_prompts[0].validation_risk,
+            RiskLevel::Amber
+        ));
+    }
+
+    #[test]
     fn latency_small_baseline_does_not_use_pct_spike() {
         let d = compute_latency_diff(12, 28);
         assert_eq!(d.delta_ms, 16);
@@ -1379,5 +1512,180 @@ mod tests {
         assert!(d.delta_pct > 1.0);
         assert!(matches!(d.risk, RiskLevel::Red));
         assert!(matches!(d.direction, DriftDirection::Regression));
+    }
+
+    #[test]
+    fn max_risk_level_is_simple_maximum() {
+        assert_eq!(
+            max_risk_level([RiskLevel::Green, RiskLevel::Amber, RiskLevel::Amber]),
+            RiskLevel::Amber
+        );
+        assert_eq!(
+            max_risk_level([RiskLevel::Amber, RiskLevel::Green]),
+            RiskLevel::Amber
+        );
+        assert_eq!(
+            max_risk_level([RiskLevel::Green, RiskLevel::Red, RiskLevel::Amber]),
+            RiskLevel::Red
+        );
+    }
+
+    #[test]
+    fn aggregate_probe_risk_amber_only_when_no_red_dimension() {
+        let dims = test_probe_dimensions(
+            RiskLevel::Amber,
+            RiskLevel::Green,
+            RiskLevel::Amber,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+        );
+        let overall = max_risk_level(probe_dimension_risk_levels(&dims, false));
+        assert!(
+            matches!(overall, RiskLevel::Amber),
+            "expected Amber overall, got {overall:?}"
+        );
+        assert!(!matches!(overall, RiskLevel::Red));
+    }
+
+    #[test]
+    fn aggregate_probe_risk_red_only_when_a_dimension_is_red() {
+        let dims = test_probe_dimensions(
+            RiskLevel::Amber,
+            RiskLevel::Green,
+            RiskLevel::Amber,
+            RiskLevel::Red,
+            RiskLevel::Green,
+            RiskLevel::Green,
+        );
+        let overall = max_risk_level(probe_dimension_risk_levels(&dims, false));
+        assert!(matches!(overall, RiskLevel::Red));
+    }
+
+    #[test]
+    fn aggregate_probe_risk_ignores_amber_latency_when_latency_affects_risk_false() {
+        let dims = test_probe_dimensions(
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Amber,
+            RiskLevel::Green,
+        );
+        let overall = max_risk_level(probe_dimension_risk_levels(&dims, false));
+        assert!(matches!(overall, RiskLevel::Green));
+    }
+
+    fn test_probe_dimensions(
+        morphology: RiskLevel,
+        tone: RiskLevel,
+        claim: RiskLevel,
+        semantic: RiskLevel,
+        latency: RiskLevel,
+        refusal: RiskLevel,
+    ) -> ProbeDimensions {
+        let semantic_has_score = !matches!(semantic, RiskLevel::Green);
+        ProbeDimensions {
+            morphology: MorphologyDiff {
+                risk: morphology,
+                direction: DriftDirection::Neutral,
+                v1: MorphologyMetrics {
+                    token_count: 1,
+                    word_count: 1,
+                    sentence_count: 1,
+                    paragraph_count: 1,
+                    has_lists: false,
+                    has_headers: false,
+                    has_code_blocks: false,
+                    has_caveats: false,
+                    response_type: ResponseType::SingleLine,
+                },
+                v2: MorphologyMetrics {
+                    token_count: 1,
+                    word_count: 1,
+                    sentence_count: 1,
+                    paragraph_count: 1,
+                    has_lists: false,
+                    has_headers: false,
+                    has_code_blocks: false,
+                    has_caveats: false,
+                    response_type: ResponseType::SingleLine,
+                },
+                delta: MorphologyDelta {
+                    token_delta: 0,
+                    token_delta_pct: 0.0,
+                    response_type_changed: false,
+                    structure_changed: false,
+                },
+            },
+            tone: ToneDiff {
+                risk: tone,
+                direction: DriftDirection::Neutral,
+                v1: ToneMetrics {
+                    formality_score: 0.5,
+                    assertiveness_score: 0.5,
+                    hedge_word_count: 0,
+                    contraction_count: 0,
+                    average_sentence_length: 10.0,
+                    passive_voice_ratio: 0.0,
+                },
+                v2: ToneMetrics {
+                    formality_score: 0.5,
+                    assertiveness_score: 0.5,
+                    hedge_word_count: 0,
+                    contraction_count: 0,
+                    average_sentence_length: 10.0,
+                    passive_voice_ratio: 0.0,
+                },
+                delta: ToneDelta {
+                    formality_delta: 0.0,
+                    assertiveness_delta: 0.0,
+                    hedge_word_delta: 0,
+                    significant_shift: false,
+                },
+            },
+            factual: None,
+            schema: None,
+            instruction: None,
+            refusal: RefusalDiff {
+                risk: refusal,
+                direction: DriftDirection::Neutral,
+                v1_refused: false,
+                v2_refused: false,
+                new_refusal: false,
+                refusal_lifted: false,
+            },
+            semantic: SemanticDiff {
+                risk: semantic,
+                direction: DriftDirection::Neutral,
+                cosine_similarity: if semantic_has_score { Some(0.5) } else { None },
+                semantic_scoring_disabled: false,
+                disabled_reason: None,
+                flagged_for_review: false,
+                similarity_threshold: 0.85,
+            },
+            claim: ClaimDiff {
+                risk: claim,
+                direction: DriftDirection::Neutral,
+                v1_claims: vec![],
+                v2_claims: vec![],
+                matched_pairs: vec![],
+                dropped_claims: vec![],
+                new_claims: vec![],
+                drifted_claims: vec![],
+                preservation_score: 1.0,
+                preservation_threshold: 0.5,
+            },
+            latency: LatencyDiff {
+                risk: latency,
+                direction: DriftDirection::Neutral,
+                v1_latency_ms: 100,
+                v2_latency_ms: 100,
+                delta_ms: 0,
+                delta_pct: 0.0,
+            },
+            consistency: None,
+            custom_assertions: None,
+        }
     }
 }

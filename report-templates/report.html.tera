@@ -512,7 +512,7 @@
                 <th>Claim</th>
                 <td class="risk"><span class="badge {{ pr.dimensions.claim.risk }}">{{ pr.dimensions.claim.risk }}</span></td>
                 <td class="dir">{% if pr.dimensions.claim.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.claim.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.claim.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
-                <td>{{ pr.dimensions.claim.direction }} · preservation {{ pr.dimensions.claim.preservation_score }} · dropped {{ pr.dimensions.claim.dropped_claims | length }} · new {{ pr.dimensions.claim.new_claims | length }}</td>
+                <td>{{ pr.dimensions.claim.direction }} · preservation {{ pr.dimensions.claim.preservation_score }} (≥ {{ pr.dimensions.claim.preservation_threshold }} for green band) · dropped {{ pr.dimensions.claim.dropped_claims | length }} · new {{ pr.dimensions.claim.new_claims | length }}</td>
               </tr>
               <tr>
                 <th>Latency</th>
@@ -660,7 +660,7 @@
       <h3 class="snap">Certified prompt replacements</h3>
       {% for c in upgrade_path.certified_prompts %}
       <details class="probe" style="margin-bottom:0.75rem">
-        <summary><span class="probe-title">{{ c.probe_name }}</span><span class="pill">validated {{ c.validated }}</span>{% if c.strategies_applied | length > 0 %}<span class="probe-meta" style="margin-left:0.5rem">{{ c.strategies_applied | length }} strategies</span>{% endif %}</summary>
+        <summary><span class="probe-title">{{ c.probe_name }}</span><span class="pill">validated {{ c.validated }}</span><span class="probe-meta" style="margin-left:0.5rem">risk after {{ c.validation_risk }}</span>{% if c.strategies_applied | length > 0 %}<span class="probe-meta" style="margin-left:0.5rem">{{ c.strategies_applied | length }} strategies</span>{% endif %}</summary>
         <div style="padding:0.75rem 1rem 1rem">
           <div class="diff-actions">
             <button type="button" class="copy-btn" onclick="arsenicCopy('cert-mut-{{ loop.index0 }}')">Copy mutated prompt</button>
