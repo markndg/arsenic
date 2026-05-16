@@ -1228,6 +1228,7 @@ mod tests {
             overall_risk: RiskLevel::Amber,
             overall_direction: DriftDirection::Neutral,
             drift_category: DriftCategory::NoSignificantDrift,
+            drift_severity: DriftSeverity::Informational,
             dimensions: ProbeDimensions {
                 morphology: MorphologyDiff {
                     risk: RiskLevel::Green,
