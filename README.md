@@ -1,11 +1,11 @@
 # ARSENIC
 
+ARSENIC detects behavioural drift between LLM versions before production upgrades.
+
 You get a deprecation notice. Your model is going away in 90 days. You upgrade to the new version, your tests pass,
 and three weeks later someone notices the support bot sounds different. The sales assistant lost something. The legal
 tool started hedging in ways that undermine confidence. Nothing broke — it just changed. And you had no way to see it
 coming.
-
-ARSENIC protects production behaviour during LLM model upgrades.
 
 Detect behavioural drift, classify regression severity, and generate validated prompt patches before switching models.
 
