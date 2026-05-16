@@ -208,6 +208,39 @@
     details.probe[open] > summary { border-bottom: 1px solid var(--border); }
     .probe-title { flex: 1; min-width: 8rem; }
     .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .migration-headline {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      color: #d4eaf7;
+      letter-spacing: -0.01em;
+    }
+    .migration-profile.safe .migration-headline { color: #9ee8c4; }
+    .migration-profile.unsafe .migration-headline { color: #f5c4a8; }
+    .mig-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+    }
+    .mig-pill {
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(8, 217, 198, 0.12);
+      border: 1px solid rgba(8, 217, 198, 0.35);
+      color: var(--accent);
+    }
+    .mig-verdict {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--muted);
+    }
+    .mig-verdict strong { color: var(--fg); }
+
     .var-pill {
       font-family: var(--mono);
       font-size: 0.68rem;
@@ -336,6 +369,38 @@
       <p style="margin:1rem 0 0;font-size:0.9rem">
         Safe to upgrade: <strong>{{ summary.safe_to_upgrade }}</strong>
         · Manual review items: <strong>{{ summary.requires_manual_review }}</strong>
+      </p>
+      <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
+        Critical regressions: <strong>{{ summary.drift_critical_regressions | default(value=summary.drift_behavioural_regressions) }}</strong>
+        · Policy drift: <strong>{{ summary.drift_policy }}</strong>
+        · Fidelity drift: <strong>{{ summary.drift_fidelity }}</strong>
+        · Structural drift: <strong>{{ summary.drift_structural }}</strong>
+        · Content compression: <strong>{{ summary.drift_content_compression }}</strong>
+      </p>
+    </section>
+
+    <section class="panel migration-profile {% if migration_profile.safe_to_upgrade %}safe{% else %}unsafe{% endif %}">
+      <h2>Migration profile</h2>
+      <p class="migration-headline">{{ migration_profile.headline }}</p>
+      <div class="mig-pills">
+        {% if migration_profile.speed_change %}
+        <span class="mig-pill">⚡ {{ migration_profile.speed_change }}</span>
+        {% endif %}
+        {% if migration_profile.verbosity_change %}
+        <span class="mig-pill">📝 {{ migration_profile.verbosity_change }}</span>
+        {% endif %}
+        {% if migration_profile.style_change %}
+        <span class="mig-pill">💬 {{ migration_profile.style_change }}</span>
+        {% endif %}
+        {% if migration_profile.reliability_change %}
+        <span class="mig-pill">📐 {{ migration_profile.reliability_change }}</span>
+        {% endif %}
+      </div>
+      <p class="mig-verdict">
+        Safe to upgrade: <strong>{{ migration_profile.safe_to_upgrade }}</strong>
+        {% if not migration_profile.safe_to_upgrade %}
+        — resolve critical regressions and policy changes in the upgrade path below
+        {% endif %}
       </p>
     </section>
 
@@ -491,6 +556,18 @@
           <table class="dimbreak">
             <tbody>
               <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  {% if pr.drift_category == "CriticalRegression" or pr.drift_category == "BehaviouralRegression" %}⛔ Critical regression
+                  {% elif pr.drift_category == "PolicyDrift" %}🔒 Policy drift
+                  {% elif pr.drift_category == "FidelityDrift" %}~ Fidelity drift
+                  {% elif pr.drift_category == "StructuralDrift" %}≈ Structural drift
+                  {% elif pr.drift_category == "ContentCompression" %}↓ Content compression
+                  {% else %}✓ No significant drift{% endif %}
+                  <span class="muted" style="margin-left:0.5rem">({{ pr.drift_category }})</span>
+                </td>
+              </tr>
+              <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge {{ pr.dimensions.morphology.risk }}">{{ pr.dimensions.morphology.risk }}</span></td>
                 <td class="dir">{% if pr.dimensions.morphology.direction == "Regression" %}<span class="dir-arrow-reg"></span>{% elif pr.dimensions.morphology.direction == "Improvement" %}<span class="dir-arrow-imp"></span>{% elif pr.dimensions.morphology.direction == "NotApplicable" %}<span class="dir-arrow-na"></span>{% else %}<span class="dir-arrow-neu"></span>{% endif %}</td>
@@ -635,17 +712,22 @@
 
     <section class="panel">
       <h2>Upgrade path</h2>
-      <p class="muted" style="margin-top:0">Structured rollout view. Certified prompts appear when mutations validated.</p>
+      <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
       <p class="mono" style="font-size:0.82rem;color:var(--muted)">
         Blocking {{ upgrade_path.blocking_regressions | length }}
         · Verify {{ upgrade_path.improvements_to_verify | length }}
         · Neutral {{ upgrade_path.neutral_changes | length }}
-        · Certified {{ upgrade_path.certified_prompts | length }}
+        · Validated {{ upgrade_path.certified_prompts | length }}
       </p>
 
-      {% if upgrade_path.blocking_regressions %}
-      <h3 class="snap">Blocking regressions</h3>
-      <ul class="upgrade-list">{% for u in upgrade_path.blocking_regressions %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% set critical_blockers = upgrade_path.critical_regressions | default(value=upgrade_path.behavioural_regressions) %}
+      {% if critical_blockers %}
+      <h3 class="snap">Critical regressions</h3>
+      <ul class="upgrade-list">{% for u in critical_blockers %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if upgrade_path.policy_changes %}
+      <h3 class="snap">Policy changes</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.policy_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
       {% endif %}
       {% if upgrade_path.improvements_to_verify %}
       <h3 class="snap">Improvements to verify</h3>
@@ -653,11 +735,17 @@
       {% endif %}
       {% if upgrade_path.neutral_changes %}
       <h3 class="snap">Neutral changes</h3>
-      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}<li><strong>{{ u.probe_name }}</strong>
+        {% if u.drift_category == "FidelityDrift" %}<span class="muted">~ Fidelity drift</span>
+        {% elif u.drift_category == "StructuralDrift" %}<span class="muted">≈ Structural drift</span>
+        {% elif u.drift_category == "ContentCompression" %}<span class="muted">↓ Content compression</span>
+        {% elif u.drift_category == "NoSignificantDrift" %}<span class="muted">✓ No significant drift</span>
+        {% else %}<span class="muted">{{ u.drift_category }}</span>{% endif %}
+        — {{ u.summary }}</li>{% endfor %}</ul>
       {% endif %}
 
       {% if upgrade_path.certified_prompts %}
-      <h3 class="snap">Certified prompt replacements</h3>
+      <h3 class="snap">Validated prompt patches</h3>
       {% for c in upgrade_path.certified_prompts %}
       <details class="probe" style="margin-bottom:0.75rem">
         <summary><span class="probe-title">{{ c.probe_name }}</span><span class="pill">validated {{ c.validated }}</span><span class="probe-meta" style="margin-left:0.5rem">risk after {{ c.validation_risk }}</span>{% if c.strategies_applied | length > 0 %}<span class="probe-meta" style="margin-left:0.5rem">{{ c.strategies_applied | length }} strategies</span>{% endif %}</summary>
@@ -675,6 +763,27 @@
       {% endif %}
     </section>
 
+    <section class="panel">
+      <h2>Latency impact</h2>
+      <p class="muted" style="margin-top:0">Observational only — latency does not affect overall risk, probe direction, or upgrade path routing.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average baseline latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">{{ latency_summary.v1_avg_latency_ms }} ms</p>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average target latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">{{ latency_summary.v2_avg_latency_ms }} ms</p>
+        </div>
+      </div>
+      <p style="margin:1rem 0 0.5rem">
+        Delta: <span class="mono">{{ latency_summary.delta_ms }} ms</span>
+        (<span class="mono">{{ latency_summary.delta_pct | round(precision=1) }}%</span>)
+        · Direction: <span class="badge {{ latency_summary.direction }}">{{ latency_summary.direction }}</span>
+      </p>
+      <p style="margin:0;color:var(--fg)">{{ latency_summary.note }}</p>
+    </section>
+
     {% if mutation_results %}
     <section class="panel">
       <h2>Mutation engine</h2>
@@ -683,7 +792,7 @@
       <details class="probe" style="margin-bottom:0.75rem">
         <summary>
           <span class="probe-title">{{ m.probe_name }}</span>
-          <span class="badge {% if m.validated %}Green{% else %}Amber{% endif %}">{% if m.validated %}Certified{% else %}Trial{% endif %}</span>
+          <span class="badge {% if m.validated %}Green{% else %}Amber{% endif %}">{% if m.validated %}Validated{% else %}Trial{% endif %}</span>
           <span class="probe-meta">risk after {{ m.validation_risk }} · {{ m.strategies_applied | length }} steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
@@ -706,7 +815,7 @@
       {% if summary.safe_to_upgrade %}
       <p>Overall risk is acceptable for a controlled rollout. Review amber items and any "verify" red valence before broad deployment.</p>
       {% else %}
-      <p>Overall risk requires remediation: resolve blocking regressions or adjust prompts and policy before upgrading.</p>
+      <p>Overall risk requires remediation: resolve critical regressions and policy changes (or adjust prompts) before upgrading. Fidelity, structural, and compression drift may be acceptable without blocking rollout.</p>
       {% endif %}
     </section>
   </main>

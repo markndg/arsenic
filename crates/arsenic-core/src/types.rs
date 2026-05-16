@@ -185,6 +185,35 @@ pub struct DriftReport {
     /// v2: prompt mutation results when `--mutate` was used.
     #[serde(default)]
     pub mutation_results: Vec<MutationResult>,
+    /// Run-level latency comparison (observational; does not affect risk or upgrade path).
+    #[serde(default)]
+    pub latency_summary: LatencySummary,
+    /// Plain-English behavioural fingerprint of v2 relative to v1.
+    #[serde(default)]
+    pub migration_profile: MigrationProfile,
+}
+
+/// Headline summary of how v2 behaves relative to v1 across the run.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MigrationProfile {
+    pub speed_change: Option<String>,
+    pub verbosity_change: Option<String>,
+    pub style_change: Option<String>,
+    pub reliability_change: Option<String>,
+    pub headline: String,
+    pub safe_to_upgrade: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LatencySummary {
+    pub v1_avg_latency_ms: u64,
+    pub v2_avg_latency_ms: u64,
+    pub delta_ms: i64,
+    /// Percentage change in average latency (e.g. `-60.8` = target 60.8% faster than baseline).
+    pub delta_pct: f64,
+    pub direction: DriftDirection,
+    /// Plain-language summary, e.g. "v2 responded 23% faster on average across 18 probes".
+    pub note: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,6 +240,17 @@ pub struct ReportSummary {
     pub probe_improvements: usize,
     #[serde(default)]
     pub probe_neutral: usize,
+    /// Probes classified as critical regressions (blocking when Red/Amber).
+    #[serde(default, alias = "drift_behavioural_regressions")]
+    pub drift_critical_regressions: usize,
+    #[serde(default)]
+    pub drift_policy: usize,
+    #[serde(default)]
+    pub drift_fidelity: usize,
+    #[serde(default)]
+    pub drift_structural: usize,
+    #[serde(default)]
+    pub drift_content_compression: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,6 +262,9 @@ pub struct ProbeResult {
     /// v2: worst-case drift direction for this probe.
     #[serde(default)]
     pub overall_direction: DriftDirection,
+    /// What kind of drift this probe represents for upgrade-path routing.
+    #[serde(default)]
+    pub drift_category: DriftCategory,
     pub dimensions: ProbeDimensions,
     pub notes: Vec<String>,
 }
@@ -250,6 +293,35 @@ pub enum RiskLevel {
     Green,
     Amber,
     Red,
+}
+
+/// Taxonomy for what kind of drift a probe shows — drives upgrade-path blocking rules.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "PascalCase")]
+pub enum DriftCategory {
+    /// Factual error, broken schema, or anchor value changed.
+    #[serde(alias = "BehaviouralRegression")]
+    CriticalRegression,
+    /// Refusal boundary shifted.
+    PolicyDrift,
+    /// Same answer, different style or detail level.
+    FidelityDrift,
+    /// Format or layout changed; content equivalent.
+    StructuralDrift,
+    /// Shorter, less exhaustive, but not wrong.
+    ContentCompression,
+    /// Green — no meaningful change.
+    #[default]
+    NoSignificantDrift,
+}
+
+impl DriftCategory {
+    pub fn is_blocking(self) -> bool {
+        matches!(
+            self,
+            DriftCategory::CriticalRegression | DriftCategory::PolicyDrift
+        )
+    }
 }
 
 /// v2: whether drift on a dimension is better, worse, or neutral for the upgrade.
@@ -516,6 +588,13 @@ pub struct ValenceSummary {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpgradePathReport {
+    /// Blocking probes with critical regressions (factual, schema, anchor drift).
+    #[serde(default, alias = "behavioural_regressions")]
+    pub critical_regressions: Vec<UpgradePathItem>,
+    /// Blocking probes with policy / refusal drift.
+    #[serde(default)]
+    pub policy_changes: Vec<UpgradePathItem>,
+    /// All blocking items (critical + policy); kept for backward-compatible JSON consumers.
     pub blocking_regressions: Vec<UpgradePathItem>,
     pub improvements_to_verify: Vec<UpgradePathItem>,
     pub neutral_changes: Vec<UpgradePathItem>,
@@ -529,6 +608,8 @@ pub struct UpgradePathItem {
     pub category: ProbeCategory,
     pub overall_risk: RiskLevel,
     pub overall_direction: DriftDirection,
+    #[serde(default)]
+    pub drift_category: DriftCategory,
     pub summary: String,
     pub certified_mutation: Option<String>,
 }

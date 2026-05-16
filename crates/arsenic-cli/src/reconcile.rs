@@ -203,12 +203,7 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
         }
     };
 
-    let engine = ComparisonEngine::new(
-        !args.no_semantic,
-        0.85,
-        RiskThresholds::default(),
-        false,
-    );
+    let engine = ComparisonEngine::new(!args.no_semantic, 0.85, RiskThresholds::default());
 
     let max_strategies = if args.max_strategies == 0 {
         DEFAULT_MAX_STRATEGIES
@@ -230,11 +225,11 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
 
     if result.certified {
         println!(
-            "Certified — validation risk {:?}",
+            "Validated — validation risk {:?}",
             result.validation_risk
         );
     } else {
-        println!("Manual review suggested");
+        println!("Needs attention — automatic reconciliation did not validate");
     }
 
     if let Some(p) = args.output {
