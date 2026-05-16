@@ -1,4 +1,4 @@
-# ARSENIC
+# ARSENIC ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
 ARSENIC detects behavioural drift between LLM versions before production upgrades.
 
@@ -15,8 +15,8 @@ prompt changes will recover the original behaviour on the new model.
 
 ![ARSENIC Report](docs/report-screenshot.png)
 
-Licensed under Apache-2.0
-![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+Licensed under Apache-2.0.
+
 ---
 
 ## What it does
