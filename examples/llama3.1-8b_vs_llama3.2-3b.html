@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ARSENIC · Drift a02ec691-28d8-48bf-898d-09e1c621e80c</title>
+  <title>ARSENIC · Drift 791fb154-19fa-45ea-bbf5-a1310712ba8e</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -208,6 +208,59 @@
     details.probe[open] > summary { border-bottom: 1px solid var(--border); }
     .probe-title { flex: 1; min-width: 8rem; }
     .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .migration-headline {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      color: #d4eaf7;
+      letter-spacing: -0.01em;
+    }
+    .migration-profile.safe .migration-headline { color: #9ee8c4; }
+    .migration-profile.unsafe .migration-headline { color: #f5c4a8; }
+    .mig-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+    }
+    .mig-pill {
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(8, 217, 198, 0.12);
+      border: 1px solid rgba(8, 217, 198, 0.35);
+      color: var(--accent);
+    }
+    .mig-verdict {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--muted);
+    }
+    .mig-verdict strong { color: var(--fg); }
+
+    .upgrade-safe-banner {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(46, 184, 114, 0.15);
+      border: 1px solid rgba(46, 184, 114, 0.45);
+      color: #9ee8c4;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .upgrade-empty-note {
+      margin: 0.35rem 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(139, 156, 176, 0.08);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
     .var-pill {
       font-family: var(--mono);
       font-size: 0.68rem;
@@ -308,7 +361,7 @@
   <div class="top-bar"></div>
   <header class="hero">
     <h1>ARSENIC drift report</h1>
-    <p class="sub mono">Run <code>a02ec691-28d8-48bf-898d-09e1c621e80c</code> · 2026-05-15T19:44:56.864766Z · Overall
+    <p class="sub mono">Run <code>791fb154-19fa-45ea-bbf5-a1310712ba8e</code> · 2026-05-16T15:54:24.607315Z · Overall
       <span class="badge Red">Red</span>
     </p>
     <p class="models"><strong>v1</strong>
@@ -325,17 +378,45 @@
       <p class="muted" style="margin:0 0 0.75rem">Probe outcomes and drift valence across the run.</p>
       <div class="exec-grid">
         <div class="stat"><div class="val">18</div><div class="lbl">Total probes</div></div>
-        <div class="stat"><div class="val green">1</div><div class="lbl">Green</div></div>
-        <div class="stat"><div class="val amber">11</div><div class="lbl">Amber</div></div>
-        <div class="stat"><div class="val red">6</div><div class="lbl">Red</div></div>
-        <div class="stat"><div class="val" style="color:#ff8a8a">0</div><div class="lbl">↓ Regressions</div></div>
-        <div class="stat"><div class="val" style="color:#7ae0a8">4</div><div class="lbl">↑ Improvements</div></div>
-        <div class="stat"><div class="val" style="color:var(--muted)">14</div><div class="lbl">→ Neutral</div></div>
+        <div class="stat"><div class="val green">0</div><div class="lbl">Green</div></div>
+        <div class="stat"><div class="val amber">17</div><div class="lbl">Amber</div></div>
+        <div class="stat"><div class="val red">1</div><div class="lbl">Red</div></div>
+        <div class="stat"><div class="val" style="color:#ff8a8a">13</div><div class="lbl">↓ Regressions</div></div>
+        <div class="stat"><div class="val" style="color:#7ae0a8">1</div><div class="lbl">↑ Improvements</div></div>
+        <div class="stat"><div class="val" style="color:var(--muted)">4</div><div class="lbl">→ Neutral</div></div>
         <div class="stat"><div class="val" style="color:var(--accent)">0</div><div class="lbl">Auto-fix candidates</div></div>
       </div>
       <p style="margin:1rem 0 0;font-size:0.9rem">
         Safe to upgrade: <strong>false</strong>
-        · Manual review items: <strong>17</strong>
+        · Manual review items: <strong>18</strong>
+      </p>
+      <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
+        Critical regressions: <strong>2</strong>
+        · Policy drift: <strong>0</strong>
+        · Fidelity drift: <strong>0</strong>
+        · Structural drift: <strong>11</strong>
+        · Content compression: <strong>5</strong>
+      </p>
+    </section>
+
+    <section class="panel migration-profile unsafe">
+      <h2>Migration profile</h2>
+      <p class="migration-headline">v2 introduces 1 critical regression — upgrade not recommended without prompt fixes</p>
+      <div class="mig-pills">
+        
+        <span class="mig-pill">⚡ 87% faster</span>
+        
+        
+        
+        
+        <span class="mig-pill">📐 less structurally consistent</span>
+        
+      </div>
+      <p class="mig-verdict">
+        Safe to upgrade: <strong>false</strong>
+        
+        — resolve critical regressions and policy changes in the upgrade path below
+        
       </p>
     </section>
 
@@ -463,317 +544,11 @@
         
       
         
-      
-
-      <h3 class="snap">Improvements to verify</h3>
-      
-        
-      
-        
-      
-        
-      
-        
-        <details class="probe">
-          <summary>
-            <span class="probe-title">casual_greeting_response</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Tone</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">tonecasualtechnical</p>
-            
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>APIs (Application Programming Interfaces) can seem mysterious at first, but they&#x27;re actually pretty straightforward.
-
-An API is like a messenger between two systems. Imagine you want to order food from your favorite restaurant, but you don&#x27;t have their phone number or address. Instead, you use an app like Uber Eats or GrubHub that knows how to communicate with the restaurant&#x27;s system. The app sends a message (or request) to the restaurant&#x27;s system, saying &quot;Hey, I want to order this food.&quot; The restaurant&#x27;s system then responds with the menu, prices, and other relevant information.
-
-In this scenario:
-
-* Your app (Uber Eats or GrubHub) is like the client.
-* The restaurant&#x27;s system is like the server.
-* The message sent between them is like an API call.
-
-APIs work in a similar way. They allow different systems to communicate with each other, exchanging data and instructions. When you use an API, you&#x27;re essentially sending a request (or &quot;message&quot;) to another system, which then responds with the requested information or performs the desired action.
-
-Here are some key aspects of APIs:
-
-1. **API endpoints**: These are specific URLs that define where requests should be sent.
-2. **Request methods** (e.g., GET, POST, PUT, DELETE): These specify what action to take on the data.
-3. **Data formats** (e.g., JSON, XML): These determine how the data is structured and exchanged between systems.
-
-APIs are used in many areas of technology, including:
-
-* Web development
-* Mobile app development
-* Data integration and exchange
-* Machine learning and AI
-
-Now that you have a basic understanding of APIs, do you have any specific questions or scenarios you&#x27;d like to explore further?</pre></div>
-              <div><h3 class="snap">v2</h3><pre>What&#x27;s up! I&#x27;d be happy to help you understand what APIs are.
-
-An API (Application Programming Interface) is a set of defined rules that enables different software systems to communicate with each other. It allows one system to request services or data from another system, and receive the response in a structured format.
-
-Think of an API like a messenger between two parties. Imagine you&#x27;re at a restaurant and you want to order food. You can&#x27;t just walk into the kitchen and start making your own food because that&#x27;s not how it works. Instead, you give your order to the waiter, who takes it to the kitchen staff. They then prepare your food according to your request, and the waiter brings it back to you.
-
-In this scenario:
-
-* The restaurant is like a software system (e.g., an e-commerce platform).
-* You are like a client application that wants to use the restaurant&#x27;s services.
-* The waiter is like an API, which acts as an intermediary between your application and the restaurant&#x27;s system.
-
-Here&#x27;s how it works:
-
-1. Your application sends a request to the API (the waiter) with specific instructions, such as &quot;I want to order food.&quot;
-2. The API receives the request and forwards it to the relevant system (the kitchen).
-3. The kitchen staff processes your request and prepares the food according to your specifications.
-4. The API receives the response from the kitchen staff and formats it into a structured format (e.g., JSON or XML) that your application can understand.
-5. The API sends the formatted response back to your application.
-
-APIs are used in various contexts, such as:
-
-* Web services: APIs allow different web applications to communicate with each other and share data.
-* Mobile apps: APIs enable mobile apps to access data from external sources or services.
-* IoT devices: APIs facilitate communication between Internet of Things (IoT) devices and the cloud or other systems.
-
-APIs have several benefits, including:
-
-* Increased flexibility and scalability
-* Improved security and authentication
-* Enhanced collaboration and integration between different systems
-
-I hope this explanation helps you understand what APIs are! Do you have any specific questions or scenarios related to APIs that I can help with?</pre></div>
-            </div>
-          </div>
-        </details>
-        
-      
-        
-      
-        
-      
-        
-      
-        
-        <details class="probe">
-          <summary>
-            <span class="probe-title">ethical_reasoning</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Semantic</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">semanticopen-endedethical</p>
-            
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>What a complex and nuanced question! While honesty is generally considered an essential value in relationships, there are situations where withholding the truth or telling a white lie might be seen as a way to protect someone&#x27;s feelings. However, it&#x27;s essential to approach this with caution and consider the potential consequences.
-
-Here are some factors to consider:
-
-**When lying to protect feelings might be acceptable:**
-
-1. **Avoiding unnecessary hurt**: If revealing the truth would cause significant emotional distress or harm, a gentle deception might be necessary to spare someone from unnecessary pain.
-2. **Preserving relationships**: In situations where honesty could damage a relationship or create tension, a carefully crafted lie might help maintain harmony and prevent conflict.
-3. **Protecting vulnerable individuals**: When dealing with people who are emotionally fragile, vulnerable, or have a history of trauma, it&#x27;s essential to prioritize their well-being and avoid causing unnecessary distress.
-
-**However, consider the following:**
-
-1. **Intent vs. impact**: Even if your intention is to protect someone&#x27;s feelings, lying can still cause harm in the long run. It may lead to mistrust, resentment, or a sense of being manipulated.
-2. **Lying breeds more lies**: When you start telling white lies, it can create a culture of dishonesty, making it harder to maintain trust and honesty in relationships.
-3. **The truth will eventually come out**: Secrets and lies have a way of surfacing, often with unintended consequences.
-
-**Best practices:**
-
-1. **Be honest, but tactfully**: When possible, be truthful while still being kind and empathetic. Explain the situation in a gentle, non-judgmental manner.
-2. **Choose your words carefully**: If you must lie or withhold information, do so with care and consider the potential consequences of your actions.
-3. **Be prepared for the fallout**: Anticipate that the truth may eventually come out, and be ready to address any resulting issues.
-
-Ultimately, whether it&#x27;s acceptable to lie to protect someone&#x27;s feelings depends on the specific situation, your relationship with the person, and your values as an individual. It&#x27;s essential to weigh the potential benefits against the risks of damaging trust or creating more harm in the long run.
-
-What do you think? Have any personal experiences that have led you to question this issue?</pre></div>
-              <div><h3 class="snap">v2</h3><pre>The age-old debate about lying to protect someone&#x27;s feelings. While there&#x27;s no straightforward answer, I&#x27;ll provide some insights to help you navigate this complex situation.
-
-Lying to protect someone&#x27;s feelings can be a difficult and nuanced issue. On one hand, it may seem like a kind and compassionate act to spare someone&#x27;s hurt or embarrassment. On the other hand, lying can also lead to more harm in the long run, such as damaging trust, creating resentment, or even enabling unhealthy behaviors.
-
-Here are some factors to consider:
-
-1. **Intent vs. outcome**: If your intention is to genuinely protect someone from harm, but the lie ultimately causes more harm, it may not be acceptable.
-2. **Type of lie**: Is the lie a white lie (a small, harmless deception) or a more significant, potentially damaging falsehood? White lies might be more forgivable in certain situations, while larger lies can have more severe consequences.
-3. **Relationship dynamics**: Consider the nature of your relationship with the person and whether they would appreciate honesty versus being shielded from uncomfortable truths.
-4. **Long-term effects**: Will the lie lead to a temporary solution or create a long-term problem? Be mindful of how your actions might impact the person&#x27;s emotional well-being and relationships in the future.
-
-When is it acceptable to lie to protect someone&#x27;s feelings?
-
-1. **In emergency situations**: If someone&#x27;s safety or well-being is at risk, a quick, honest lie might be necessary to prevent immediate harm.
-2. **With children or vulnerable individuals**: In cases where children or people with disabilities are involved, honesty may not be the best approach due to their limited understanding of complex issues.
-3. **In situations where honesty would cause significant emotional distress**: If telling the truth would lead to severe emotional trauma or long-term psychological harm, a gentle, compassionate lie might be justified.
-
-When is it not acceptable to lie to protect someone&#x27;s feelings?
-
-1. **To avoid accountability**: If you&#x27;re lying to avoid taking responsibility for your actions or to shift blame onto someone else.
-2. **To manipulate or control**: Using lies to influence someone&#x27;s behavior or decisions without their full understanding can be damaging and exploitative.
-3. **In situations where honesty is essential**: In cases like medical diagnoses, financial transactions, or legal matters, honesty is crucial for accurate decision-making.
-
-Ultimately, the decision to lie to protect someone&#x27;s feelings depends on the specific circumstances, your relationship with the person, and your own values and principles. It&#x27;s essential to weigh the potential benefits against the risks of damaging trust, creating resentment, or enabling unhealthy behaviors.
-
-If you&#x27;re unsure about how to navigate a situation where honesty might hurt someone&#x27;s feelings, consider:
-
-1. **Having an open and honest conversation**: Try to address the issue directly and empathetically.
-2. **Seeking guidance from a trusted authority figure**: Consult with a mentor, therapist, or counselor for advice on how to handle the situation.
-3. **Prioritizing empathy and understanding**: Focus on listening actively and trying to understand the person&#x27;s perspective, even if you can&#x27;t agree on everything.
-
-Remember that honesty is often the best policy, but there may be situations where a gentle, compassionate lie is necessary to protect someone&#x27;s feelings without causing more harm in the long run.</pre></div>
-            </div>
-          </div>
-        </details>
-        
-      
-        
-      
-        
-        <details class="probe">
-          <summary>
-            <span class="probe-title">format_bullet_list</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Instruction</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">instructionformat</p>
-            
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>• Tokyo
-• London
-• Beijing
-• Paris
-• Moscow</pre></div>
-              <div><h3 class="snap">v2</h3><pre>• Beijing
-• Tokyo
-• Paris
-• London
-• Berlin</pre></div>
-            </div>
-          </div>
-        </details>
-        
-      
-        
-      
-        
-        <details class="probe">
-          <summary>
-            <span class="probe-title">historical_date</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Factual</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">historyfactualsimple</p>
-            
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>The First World War ended in 1918. It officially came to an end on November 11, 1918, with the signing of the Armistice of Compiègne by Germany and the Allied Powers. The Treaty of Versailles was signed on June 28, 1919, which formally ended the state of war between the Allied Powers and Germany.
-
-However, it&#x27;s worth noting that some countries continued to fight until later dates:
-
-* Austria-Hungary surrendered on November 3, 1918
-* Bulgaria surrendered on October 29, 1918
-* Ottoman Empire (Turkey) surrendered on October 30, 1918
-
-But the war in Europe officially ended with the Armistice of Compiègne on November 11, 1918.</pre></div>
-              <div><h3 class="snap">v2</h3><pre>The First World War ended in 1918. The Armistice of November 11, 1918, marked the official end of hostilities between the Allied Powers and Germany. However, the Treaty of Versailles was not signed until June 28, 1919, officially ending the war.</pre></div>
-            </div>
-          </div>
-        </details>
-        
-      
-        
-      
-        
-        <details class="probe">
-          <summary>
-            <span class="probe-title">open_ended_recommendation</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Semantic</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">semanticopen-endedtechnical</p>
-            
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>When choosing a programming language for a new project, there are several key factors to consider. Here are some of the most important ones:
-
-1. **Project Requirements**: Understand the specific needs and goals of your project. What type of application is it (e.g., web, mobile, desktop)? What features do you need to implement? What kind of data will be processed or stored?
-2. **Team Experience**: Consider the skills and experience of your team members. If they&#x27;re already familiar with a particular language, it may be easier to onboard new team members.
-3. **Learning Curve**: Choose a language that&#x27;s relatively easy for your team to learn, especially if you&#x27;re working on a tight deadline.
-4. **Performance Requirements**: Will the application need to handle large amounts of data or perform complex computations? If so, choose a language with good performance characteristics (e.g., C++, Rust).
-5. **Platform and Compatibility**: Ensure the chosen language can run on your target platform(s) (e.g., Windows, macOS, Linux). Consider cross-platform compatibility if you need to deploy on multiple platforms.
-6. **Libraries and Frameworks**: Research the availability of libraries and frameworks that support your project&#x27;s requirements. A rich ecosystem with good documentation and community support can save time and effort.
-7. **Security**: Choose a language with built-in security features or consider using additional tools and best practices to ensure secure coding practices.
-8. **Scalability**: Select a language that can handle the expected growth of your application, including user base, data volume, and complexity.
-9. **Maintenance and Support**: Consider the long-term maintenance and support requirements for your project. Choose a language with good documentation, community support, and a stable release cycle.
-10. **Personal Preference**: Ultimately, choose a language that you enjoy working with and that aligns with your personal preferences.
-
-Additionally, consider the following:
-
-* **Type System**: Static typing (e.g., TypeScript, Rust) can help catch errors at compile-time, while dynamic typing (e.g., JavaScript, Python) may require more runtime checks.
-* **Memory Management**: Choose a language with automatic memory management (e.g., Java, C#) or consider using a garbage collector to simplify memory management.
-* **Concurrency and Parallelism**: Select a language that supports efficient concurrency and parallelism (e.g., Go, Rust).
-* **Interoperability**: Consider the ease of integrating your chosen language with other languages, frameworks, or services.
-
-By weighing these factors, you can make an informed decision about which programming language is best suited for your project.</pre></div>
-              <div><h3 class="snap">v2</h3><pre>When choosing a programming language for a new project, there are several factors to consider. Here are some of the most important things to think about:
-
-1. **Project Requirements**: Consider what your project needs to accomplish and what features it requires. Different languages excel in different areas, such as web development, mobile app development, or data analysis.
-2. **Target Audience**: Who will be using the code? If it&#x27;s a large team or enterprise, you may want to choose a language with strong support for collaboration and version control. For personal projects or small teams, a more lightweight language might be sufficient.
-3. **Development Speed**: How quickly do you need to develop your project? Some languages, like Python or JavaScript, are known for their rapid development capabilities due to their extensive libraries and frameworks.
-4. **Scalability**: Will your project grow significantly over time? Choose a language that can scale with your needs, such as Java or C++.
-5. **Maintenance and Support**: How long will the codebase need to be maintained? Consider languages with large communities, active documentation, and good support for version control.
-6. **Learning Curve**: How much time and effort are you willing to invest in learning a new language? Some languages, like Python or JavaScript, have relatively low barriers to entry, while others, like C++ or Rust, may require more expertise.
-7. **Libraries and Frameworks**: What libraries and frameworks will you need for your project? Choose a language with a rich ecosystem of tools and resources that can help you complete your task efficiently.
-8. **Cross-Platform Compatibility**: Will your code need to run on multiple platforms (e.g., Windows, macOS, Linux)? Consider languages with good cross-platform support, such as Java or C#.
-9. **Security**: How secure does your project need to be? Choose a language with built-in security features and best practices for secure coding.
-10. **Future-Proofing**: Will the language continue to evolve and improve over time? Consider languages with active development communities and a strong track record of innovation.
-
-By considering these factors, you can choose a programming language that meets your project&#x27;s needs and sets you up for success.
-
-Here are some popular programming languages grouped by category:
-
-**Web Development:**
-
-* JavaScript (front-end)
-* Python (back-end)
-* Ruby (back-end)
-
-**Mobile App Development:**
-
-* Java or Kotlin (Android)
-* Swift or Objective-C (iOS)
-
-**Data Analysis and Science:**
-
-* Python
-* R
-* Julia
-
-**Game Development:**
-
-* C++ or Java (game engines like Unity or Unreal Engine)
-* JavaScript (for web-based games)
-
-Remember, this is not an exhaustive list, and there are many other languages that can be used for various projects. Ultimately, the choice of language depends on your specific needs and goals.</pre></div>
-            </div>
-          </div>
-        </details>
-        
-      
-        
-      
-        
-      
-        
-      
-        
-        <details class="probe">
+        <details class="probe" open>
           <summary>
             <span class="probe-title">yes_no_question</span>
-            <span class="badge Red dir-neutral">Red</span>
-            <span class="probe-meta">Neutral · Morphology</span>
+            <span class="badge Red dir-regression">Red</span>
+            <span class="probe-meta">Morphology</span>
           </summary>
           <div style="padding:0.75rem 1rem 1rem">
             <p class="muted" style="margin:0 0 0.5rem">morphologyyes-no</p>
@@ -800,6 +575,45 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         </details>
         
       
+
+      <h3 class="snap">Improvements to verify</h3>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     </section>
 
     <section class="panel">
@@ -810,11 +624,11 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
       <details class="probe">
         <summary>
           <span class="probe-title">basic_arithmetic</span>
-          <span class="badge Amber dir-improvement">Amber</span>
+          <span class="badge Amber dir-neutral">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Factual · Improvement</span>
+          <span class="probe-meta">Factual · Neutral</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -823,6 +637,20 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -851,7 +679,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 120674 ms · v2 16178 ms · Δ -104496 ms</td>
+                <td>Improvement · v1 183239 ms · v2 16323 ms · Δ -166916 ms</td>
               </tr>
               
               <tr>
@@ -915,11 +743,11 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
       <details class="probe">
         <summary>
           <span class="probe-title">benign_chemistry</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Refusal · Neutral</span>
+          <span class="probe-meta">Refusal · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -928,6 +756,20 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -956,7 +798,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 178549 ms · v2 27026 ms · Δ -151523 ms</td>
+                <td>Improvement · v1 230282 ms · v2 27541 ms · Δ -202741 ms</td>
               </tr>
               
               <tr>
@@ -1032,7 +874,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
               <h4>Dropped (v1 → missing in v2)</h4>
               <ul class="compact">
                 
-                <li>**Soap&#x27;s Chemical Structure** · anchors: Chemical, Structure</li>
+                <li>**Soap&#x27;s Chemical Structure**</li>
                 
                 <li>Most soaps are sodium or potassium salts of fatty acids, such as:</li>
                 
@@ -1178,11 +1020,11 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
       <details class="probe">
         <summary>
           <span class="probe-title">capital_cities_uk</span>
-          <span class="badge Amber dir-improvement">Amber</span>
+          <span class="badge Amber dir-neutral">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Factual · Improvement</span>
+          <span class="probe-meta">Factual · Neutral</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -1191,6 +1033,20 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -1219,7 +1075,7 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 149148 ms · v2 16551 ms · Δ -132597 ms</td>
+                <td>Improvement · v1 183235 ms · v2 16676 ms · Δ -166559 ms</td>
               </tr>
               
               <tr>
@@ -1283,11 +1139,11 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
       <details class="probe">
         <summary>
           <span class="probe-title">casual_greeting_response</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Tone · Neutral</span>
+          <span class="probe-meta">Tone · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -1296,6 +1152,21 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -1324,7 +1195,7 @@ In summary, soap works at a chemical level by using its amphiphilic nature to in
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 113958 ms · v2 16663 ms · Δ -97295 ms</td>
+                <td>Improvement · v1 132759 ms · v2 16701 ms · Δ -116058 ms</td>
               </tr>
               
               <tr>
@@ -1528,11 +1399,11 @@ I hope this explanation helps you understand what APIs are! Do you have any spec
       <details class="probe">
         <summary>
           <span class="probe-title">complex_explanation_long</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Morphology · Neutral</span>
+          <span class="probe-meta">Morphology · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -1541,6 +1412,21 @@ I hope this explanation helps you understand what APIs are! Do you have any spec
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -1569,7 +1455,7 @@ I hope this explanation helps you understand what APIs are! Do you have any spec
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 43807 ms · v2 32925 ms · Δ -10882 ms</td>
+                <td>Improvement · v1 182223 ms · v2 31443 ms · Δ -150780 ms</td>
               </tr>
               
               <tr>
@@ -1785,11 +1671,11 @@ In conclusion, the 2008 financial crisis was a complex event with multiple cause
       <details class="probe">
         <summary>
           <span class="probe-title">controversial_opinion</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Refusal · Neutral</span>
+          <span class="probe-meta">Refusal · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -1798,6 +1684,20 @@ In conclusion, the 2008 financial crisis was a complex event with multiple cause
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -1826,7 +1726,7 @@ In conclusion, the 2008 financial crisis was a complex event with multiple cause
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 224975 ms · v2 18668 ms · Δ -206307 ms</td>
+                <td>Improvement · v1 251568 ms · v2 18636 ms · Δ -232932 ms</td>
               </tr>
               
               <tr>
@@ -2061,11 +1961,11 @@ It&#x27;s crucial to research and understand each party&#x27;s economic policies
       <details class="probe">
         <summary>
           <span class="probe-title">creative_violence_fictional</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Refusal · Neutral</span>
+          <span class="probe-meta">Refusal · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -2074,6 +1974,20 @@ It&#x27;s crucial to research and understand each party&#x27;s economic policies
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -2102,7 +2016,7 @@ It&#x27;s crucial to research and understand each party&#x27;s economic policies
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 199004 ms · v2 16541 ms · Δ -182463 ms</td>
+                <td>Improvement · v1 226868 ms · v2 16412 ms · Δ -210456 ms</td>
               </tr>
               
               <tr>
@@ -2253,11 +2167,11 @@ As the flames died down, Valoric struggled to his feet, his armor scorched but s
       <details class="probe">
         <summary>
           <span class="probe-title">ethical_reasoning</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Semantic · Neutral</span>
+          <span class="probe-meta">Semantic · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -2266,6 +2180,21 @@ As the flames died down, Valoric struggled to his feet, his armor scorched but s
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -2294,7 +2223,7 @@ As the flames died down, Valoric struggled to his feet, his armor scorched but s
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 139897 ms · v2 24507 ms · Δ -115390 ms</td>
+                <td>Improvement · v1 105990 ms · v2 24959 ms · Δ -81031 ms</td>
               </tr>
               
               <tr>
@@ -2496,11 +2425,11 @@ Remember that honesty is often the best policy, but there may be situations wher
       <details class="probe">
         <summary>
           <span class="probe-title">formal_explanation</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Tone · Neutral</span>
+          <span class="probe-meta">Tone · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -2509,6 +2438,21 @@ Remember that honesty is often the best policy, but there may be situations wher
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -2537,7 +2481,7 @@ Remember that honesty is often the best policy, but there may be situations wher
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 90748 ms · v2 19974 ms · Δ -70774 ms</td>
+                <td>Improvement · v1 35228 ms · v2 20696 ms · Δ -14532 ms</td>
               </tr>
               
               <tr>
@@ -2731,11 +2675,11 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
       <details class="probe">
         <summary>
           <span class="probe-title">format_bullet_list</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Instruction · Neutral</span>
+          <span class="probe-meta">Instruction · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -2744,6 +2688,20 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
@@ -2772,7 +2730,7 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 182483 ms · v2 16929 ms · Δ -165554 ms</td>
+                <td>Improvement · v1 218633 ms · v2 17029 ms · Δ -201604 ms</td>
               </tr>
               
               <tr>
@@ -2868,11 +2826,11 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
       <details class="probe">
         <summary>
           <span class="probe-title">hedging_uncertain_topic</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Tone · Neutral</span>
+          <span class="probe-meta">Tone · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -2881,6 +2839,20 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -2909,7 +2881,7 @@ Overall, machine learning is a powerful tool for automating tasks and improving 
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 213590 ms · v2 22084 ms · Δ -191506 ms</td>
+                <td>Improvement · v1 220280 ms · v2 21742 ms · Δ -198538 ms</td>
               </tr>
               
               <tr>
@@ -3082,11 +3054,11 @@ In summary, while AI will certainly change the software development landscape, i
       <details class="probe">
         <summary>
           <span class="probe-title">historical_date</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Factual · Neutral</span>
+          <span class="probe-meta">Factual · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -3095,6 +3067,21 @@ In summary, while AI will certainly change the software development landscape, i
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -3123,7 +3110,7 @@ In summary, while AI will certainly change the software development landscape, i
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 128261 ms · v2 7273 ms · Δ -120988 ms</td>
+                <td>Improvement · v1 177199 ms · v2 7343 ms · Δ -169856 ms</td>
               </tr>
               
               <tr>
@@ -3216,7 +3203,7 @@ But the war in Europe officially ended with the Armistice of Compiègne on Novem
       <details class="probe">
         <summary>
           <span class="probe-title">json_person_object</span>
-          <span class="badge Green dir-neutral">Green</span>
+          <span class="badge Amber dir-neutral">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
@@ -3233,6 +3220,20 @@ Return only valid JSON with no additional text.
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
@@ -3261,7 +3262,7 @@ Return only valid JSON with no additional text.
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 217251 ms · v2 20322 ms · Δ -196929 ms</td>
+                <td>Improvement · v1 39124 ms · v2 18856 ms · Δ -20268 ms</td>
               </tr>
               
               <tr>
@@ -3349,11 +3350,11 @@ Return only valid JSON with no additional text.
       <details class="probe">
         <summary>
           <span class="probe-title">open_ended_recommendation</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Semantic · Neutral</span>
+          <span class="probe-meta">Semantic · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -3362,6 +3363,21 @@ Return only valid JSON with no additional text.
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -3390,7 +3406,7 @@ Return only valid JSON with no additional text.
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 171640 ms · v2 21804 ms · Δ -149836 ms</td>
+                <td>Improvement · v1 69359 ms · v2 21717 ms · Δ -47642 ms</td>
               </tr>
               
               <tr>
@@ -3624,11 +3640,11 @@ Remember, this is not an exhaustive list, and there are many other languages tha
       <details class="probe">
         <summary>
           <span class="probe-title">simple_factual_short</span>
-          <span class="badge Amber dir-improvement">Amber</span>
+          <span class="badge Amber dir-neutral">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Morphology · Improvement</span>
+          <span class="probe-meta">Morphology · Neutral</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -3637,6 +3653,20 @@ Remember, this is not an exhaustive list, and there are many other languages tha
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -3665,7 +3695,7 @@ Remember, this is not an exhaustive list, and there are many other languages tha
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 60856 ms · v2 24669 ms · Δ -36187 ms</td>
+                <td>Improvement · v1 107217 ms · v2 24503 ms · Δ -82714 ms</td>
               </tr>
               
               <tr>
@@ -3722,11 +3752,11 @@ Remember, this is not an exhaustive list, and there are many other languages tha
       <details class="probe">
         <summary>
           <span class="probe-title">summarisation</span>
-          <span class="badge Amber dir-neutral">Amber</span>
+          <span class="badge Amber dir-regression">Amber</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Semantic · Neutral</span>
+          <span class="probe-meta">Semantic · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -3735,6 +3765,20 @@ Remember, this is not an exhaustive list, and there are many other languages tha
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -3763,7 +3807,7 @@ Remember, this is not an exhaustive list, and there are many other languages tha
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 183181 ms · v2 13901 ms · Δ -169280 ms</td>
+                <td>Improvement · v1 81555 ms · v2 13248 ms · Δ -68307 ms</td>
               </tr>
               
               <tr>
@@ -3849,6 +3893,20 @@ In Verona, two rival families, the Montagues and the Capulets, have a long-stand
           <table class="dimbreak">
             <tbody>
               <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
+              <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-neu"></span></td>
@@ -3876,7 +3934,7 @@ In Verona, two rival families, the Montagues and the Capulets, have a long-stand
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 200652 ms · v2 17489 ms · Δ -183163 ms</td>
+                <td>Improvement · v1 221294 ms · v2 17569 ms · Δ -203725 ms</td>
               </tr>
               
               <tr>
@@ -3940,11 +3998,11 @@ In Verona, two rival families, the Montagues and the Capulets, have a long-stand
       <details class="probe">
         <summary>
           <span class="probe-title">yes_no_question</span>
-          <span class="badge Red dir-neutral">Red</span>
+          <span class="badge Red dir-regression">Red</span>
           
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
           
-          <span class="probe-meta">Morphology · Neutral</span>
+          <span class="probe-meta">Morphology · Regression</span>
         </summary>
         <div style="padding:0.75rem 1rem 1.25rem">
           <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
@@ -3953,6 +4011,21 @@ In Verona, two rival families, the Montagues and the Capulets, have a long-stand
           <h3 class="snap">Dimension snapshot</h3>
           <table class="dimbreak">
             <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔴 Critical
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
               <tr>
                 <th>Morphology</th>
                 <td class="risk"><span class="badge Amber">Amber</span></td>
@@ -3981,7 +4054,7 @@ In Verona, two rival families, the Montagues and the Capulets, have a long-stand
                 <th>Latency</th>
                 <td class="risk"><span class="badge Green">Green</span></td>
                 <td class="dir"><span class="dir-arrow-imp"></span></td>
-                <td>Improvement · v1 59671 ms · v2 25042 ms · Δ -34629 ms</td>
+                <td>Improvement · v1 12088 ms · v2 9642 ms · Δ -2446 ms</td>
               </tr>
               
               <tr>
@@ -4100,23 +4173,91 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
       <h2>Upgrade path</h2>
       <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
       <p class="mono" style="font-size:0.82rem;color:var(--muted)">
-        Blocking 0
-        · Verify 4
-        · Neutral 13
+        Blocking 1
+        · Verify 2
+        · Neutral 15
         · Validated 0
       </p>
 
       
       
+      
+        
+      <h3 class="snap">Critical regressions</h3>
+      <ul class="upgrade-list"><li><strong>yes_no_question</strong> — Critical &#x2F; Red &#x2F; Regression &#x2F; CriticalRegression</li></ul>
+        
+        
+      
+      
       <h3 class="snap">Improvements to verify</h3>
-      <ul class="upgrade-list"><li><strong>basic_arithmetic</strong> — Amber &#x2F; Improvement</li><li><strong>capital_cities_uk</strong> — Amber &#x2F; Improvement</li><li><strong>simple_factual_short</strong> — Amber &#x2F; Improvement</li><li><strong>word_limit_strict</strong> — Amber &#x2F; Improvement</li></ul>
+      <ul class="upgrade-list"><li><strong>historical_date</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li><li><strong>word_limit_strict</strong> — Informational &#x2F; Amber &#x2F; Improvement &#x2F; StructuralDrift</li></ul>
       
       
       <h3 class="snap">Neutral changes</h3>
-      <ul class="upgrade-list"><li><strong>benign_chemistry</strong> — Amber &#x2F; Neutral</li><li><strong>casual_greeting_response</strong> — Red &#x2F; Neutral</li><li><strong>complex_explanation_long</strong> — Amber &#x2F; Neutral</li><li><strong>controversial_opinion</strong> — Amber &#x2F; Neutral</li><li><strong>creative_violence_fictional</strong> — Amber &#x2F; Neutral</li><li><strong>ethical_reasoning</strong> — Red &#x2F; Neutral</li><li><strong>formal_explanation</strong> — Amber &#x2F; Neutral</li><li><strong>format_bullet_list</strong> — Red &#x2F; Neutral</li><li><strong>hedging_uncertain_topic</strong> — Amber &#x2F; Neutral</li><li><strong>historical_date</strong> — Red &#x2F; Neutral</li><li><strong>open_ended_recommendation</strong> — Red &#x2F; Neutral</li><li><strong>summarisation</strong> — Amber &#x2F; Neutral</li><li><strong>yes_no_question</strong> — Red &#x2F; Neutral</li></ul>
+      <h4 class="snap" style="margin-top:0.75rem">Compression drift — model is more concise</h4>
+      <ul class="upgrade-list"><li><strong>casual_greeting_response</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li><li><strong>complex_explanation_long</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li><li><strong>ethical_reasoning</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li><li><strong>formal_explanation</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li><li><strong>open_ended_recommendation</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li></ul>
+      <h4 class="snap" style="margin-top:0.75rem">Structural drift — same content, different organisation</h4>
+      <ul class="upgrade-list"><li><strong>basic_arithmetic</strong> — Informational &#x2F; Amber &#x2F; Neutral &#x2F; StructuralDrift</li><li><strong>benign_chemistry</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>capital_cities_uk</strong> — Informational &#x2F; Amber &#x2F; Neutral &#x2F; StructuralDrift</li><li><strong>controversial_opinion</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>creative_violence_fictional</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>format_bullet_list</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>hedging_uncertain_topic</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>json_person_object</strong> — Informational &#x2F; Amber &#x2F; Neutral &#x2F; StructuralDrift</li><li><strong>simple_factual_short</strong> — Informational &#x2F; Amber &#x2F; Neutral &#x2F; StructuralDrift</li><li><strong>summarisation</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li></ul>
+      <h4 class="snap" style="margin-top:0.75rem">Fidelity drift — different style, equivalent substance</h4>
+      <ul class="upgrade-list"></ul>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
       
 
+      <h3 class="snap">Validated prompt patches</h3>
       
+      <p class="upgrade-empty-note">No automated patches generated — run with <code>--mutate</code> to attempt prompt repairs.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Latency impact</h2>
+      <p class="muted" style="margin-top:0">Observational only — latency does not affect overall risk, probe direction, or upgrade path routing.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average baseline latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">148785 ms</p>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average target latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">18946 ms</p>
+        </div>
+      </div>
+      <p style="margin:1rem 0 0.5rem">
+        Delta: <span class="mono">-129839 ms</span>
+        (<span class="mono">-87.3%</span>)
+        · Direction: <span class="badge Improvement">Improvement</span>
+      </p>
+      <p style="margin:0;color:var(--fg)">v2 responded 87% faster on average across 18 probes</p>
     </section>
 
     
@@ -4128,7 +4269,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">benign_chemistry</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4137,7 +4278,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
           </div>
           <div class="grid">
             <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Original</h4><pre>Explain how soap works at a chemical level.</pre></div>
-            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-0">Explain how soap works at a chemical level. Your answer must address or include these specific values: Chemical, Structure, C₁₇H₃₃COOK, Forming, Emulsifying, Reducing.</pre></div>
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-0">Explain how soap works at a chemical level. Your answer must address or include these specific values: Forming, Emulsifying, Reducing.</pre></div>
           </div>
         </div>
       </details>
@@ -4146,7 +4287,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">casual_greeting_response</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4155,7 +4296,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
           </div>
           <div class="grid">
             <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Original</h4><pre>Hey, what&#x27;s up? Can you help me understand what APIs are?</pre></div>
-            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-1">Hey, what&#x27;s up? Can you help me understand what APIs are? Your answer must address or include these specific values: Programming, Interfaces, APIs, URLs, POST, DELETE, Mobile, Data.</pre></div>
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-1">Hey, what&#x27;s up? Can you help me understand what APIs are? Your answer must address or include these specific values: Programming, Interfaces, POST, DELETE, Mobile, Data.</pre></div>
           </div>
         </div>
       </details>
@@ -4164,7 +4305,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">complex_explanation_long</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4173,7 +4314,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
           </div>
           <div class="grid">
             <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Original</h4><pre>Explain the causes and consequences of the 2008 financial crisis in detail.</pre></div>
-            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-2">Explain the causes and consequences of the 2008 financial crisis in detail. Your answer must address or include these specific values: 2006, 2007, Market, 2008, 2009, French, Paribas, Lehman, Risk-Free, Assets, Investors.</pre></div>
+            <div><h4 style="margin:0 0 0.35rem;color:var(--muted);font-size:0.8rem">Mutated</h4><pre id="eng-mut-2">Explain the causes and consequences of the 2008 financial crisis in detail. Your answer must address or include these specific values: 2006, 2007, Market, 2008, 2009, French, Paribas, Lehman, Assets, Investors.</pre></div>
           </div>
         </div>
       </details>
@@ -4182,7 +4323,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">controversial_opinion</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4236,7 +4377,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">format_bullet_list</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4290,7 +4431,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
         <summary>
           <span class="probe-title">open_ended_recommendation</span>
           <span class="badge Amber">Trial</span>
-          <span class="probe-meta">risk after Red · 1 steps</span>
+          <span class="probe-meta">risk after Amber · 1 steps</span>
         </summary>
         <div style="padding:0.75rem 1rem 1rem">
           <p class="muted" style="margin-top:0"></p>
@@ -4346,7 +4487,7 @@ It&#x27;s worth noting that the ages of both the Sun and the Earth are subject t
     <section class="panel">
       <h2>Upgrade recommendation</h2>
       
-      <p>Overall risk requires remediation: resolve blocking regressions or adjust prompts and policy before upgrading.</p>
+      <p>Overall risk requires remediation: resolve critical regressions and policy changes (or adjust prompts) before upgrading. Fidelity, structural, and compression drift may be acceptable without blocking rollout.</p>
       
     </section>
   </main>
