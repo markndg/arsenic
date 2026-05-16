@@ -19,8 +19,8 @@ pub mod types;
 pub use adapter::ModelAdapter;
 pub use claim::{ClaimExtractor, ClaimMatcher};
 pub use comparison::{
-    compute_drift_category, compute_latency_summary, compute_migration_profile, ComparisonEngine,
-    RiskThresholds,
+    compute_latency_summary, compute_migration_profile, compute_probe_risk, dimension_severity,
+    ComparisonEngine, RiskThresholds,
 };
 pub use embedding::{embed_batch_hash, hash_embed, weighted_sentence_similarity};
 pub use error::ArsenicError;

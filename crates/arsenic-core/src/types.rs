@@ -265,6 +265,9 @@ pub struct ProbeResult {
     /// What kind of drift this probe represents for upgrade-path routing.
     #[serde(default)]
     pub drift_category: DriftCategory,
+    /// Severity-weighted drift level (drives overall risk and category).
+    #[serde(default)]
+    pub drift_severity: DriftSeverity,
     pub dimensions: ProbeDimensions,
     pub notes: Vec<String>,
 }
@@ -295,6 +298,18 @@ pub enum RiskLevel {
     Red,
 }
 
+/// Severity-weighted drift level — primary driver of probe risk and upgrade routing.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[serde(rename_all = "PascalCase")]
+pub enum DriftSeverity {
+    #[default]
+    Informational = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Critical = 4,
+}
+
 /// Taxonomy for what kind of drift a probe shows — drives upgrade-path blocking rules.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "PascalCase")]
@@ -316,11 +331,9 @@ pub enum DriftCategory {
 }
 
 impl DriftCategory {
-    pub fn is_blocking(self) -> bool {
-        matches!(
-            self,
-            DriftCategory::CriticalRegression | DriftCategory::PolicyDrift
-        )
+    /// Only Red + CriticalRegression blocks rollout (see [`DriftSeverity::Critical`]).
+    pub fn is_blocking(self, risk: &RiskLevel) -> bool {
+        matches!(self, DriftCategory::CriticalRegression) && matches!(risk, RiskLevel::Red)
     }
 }
 

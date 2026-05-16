@@ -13,6 +13,7 @@ Most eval frameworks tell you whether your model passed your tests. ARSENIC tell
 behaviour whether you anticipated it or not — and for regressions it can't automatically fix, it tells you exactly what
 prompt changes will recover the original behaviour on the new model.
 
+![ARSENIC Report](docs/report-screenshot.png)
 ---
 
 ## What it does
@@ -94,6 +95,21 @@ export OLLAMA_KEY=ollama
 
 The report is a self-contained HTML file. Open it in a browser. Share it with whoever needs to make the upgrade
 decision.
+
+---
+
+## Why it matters
+
+Your support bot runs on GPT-4o-mini. OpenAI deprecates it.
+You upgrade to GPT-4.1-mini. Your tests pass.
+
+Three weeks later: the bot sounds different. Responses are shorter.
+A legal disclaimer stopped appearing. The JSON shape changed on one endpoint.
+Nobody noticed until a customer complained.
+
+ARSENIC catches this before you deploy.
+Run it against your production prompts before switching models.
+Get a migration report your team can act on.
 
 ---
 

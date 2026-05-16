@@ -241,6 +241,26 @@
     }
     .mig-verdict strong { color: var(--fg); }
 
+    .upgrade-safe-banner {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(46, 184, 114, 0.15);
+      border: 1px solid rgba(46, 184, 114, 0.45);
+      color: #9ee8c4;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .upgrade-empty-note {
+      margin: 0.35rem 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(139, 156, 176, 0.08);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
     .var-pill {
       font-family: var(--mono);
       font-size: 0.68rem;
@@ -556,6 +576,16 @@
           <table class="dimbreak">
             <tbody>
               <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  {% if pr.drift_severity == "Critical" %}🔴 Critical
+                  {% elif pr.drift_severity == "High" %}🟠 High
+                  {% elif pr.drift_severity == "Medium" %}🟡 Medium
+                  {% elif pr.drift_severity == "Low" %}🔵 Low
+                  {% else %}⚪ Informational{% endif %}
+                </td>
+              </tr>
+              <tr>
                 <th>Drift category</th>
                 <td colspan="3">
                   {% if pr.drift_category == "CriticalRegression" or pr.drift_category == "BehaviouralRegression" %}⛔ Critical regression
@@ -721,31 +751,40 @@
       </p>
 
       {% set critical_blockers = upgrade_path.critical_regressions | default(value=upgrade_path.behavioural_regressions) %}
-      {% if critical_blockers %}
+      {% set blocking = upgrade_path.blocking_regressions | default(value=critical_blockers) %}
+      {% if blocking | length > 0 %}
+        {% if critical_blockers | length > 0 %}
       <h3 class="snap">Critical regressions</h3>
       <ul class="upgrade-list">{% for u in critical_blockers %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
-      {% endif %}
-      {% if upgrade_path.policy_changes %}
+        {% endif %}
+        {% if upgrade_path.policy_changes | length > 0 %}
       <h3 class="snap">Policy changes</h3>
       <ul class="upgrade-list">{% for u in upgrade_path.policy_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+        {% endif %}
+      {% else %}
+      <p class="upgrade-safe-banner">No critical findings — safe to upgrade.</p>
       {% endif %}
-      {% if upgrade_path.improvements_to_verify %}
+      {% if upgrade_path.improvements_to_verify | length > 0 %}
       <h3 class="snap">Improvements to verify</h3>
       <ul class="upgrade-list">{% for u in upgrade_path.improvements_to_verify %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
       {% endif %}
       {% if upgrade_path.neutral_changes %}
       <h3 class="snap">Neutral changes</h3>
-      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}<li><strong>{{ u.probe_name }}</strong>
-        {% if u.drift_category == "FidelityDrift" %}<span class="muted">~ Fidelity drift</span>
-        {% elif u.drift_category == "StructuralDrift" %}<span class="muted">≈ Structural drift</span>
-        {% elif u.drift_category == "ContentCompression" %}<span class="muted">↓ Content compression</span>
-        {% elif u.drift_category == "NoSignificantDrift" %}<span class="muted">✓ No significant drift</span>
-        {% else %}<span class="muted">{{ u.drift_category }}</span>{% endif %}
-        — {{ u.summary }}</li>{% endfor %}</ul>
+      <h4 class="snap" style="margin-top:0.75rem">Compression drift — model is more concise</h4>
+      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}{% if u.drift_category == "ContentCompression" %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endif %}{% endfor %}</ul>
+      <h4 class="snap" style="margin-top:0.75rem">Structural drift — same content, different organisation</h4>
+      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}{% if u.drift_category == "StructuralDrift" %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endif %}{% endfor %}</ul>
+      <h4 class="snap" style="margin-top:0.75rem">Fidelity drift — different style, equivalent substance</h4>
+      <ul class="upgrade-list">{% for u in upgrade_path.neutral_changes %}{% if u.drift_category == "FidelityDrift" %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endif %}{% endfor %}</ul>
+      {% for u in upgrade_path.neutral_changes %}
+        {% if u.drift_category != "ContentCompression" and u.drift_category != "StructuralDrift" and u.drift_category != "FidelityDrift" %}
+      <ul class="upgrade-list"><li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li></ul>
+        {% endif %}
+      {% endfor %}
       {% endif %}
 
-      {% if upgrade_path.certified_prompts %}
       <h3 class="snap">Validated prompt patches</h3>
+      {% if upgrade_path.certified_prompts | length > 0 %}
       {% for c in upgrade_path.certified_prompts %}
       <details class="probe" style="margin-bottom:0.75rem">
         <summary><span class="probe-title">{{ c.probe_name }}</span><span class="pill">validated {{ c.validated }}</span><span class="probe-meta" style="margin-left:0.5rem">risk after {{ c.validation_risk }}</span>{% if c.strategies_applied | length > 0 %}<span class="probe-meta" style="margin-left:0.5rem">{{ c.strategies_applied | length }} strategies</span>{% endif %}</summary>
@@ -760,6 +799,8 @@
         </div>
       </details>
       {% endfor %}
+      {% else %}
+      <p class="upgrade-empty-note">No automated patches generated — run with <code>--mutate</code> to attempt prompt repairs.</p>
       {% endif %}
     </section>
 
