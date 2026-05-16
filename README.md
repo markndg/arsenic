@@ -10,8 +10,8 @@ coming.
 Detect behavioural drift, classify regression severity, and generate validated prompt patches before switching models.
 
 Most eval frameworks tell you whether your model passed your tests. ARSENIC tells you what changed about your model's
-behaviour whether you anticipated it or not — and for regressions it can't automatically fix, it tells you exactly what
-prompt changes will recover the original behaviour on the new model.
+behaviour whether you anticipated it or not — and for regressions it can't automatically fix, it proposes validated 
+prompt changes that can help recover the original behaviour
 
 ![ARSENIC Report](docs/report-screenshot.png)
 
