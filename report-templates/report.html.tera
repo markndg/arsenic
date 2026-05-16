@@ -509,8 +509,22 @@
 
     <section class="panel">
       <h2>Red probes</h2>
+      {% if summary.probes_red == 0 %}
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
+      {% else %}
       <p class="muted" style="margin-top:0">Blocking regressions need remediation before rollout. Red with improvement or neutral valence still needs human verification.</p>
 
+      {% set red_blocking_count = 0 %}
+      {% set red_verify_count = 0 %}
+      {% for pr in probe_results %}
+        {% if pr.overall_risk == "Red" and pr.overall_direction == "Regression" %}
+          {% set_global red_blocking_count = red_blocking_count + 1 %}
+        {% elif pr.overall_risk == "Red" %}
+          {% set_global red_verify_count = red_verify_count + 1 %}
+        {% endif %}
+      {% endfor %}
+
+      {% if red_blocking_count > 0 %}
       <h3 class="snap">Blocking regressions</h3>
       {% for pr in probe_results %}
         {% if pr.overall_risk == "Red" and pr.overall_direction == "Regression" %}
@@ -531,7 +545,9 @@
         </details>
         {% endif %}
       {% endfor %}
+      {% endif %}
 
+      {% if red_verify_count > 0 %}
       <h3 class="snap">Improvements to verify</h3>
       {% for pr in probe_results %}
         {% if pr.overall_risk == "Red" and pr.overall_direction != "Regression" %}
@@ -552,6 +568,8 @@
         </details>
         {% endif %}
       {% endfor %}
+      {% endif %}
+      {% endif %}
     </section>
 
     <section class="panel">
@@ -762,7 +780,7 @@
       <ul class="upgrade-list">{% for u in upgrade_path.policy_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
         {% endif %}
       {% else %}
-      <p class="upgrade-safe-banner">No critical findings — safe to upgrade.</p>
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
       {% endif %}
       {% if upgrade_path.improvements_to_verify | length > 0 %}
       <h3 class="snap">Improvements to verify</h3>
