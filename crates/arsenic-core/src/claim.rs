@@ -107,9 +107,86 @@ fn is_noise_numeric_token(raw: &str) -> bool {
     )
 }
 
+static CHEM_ELEMENT_RUN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:[A-Z][a-z]?\d*){2,}$").expect("regex")
+});
+
+static KNOWN_UPPERCASE_ACRONYMS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+    [
+        "REST", "JSON", "HTML", "HTTP", "HTTPS", "API", "SQL", "URI", "URL", "TLS", "SSL", "GPU",
+        "CPU", "RAM", "AWS", "GCP", "CLI", "GPT", "LLM", "OCR", "PDF", "XML", "YAML", "TOML",
+        "JWT", "SSH", "DNS", "TCP", "UDP", "IDE", "SDK", "SaaS", "iOS", "macOS",
+    ]
+    .into_iter()
+    .collect()
+});
+
 /// Whether a capitalised token is too generic to use as a mutation anchor or required value.
 pub fn is_spurious_anchor_value(word: &str) -> bool {
+    if looks_like_chemistry_formula(word) || is_noise_uppercase_abbrev(word) {
+        return true;
+    }
     is_spurious_proper_noun_token(word)
+}
+
+fn has_subscript_digit(s: &str) -> bool {
+    s.chars().any(|c| {
+        matches!(c, '₀' | '₁' | '₂' | '₃' | '₄' | '₅' | '₆' | '₇' | '₈' | '₉')
+            || ('\u{2080}'..='\u{2089}').contains(&c)
+    })
+}
+
+fn looks_like_chemistry_formula(word: &str) -> bool {
+    let value = word.trim();
+    if value.is_empty() {
+        return false;
+    }
+    if has_subscript_digit(value) {
+        return true;
+    }
+    let alnum: String = value
+        .chars()
+        .filter(|c| c.is_alphanumeric() || has_subscript_digit(&c.to_string()))
+        .collect();
+    if has_subscript_digit(&alnum) {
+        return true;
+    }
+    if !(alnum.chars().any(|c| c.is_ascii_lowercase()) || alnum.chars().any(|c| c.is_ascii_digit())) {
+        return false;
+    }
+    if CHEM_ELEMENT_RUN.is_match(&alnum) {
+        return true;
+    }
+    let letters: String = alnum.chars().filter(|c| c.is_alphabetic()).collect();
+    // Hill-style inorganic tokens (e.g. NaOH, NaCl).
+    if (3..=8).contains(&letters.len())
+        && letters.chars().any(|c| c.is_ascii_uppercase())
+        && letters.chars().any(|c| c.is_ascii_lowercase())
+    {
+        let upper = letters.chars().filter(|c| c.is_ascii_uppercase()).count();
+        let lower = letters.chars().filter(|c| c.is_ascii_lowercase()).count();
+        if upper >= 2 && lower >= 1 {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_noise_uppercase_abbrev(word: &str) -> bool {
+    let value = word.trim_matches(|c: char| c.is_alphanumeric());
+    if value.is_empty() {
+        return false;
+    }
+    if value.len() < 3 && value.chars().all(|c| c.is_ascii_uppercase()) {
+        return true;
+    }
+    if (2..=4).contains(&value.len())
+        && value.chars().all(|c| c.is_ascii_uppercase())
+        && !KNOWN_UPPERCASE_ACRONYMS.contains(value)
+    {
+        return true;
+    }
+    false
 }
 
 fn is_spurious_proper_noun_token(word: &str) -> bool {
@@ -684,9 +761,22 @@ mod anchor_tests {
     }
 
     #[test]
+    fn chemistry_formulae_are_spurious_anchors() {
+        for w in ["C₁₇H₃₃COOK", "NaOH", "CO₂", "NaCl"] {
+            assert!(
+                is_spurious_anchor_value(w),
+                "expected chemistry token {w} to be filtered"
+            );
+        }
+        assert!(!is_spurious_anchor_value("REST"));
+    }
+
+    #[test]
     fn section_header_tokens_are_spurious_anchors() {
         for w in [
             "Select", "Choose", "Static", "System", "Management", "Experience", "Requirements",
+            "Existing", "Social", "Tool", "Innovation", "Communication", "Adaptation",
+            "Considerations", "Impact", "Future", "Potential",
         ] {
             assert!(
                 is_spurious_anchor_value(w),

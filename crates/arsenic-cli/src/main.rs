@@ -20,7 +20,7 @@ mod mutation_validate;
 mod reconcile;
 
 #[derive(Parser)]
-#[command(name = "arsenic", version, about = "ARSENIC — model drift certification")]
+#[command(name = "arsenic", version, about = "ARSENIC — migration safety and behavioural drift")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -76,9 +76,6 @@ enum Commands {
         /// Request timeout in seconds for model API calls (default: 30). Increase for slow local models.
         #[arg(long, default_value_t = 30)]
         timeout_secs: u64,
-        /// v2: treat Amber latency like other dimensions when aggregating overall probe risk.
-        #[arg(long)]
-        latency_affects_risk: bool,
         /// v2: after compare, try rule-based prompt mutations against v2 and record results.
         #[arg(long)]
         mutate: bool,
@@ -102,7 +99,7 @@ enum Commands {
         #[command(subcommand)]
         sub: ModelsCmd,
     },
-    /// Reconcile a single prompt: analyse drift and certify a prompt for the target model
+    /// Reconcile a single prompt: analyse drift and validate a prompt patch for the target model
     Reconcile {
         #[arg(long)]
         prompt: Option<String>,
@@ -214,7 +211,6 @@ struct RunConfigSection {
     semantic_threshold: Option<f64>,
     consistency_runs: Option<usize>,
     timeout_secs: Option<u64>,
-    latency_affects_risk: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -274,7 +270,6 @@ async fn main() -> anyhow::Result<()> {
             v2_label,
             consistency_runs,
             timeout_secs,
-            latency_affects_risk,
             mutate,
         } => {
             let mut cfg_opt: Option<ArsenicConfig> = None;
@@ -313,11 +308,6 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or(consistency_runs)
                 .max(1);
 
-            let latency_affects_risk = cfg_opt
-                .as_ref()
-                .and_then(|c| c.run.latency_affects_risk)
-                .unwrap_or(latency_affects_risk);
-
             let suite_dir = suite_path.unwrap_or_else(default_suite_path);
             let probes = load_probes_for_suite(&suite_dir, &suite_str, corpus.as_ref())?;
 
@@ -351,12 +341,7 @@ async fn main() -> anyhow::Result<()> {
             let pair_by_id: HashMap<_, _> = pairs.iter().map(|p| (p.probe.id, p.clone())).collect();
 
             let risk = RiskThresholds::default();
-            let engine = ComparisonEngine::new(
-                !no_semantic,
-                sem_thr,
-                risk,
-                latency_affects_risk,
-            );
+            let engine = ComparisonEngine::new(!no_semantic, sem_thr, risk);
             let mut report = engine.compare(
                 Uuid::new_v4(),
                 pairs,

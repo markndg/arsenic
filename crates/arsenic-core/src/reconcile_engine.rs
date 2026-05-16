@@ -1119,7 +1119,7 @@ mod tests {
         let v1 = synthetic_model_response(probe.id, "baseline", "b", &v1_text);
         let v2 = synthetic_model_response(probe.id, "target", "t", &v2_text);
 
-        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default(), false);
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
         let adapter = Arc::new(ScriptedAdapter {
             model_id: "t".into(),
             by_prompt_contains: HashMap::new(),
@@ -1172,7 +1172,7 @@ mod tests {
         let v1 = synthetic_model_response(probe.id, "baseline", "baseline-model", v1_text);
         let v2 = synthetic_model_response(probe.id, "target", "target-model", v2_text);
 
-        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default(), false);
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
         let mut responses = HashMap::new();
         responses.insert(
             "specific values:".to_string(),
@@ -1227,6 +1227,7 @@ mod tests {
             v2_content: String::new(),
             overall_risk: RiskLevel::Amber,
             overall_direction: DriftDirection::Neutral,
+            drift_category: DriftCategory::NoSignificantDrift,
             dimensions: ProbeDimensions {
                 morphology: MorphologyDiff {
                     risk: RiskLevel::Green,

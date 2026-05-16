@@ -54,9 +54,9 @@
     <p class="sub">Run {{ run_id }} · {{ generated_at }}</p>
     <p class="sub">{{ v1_model.label }} ({{ v1_model.model_id }}) → {{ v2_model.label }} ({{ v2_model.model_id }})</p>
     {% if certified %}
-    <p><span class="badge Green">CERTIFIED</span> validation risk: {{ validation_risk | default(value="—") }}</p>
+    <p><span class="badge Green">VALIDATED</span> validation risk: {{ validation_risk | default(value="—") }}</p>
     {% else %}
-    <p><span class="badge Amber">MANUAL REVIEW</span></p>
+    <p><span class="badge Amber">Needs Attention</span></p>
     {% endif %}
   </header>
   <main>
@@ -119,7 +119,7 @@
       <h2>Mutation attempts</h2>
       {% for a in attempts %}
       <details>
-        <summary>Attempt {{ a.attempt_number }} — risk {{ a.risk_after }}{% if a.improved %} (improved){% endif %}</summary>
+        <summary>Attempt {{ a.attempt_number }}{% if a.improved %} — improved (risk {{ a.risk_after }}){% else %} — no improvement{% endif %}</summary>
         <p style="color:var(--muted)">Strategies: {% for st in a.strategies %}{{ st }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
         <pre>{{ a.mutated_prompt }}</pre>
         <p style="color:var(--muted)">Target response</p>
@@ -131,17 +131,17 @@
 
     {% if certified and certified_prompt %}
     <section>
-      <h2>Certified prompt</h2>
+      <h2>Validated prompt patch</h2>
       <button type="button" class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('cert-prompt').innerText)">Copy</button>
       <pre id="cert-prompt">{{ certified_prompt }}</pre>
       {% if validation_response %}
-      <p style="color:var(--muted);margin-top:1rem">Target response after certification</p>
+      <p style="color:var(--muted);margin-top:1rem">Target response after validation</p>
       <pre>{{ validation_response }}</pre>
       {% endif %}
     </section>
     {% elif requires_manual_review %}
     <section>
-      <h2>Manual review</h2>
+      <h2>Needs attention</h2>
       <p>Automatic reconciliation did not reduce risk within the strategy budget.</p>
       <ul>{% for n in notes %}<li>{{ n }}</li>{% endfor %}</ul>
     </section>
