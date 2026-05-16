@@ -39,8 +39,7 @@ target, delta, direction). It does not affect overall risk, probe direction, or 
 observational, not a validation signal. Per-probe latency remains in the dimension snapshot table for drill-down.
 
 The mutation engine goes one step further. For regressions it can address, it generates candidate prompt mutations,
-validates them against v2, and produces validated prompt patches. You get the diff, a copy button, and confidence the
-fix actually works.
+validates them against v2, and produces validated remediation candidates. You get the diff, a copy button, and confidence the fix actually works.
 
 ---
 

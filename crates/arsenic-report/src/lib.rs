@@ -113,4 +113,28 @@ mod tests {
         assert_eq!(s.get("probe_improvements"), s.get("improvements"));
         assert_eq!(s.get("probe_neutral"), s.get("neutral"));
     }
+
+    #[test]
+    fn red_probes_panel_empty_shows_banner_only() {
+        use arsenic_core::RiskLevel;
+
+        let json = include_str!("../../../example_report_llama_upgrade.json");
+        let mut report: DriftReport = serde_json::from_str(json).expect("parse example_report_llama_upgrade.json");
+        for pr in &mut report.probe_results {
+            pr.overall_risk = RiskLevel::Green;
+        }
+        report.summary.probes_red = 0;
+
+        let html = ReportRenderer::render_html(&report).expect("render HTML");
+        let start = html.find("<h2>Red probes</h2>").expect("red probes section");
+        let end = html[start..]
+            .find("<h2>All probe results</h2>")
+            .map(|i| start + i)
+            .expect("all probe results section");
+        let section = &html[start..end];
+
+        assert!(section.contains("No blocking regressions detected."));
+        assert!(!section.contains("<h3 class=\"snap\">Blocking regressions</h3>"));
+        assert!(!section.contains("<h3 class=\"snap\">Improvements to verify</h3>"));
+    }
 }
