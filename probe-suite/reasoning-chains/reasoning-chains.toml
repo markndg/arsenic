@@ -1,0 +1,69 @@
+[[probes]]
+name = "reasoning_prime_identification"
+category = "Factual"
+prompt = "Is 17077 a prime number? Show your working step by step before giving your final answer."
+known_answer = "17077 is prime. Working should include: checking divisibility, finding square root (~130.7), testing prime divisors up to that value."
+tags = ["reasoning-chains", "mathematics", "chain-of-thought", "stanford-study"]
+
+[[probes]]
+name = "reasoning_prime_composite"
+category = "Factual"
+prompt = "Is 15129 a prime or composite number? Work through it step by step."
+known_answer = "15129 is composite (123 x 123 = 15129). The model should show the factorisation process, not just state the answer."
+tags = ["reasoning-chains", "mathematics", "chain-of-thought", "stanford-study"]
+
+[[probes]]
+name = "reasoning_multi_step_arithmetic"
+category = "Factual"
+prompt = "A shop sells apples for 35p each. Someone buys 7 apples and pays with a £5 note. How much change do they receive? Show each step of your working."
+known_answer = "7 x 35p = £2.45. £5.00 - £2.45 = £2.55 change. Model should show multiplication then subtraction explicitly."
+tags = ["reasoning-chains", "arithmetic", "multi-step", "word-problem"]
+
+[[probes]]
+name = "reasoning_logical_deduction"
+category = "Factual"
+prompt = "All mammals are warm-blooded. Whales are mammals. Dolphins are mammals. Snakes are not mammals. Which of these animals are warm-blooded? Explain your reasoning for each."
+known_answer = "Whales: warm-blooded (mammal). Dolphins: warm-blooded (mammal). Snakes: not warm-blooded (not mammal). Model should apply the syllogism explicitly for each animal."
+tags = ["reasoning-chains", "logic", "deduction", "syllogism"]
+
+[[probes]]
+name = "reasoning_percentage_calculation"
+category = "Factual"
+prompt = "A jacket costs £120. It is reduced by 15% in a sale, then the sale price is increased by 10%. What is the final price? Show each calculation step."
+known_answer = "Step 1: 15% of £120 = £18. Sale price = £102. Step 2: 10% of £102 = £10.20. Final price = £112.20. Model should show both steps explicitly."
+tags = ["reasoning-chains", "arithmetic", "percentages", "multi-step"]
+
+[[probes]]
+name = "reasoning_causal_explanation"
+category = "Factual"
+prompt = "Why does a metal spoon feel colder than a wooden spoon at room temperature? Explain the causal chain from first principles, step by step."
+known_answer = "Metal is a better thermal conductor than wood. When touched, metal conducts heat away from skin faster than wood. Faster heat transfer = sensation of cold. Model should trace the causal mechanism, not just state the conclusion."
+tags = ["reasoning-chains", "physics", "causal-reasoning", "explanation"]
+
+[[probes]]
+name = "reasoning_conditional_logic"
+category = "Factual"
+prompt = "If it rains, the match is cancelled. If the match is cancelled, the players go to the gym. If the players go to the gym, the coach runs a fitness session. It is raining. What does the coach do? Show each step of your reasoning."
+known_answer = "It rains → match cancelled → players go to gym → coach runs fitness session. Model should chain each conditional explicitly."
+tags = ["reasoning-chains", "logic", "conditional", "chain-of-thought"]
+
+[[probes]]
+name = "reasoning_show_dont_just_answer"
+category = "Instruction"
+prompt = "What is the square root of 1764? Do not just give the answer. Show how you would work it out or verify it."
+known_answer = "Square root of 1764 is 42. Model should show working: 40² = 1600, 42² = 1764, or trial method. Answer alone without working is a reasoning chain failure."
+tags = ["reasoning-chains", "mathematics", "show-working", "instruction-following"]
+
+[[probes]]
+name = "reasoning_analogy_explanation"
+category = "Factual"
+prompt = "Explain why a computer's RAM is like a desk, and a hard drive is like a filing cabinet. Build the analogy step by step, covering at least three specific similarities for each."
+known_answer = "RAM/desk: immediate access, limited space, cleared when done. HDD/filing cabinet: long-term storage, larger capacity, slower to access. Model should develop each analogy point explicitly, not just assert the comparison."
+tags = ["reasoning-chains", "analogy", "explanation", "depth"]
+
+[[probes]]
+name = "reasoning_hypothesis_testing"
+category = "Factual"
+prompt = "A user reports that their web app is slow only on Mondays. List at least four distinct hypotheses that could explain this, and for each one explain what evidence would confirm or rule it out."
+known_answer = "Plausible hypotheses: scheduled jobs/cron tasks, weekend batch processing completing, higher Monday traffic, weekend deployments, database maintenance. Each should have a testable prediction. Model should generate hypotheses AND paired evidence, not just list causes."
+tags = ["reasoning-chains", "hypothesis-generation", "diagnostic-reasoning", "structured-thinking"]

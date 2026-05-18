@@ -1,0 +1,66 @@
+[[probes]]
+name = "schema_flat_required_fields"
+category = "Instruction"
+prompt = "Return a JSON object with exactly these fields: name (string), age (integer), active (boolean). No other fields. No explanation, just the JSON."
+tags = ["json-schema", "required-fields", "flat-object"]
+
+[[probes]]
+name = "schema_nested_object"
+category = "Instruction"
+prompt = "Return a JSON object with this exact structure and these exact values. No explanation, just the JSON:\n{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"user@example.com\"\n  },\n  \"status\": \"active\"\n}"
+known_answer = "{\"user\":{\"id\":1,\"email\":\"user@example.com\"},\"status\":\"active\"}"
+tags = ["json-schema", "nested-object", "exact-values"]
+
+[[probes]]
+name = "schema_array_of_objects"
+category = "Instruction"
+prompt = "Return a JSON array containing exactly 3 objects. Each object must have: id (integer), label (string). No explanation, just the JSON array."
+tags = ["json-schema", "array", "multiple-items"]
+
+[[probes]]
+name = "schema_strict_no_extras"
+category = "Instruction"
+prompt = "Return a JSON object with ONLY these two fields: result (string), confidence (float between 0 and 1). Set result to the string \"ok\" and confidence to 0.9. Do not add any other fields. No markdown, no explanation. Raw JSON only."
+known_answer = "{\"result\":\"ok\",\"confidence\":0.9}"
+tags = ["json-schema", "strict", "no-extra-fields", "exact-values"]
+
+[[probes]]
+name = "schema_nullable_field"
+category = "Instruction"
+prompt = "Return a JSON object with these fields: title (string), description (string or null), count (integer). Set title to \"test\", description to null, count to 0. No explanation, just the JSON."
+known_answer = "{\"title\":\"test\",\"description\":null,\"count\":0}"
+tags = ["json-schema", "nullable", "null-handling", "exact-values"]
+
+[[probes]]
+name = "schema_enum_field"
+category = "Instruction"
+prompt = "Return a JSON object with these fields: status (must be exactly the string \"pending\"), priority (integer, set it to 3). No explanation, just the JSON."
+known_answer = "{\"status\":\"pending\",\"priority\":3}"
+tags = ["json-schema", "enum", "constrained-values", "exact-values"]
+
+[[probes]]
+name = "schema_deeply_nested"
+category = "Instruction"
+prompt = "Return this exact JSON with these exact values. No markdown code fences. No explanation. Raw JSON only:\n{\n  \"request\": {\n    \"meta\": {\n      \"version\": 1,\n      \"source\": \"api.example.com\"\n    },\n    \"payload\": {\n      \"items\": [\"item1\", \"item2\", \"item3\"]\n    }\n  }\n}"
+known_answer = "{\"request\":{\"meta\":{\"version\":1,\"source\":\"api.example.com\"},\"payload\":{\"items\":[\"item1\",\"item2\",\"item3\"]}}}"
+tags = ["json-schema", "deep-nesting", "exact-values", "raw-output"]
+
+[[probes]]
+name = "schema_numeric_types"
+category = "Instruction"
+prompt = "Return a JSON object with: count (must be the integer 5), ratio (must be the float 0.75), label (must be the string \"test\"). Values must be exactly as specified. No explanation, just the JSON."
+known_answer = "{\"count\":5,\"ratio\":0.75,\"label\":\"test\"}"
+tags = ["json-schema", "numeric-types", "exact-values"]
+
+[[probes]]
+name = "schema_classification_output"
+category = "Instruction"
+prompt = "Classify the following text and return ONLY a JSON object with fields: category (string), confidence (float 0-1, must be a number not a word), reasoning (string). No markdown fences. Raw JSON only.\n\nText: 'The quarterly revenue exceeded expectations by 12 percent.'"
+tags = ["json-schema", "classification", "real-world-use-case", "float-integrity"]
+
+[[probes]]
+name = "schema_no_markdown_wrapping"
+category = "Instruction"
+prompt = "Return a JSON object: {\"ok\": true, \"code\": 200}. Output the raw JSON only. Do not wrap it in markdown code fences. Do not add any text before or after."
+known_answer = "{\"ok\": true, \"code\": 200}"
+tags = ["json-schema", "no-markdown", "raw-output", "formatting"]

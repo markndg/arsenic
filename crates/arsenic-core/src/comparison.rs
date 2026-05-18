@@ -183,6 +183,24 @@ impl ComparisonEngine {
             notes.push(format!("v2 probe error: {}", pair.v2.content));
         }
 
+        if normalize_whitespace(&pair.v1.content) == normalize_whitespace(&pair.v2.content) {
+            let dimensions = self.dimensions_for_identical_responses(&pair);
+            let (overall_risk, drift_category, drift_severity) =
+                compute_probe_risk(&pair.probe, &dimensions);
+            let overall_direction = probe_overall_direction(&dimensions, &overall_risk);
+            return Ok(ProbeResult {
+                probe: pair.probe,
+                v1_content: pair.v1.content,
+                v2_content: pair.v2.content,
+                overall_risk,
+                overall_direction,
+                drift_category,
+                drift_severity,
+                dimensions,
+                notes,
+            });
+        }
+
         let morphology = self.compare_morphology(&pair);
         let tone = self.compare_tone(&pair);
         let factual = self.compare_factual(&pair);
@@ -314,7 +332,78 @@ impl ComparisonEngine {
         }
     }
 
+    fn dimensions_for_identical_responses(&self, pair: &ResponsePair) -> ProbeDimensions {
+        let metrics = MorphologyAnalyser::analyse(&pair.v1.content, pair.v1.token_count);
+        let tone = ToneAnalyser::analyse(&pair.v1.content);
+        let semantic = if self.semantic_analyser.is_enabled() {
+            SemanticDiff {
+                risk: RiskLevel::Green,
+                direction: DriftDirection::Neutral,
+                cosine_similarity: Some(1.0),
+                semantic_scoring_disabled: false,
+                disabled_reason: None,
+                flagged_for_review: false,
+                similarity_threshold: self.semantic_threshold,
+            }
+        } else {
+            SemanticDiff {
+                risk: RiskLevel::Green,
+                direction: DriftDirection::NotApplicable,
+                cosine_similarity: None,
+                semantic_scoring_disabled: true,
+                disabled_reason: Some("semantic scoring disabled (--no-semantic or engine off)".into()),
+                flagged_for_review: false,
+                similarity_threshold: self.semantic_threshold,
+            }
+        };
+        ProbeDimensions {
+            morphology: MorphologyDiff {
+                risk: RiskLevel::Green,
+                direction: DriftDirection::Neutral,
+                v1: metrics,
+                v2: metrics,
+                delta: MorphologyDelta {
+                    token_delta: 0,
+                    token_delta_pct: 0.0,
+                    response_type_changed: false,
+                    structure_changed: false,
+                },
+            },
+            tone: ToneDiff {
+                risk: RiskLevel::Green,
+                direction: DriftDirection::Neutral,
+                v1: tone,
+                v2: tone,
+                delta: ToneDelta {
+                    formality_delta: 0.0,
+                    assertiveness_delta: 0.0,
+                    hedge_word_delta: 0,
+                    significant_shift: false,
+                },
+            },
+            factual: None,
+            schema: None,
+            instruction: None,
+            refusal: RefusalDiff {
+                risk: RiskLevel::Green,
+                direction: DriftDirection::Neutral,
+                v1_refused: RefusalDetector::is_refusal(&pair.v1),
+                v2_refused: RefusalDetector::is_refusal(&pair.v2),
+                new_refusal: false,
+                refusal_lifted: false,
+            },
+            semantic,
+            claim: claim_diff_identical(pair.probe.category),
+            latency: self.compare_latency(pair),
+            consistency: self.compare_consistency(pair),
+            custom_assertions: None,
+        }
+    }
+
     fn compare_factual(&self, pair: &ResponsePair) -> Option<FactualDiff> {
+        if pair.probe.known_answer.is_none() || pair.probe.category != ProbeCategory::Factual {
+            return None;
+        }
         let known = pair.probe.known_answer.as_ref()?;
         let v1_ok = answer_matches_known(&pair.v1.content, known);
         let v2_ok = answer_matches_known(&pair.v2.content, known);
@@ -1583,6 +1672,21 @@ fn morphology_risk_level(
     }
 }
 
+/// Collapse all whitespace runs so byte-identical answers match after formatting differences.
+fn normalize_whitespace(content: &str) -> String {
+    content.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn claim_diff_identical(category: ProbeCategory) -> ClaimDiff {
+    ClaimDiff {
+        risk: RiskLevel::Green,
+        direction: DriftDirection::Neutral,
+        preservation_score: 1.0,
+        preservation_threshold: category.preservation_threshold(),
+        ..Default::default()
+    }
+}
+
 fn answer_matches_known(content: &str, known: &str) -> bool {
     let c = content.to_lowercase();
     let k = known.to_lowercase();
@@ -2549,5 +2653,92 @@ mod tests {
             consistency: None,
             custom_assertions: None,
         }
+    }
+
+    fn test_response_pair(
+        category: ProbeCategory,
+        known_answer: Option<&str>,
+        v1: &str,
+        v2: &str,
+    ) -> ResponsePair {
+        let id = Uuid::new_v4();
+        let probe = Probe {
+            id,
+            name: "code_sql_basic_select".into(),
+            category,
+            prompt: "write sql".into(),
+            system_prompt: None,
+            known_answer: known_answer.map(str::to_string),
+            expected_schema: None,
+            instructions: vec![],
+            tags: vec!["code-generation".into()],
+            source: ProbeSource::Standard,
+            expected_verbosity: None,
+            expected_tone: None,
+            refusal_expectation: None,
+            mutation_hint: None,
+            custom_assertions: vec![],
+        };
+        let mk = |label: &str, content: &str| ModelResponse {
+            probe_id: id,
+            model_label: label.into(),
+            model_id: "gpt".into(),
+            content: content.into(),
+            token_count: content.len(),
+            latency_ms: 100,
+            finish_reason: FinishReason::Stop,
+            timestamp: chrono::Utc::now(),
+            raw: serde_json::json!({}),
+        };
+        ResponsePair {
+            probe,
+            v1: mk("v1", v1),
+            v2: mk("v2", v2),
+            v1_runs: vec![],
+            v2_runs: vec![],
+        }
+    }
+
+    #[test]
+    fn factual_scoring_requires_factual_category() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let pair = test_response_pair(
+            ProbeCategory::Instruction,
+            Some("Paris"),
+            "The capital is Paris",
+            "I don't know",
+        );
+        let pr = engine.compare_one(pair).expect("compare");
+        assert!(
+            pr.dimensions.factual.is_none(),
+            "Instruction probes must not use the factual dimension even with known_answer"
+        );
+    }
+
+    #[test]
+    fn identical_instruction_probe_responses_are_green() {
+        let sql = "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC";
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let pair = test_response_pair(ProbeCategory::Instruction, None, sql, sql);
+        let pr = engine.compare_one(pair).expect("compare");
+        assert!(pr.dimensions.factual.is_none());
+        assert!(matches!(pr.overall_risk, RiskLevel::Green));
+        assert_eq!(pr.drift_category, DriftCategory::NoSignificantDrift);
+        assert!(!is_blocking_probe(&pr));
+        assert!(matches!(pr.overall_direction, DriftDirection::Neutral));
+    }
+
+    #[test]
+    fn identical_responses_normalize_whitespace() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let pair = test_response_pair(
+            ProbeCategory::Instruction,
+            None,
+            "SELECT  *  FROM orders",
+            "SELECT * FROM orders",
+        );
+        let pr = engine.compare_one(pair).expect("compare");
+        assert!(matches!(pr.overall_risk, RiskLevel::Green));
+        assert!(!is_blocking_probe(&pr));
     }
 }

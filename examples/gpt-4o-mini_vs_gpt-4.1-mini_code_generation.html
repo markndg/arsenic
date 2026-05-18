@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Drift 4f9993c2-4ed5-459e-b91d-7bd7e868ac27</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; }
+    header.hero .models { font-size: 1rem; }
+    header.hero .models strong { color: #c5e4f5; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    h3.snap {
+      font-size: 0.82rem;
+      margin: 1rem 0 0.5rem;
+      color: #8eb4cc;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Risk badges + directional tinting (§10) */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.Green { background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45); }
+    .badge.Amber { background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4); }
+    .badge.Red { background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55); }
+    /* Red + regression = solid remediation */
+    .badge.Red.dir-regression {
+      background: linear-gradient(145deg, #c43641, var(--red-deep));
+      color: #fff;
+      border-color: #8a1f28;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    /* Red + improvement = verify (green ring), not same as blocking */
+    .badge.Red.dir-improvement,
+    .badge.Red.dir-neutral,
+    .badge.Red.dir-notapplicable {
+      background: rgba(226, 77, 86, 0.28);
+      color: #ffe0e3;
+      border: 2px solid var(--green-ring);
+      box-shadow: 0 0 0 1px rgba(46, 184, 114, 0.25);
+    }
+
+    /* Executive stat grid */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.65rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+
+    /* Tables */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .dim-flow { white-space: nowrap; font-family: var(--mono); font-size: 0.8rem; }
+    .dim-flow .d-down { color: #ff8a8a; margin-right: 0.35rem; }
+    .dim-flow .d-up { color: #7ae0a8; margin-right: 0.35rem; }
+    .dim-flow .d-mid { color: var(--muted); }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+
+    /* Probe rows */
+    details.probe {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.probe > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.probe > summary::-webkit-details-marker { display: none; }
+    details.probe[open] > summary { border-bottom: 1px solid var(--border); }
+    .probe-title { flex: 1; min-width: 8rem; }
+    .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .migration-headline {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      color: #d4eaf7;
+      letter-spacing: -0.01em;
+    }
+    .migration-profile.safe .migration-headline { color: #9ee8c4; }
+    .migration-profile.unsafe .migration-headline { color: #f5c4a8; }
+    .mig-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+    }
+    .mig-pill {
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(8, 217, 198, 0.12);
+      border: 1px solid rgba(8, 217, 198, 0.35);
+      color: var(--accent);
+    }
+    .mig-verdict {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--muted);
+    }
+    .mig-verdict strong { color: var(--fg); }
+
+    .upgrade-safe-banner {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(46, 184, 114, 0.15);
+      border: 1px solid rgba(46, 184, 114, 0.45);
+      color: #9ee8c4;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .upgrade-empty-note {
+      margin: 0.35rem 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(139, 156, 176, 0.08);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .var-pill {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(139, 156, 176, 0.15);
+      border: 1px solid rgba(139, 156, 176, 0.35);
+      color: #b4c8dc;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    table.dimbreak { font-size: 0.82rem; margin: 0.75rem 0; width: 100%; }
+    table.dimbreak th {
+      text-align: left;
+      width: 6.5rem;
+      color: var(--muted);
+      font-weight: 600;
+      vertical-align: top;
+      padding: 0.35rem 0.5rem 0.35rem 0;
+    }
+    table.dimbreak td { padding: 0.35rem 0.35rem; vertical-align: top; }
+    table.dimbreak td.risk { white-space: nowrap; width: 4rem; }
+    table.dimbreak td.dir { font-family: var(--mono); font-size: 0.78rem; color: #9ecfff; width: 5rem; }
+    .dir-arrow-reg::before { content: "↓ "; color: #ff8a8a; }
+    .dir-arrow-imp::before { content: "↑ "; color: #7ae0a8; }
+    .dir-arrow-neu::before { content: "→ "; color: var(--muted); }
+    .dir-arrow-na::before { content: "— "; color: var(--muted); }
+
+    details.claim-diff {
+      margin: 1rem 0;
+      border: 1px dashed rgba(8, 217, 198, 0.35);
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(8, 217, 198, 0.03);
+    }
+    details.claim-diff > summary { cursor: pointer; font-weight: 600; color: #9ee4dc; }
+    .pill {
+      display: inline-block;
+      margin-left: 0.5rem;
+      font-size: 0.68rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(8, 217, 198, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .claim-block { margin: 0.75rem 0; }
+    .claim-block h4 { margin: 0 0 0.35rem; font-size: 0.8rem; color: #8eb4cc; }
+    ul.compact { margin: 0.25rem 0; padding-left: 1.1rem; color: #c5d4e0; font-size: 0.82rem; }
+
+    .diff-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+    button.copy-btn {
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: rgba(8, 217, 198, 0.12);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    button.copy-btn:hover { background: rgba(8, 217, 198, 0.22); }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+
+    ul.upgrade-list { margin: 0.35rem 0; padding-left: 1.15rem; }
+    ul.upgrade-list li { margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <header class="hero">
+    <h1>ARSENIC drift report</h1>
+    <p class="sub mono">Run <code>4f9993c2-4ed5-459e-b91d-7bd7e868ac27</code> · 2026-05-18T21:18:10.945715Z · Overall
+      <span class="badge Green">Green</span>
+    </p>
+    <p class="models"><strong>v1</strong>
+      <span class="muted">(gpt-4o-mini)</span>
+      <span class="muted"> vs </span>
+      <strong>v2</strong>
+      <span class="muted">(gpt-4.1-mini)</span>
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Executive summary</h2>
+      <p class="muted" style="margin:0 0 0.75rem">Probe outcomes and drift valence across the run.</p>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">10</div><div class="lbl">Total probes</div></div>
+        <div class="stat"><div class="val green">10</div><div class="lbl">Green</div></div>
+        <div class="stat"><div class="val amber">0</div><div class="lbl">Amber</div></div>
+        <div class="stat"><div class="val red">0</div><div class="lbl">Red</div></div>
+        <div class="stat"><div class="val" style="color:#ff8a8a">0</div><div class="lbl">↓ Regressions</div></div>
+        <div class="stat"><div class="val" style="color:#7ae0a8">0</div><div class="lbl">↑ Improvements</div></div>
+        <div class="stat"><div class="val" style="color:var(--muted)">10</div><div class="lbl">→ Neutral</div></div>
+        <div class="stat"><div class="val" style="color:var(--accent)">0</div><div class="lbl">Auto-fix candidates</div></div>
+      </div>
+      <p style="margin:1rem 0 0;font-size:0.9rem">
+        Safe to upgrade: <strong>true</strong>
+        · Manual review items: <strong>0</strong>
+      </p>
+      <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
+        Critical regressions: <strong>0</strong>
+        · Policy drift: <strong>0</strong>
+        · Fidelity drift: <strong>0</strong>
+        · Structural drift: <strong>0</strong>
+        · Content compression: <strong>0</strong>
+      </p>
+    </section>
+
+    <section class="panel migration-profile safe">
+      <h2>Migration profile</h2>
+      <p class="migration-headline">v2 is 32% faster</p>
+      <div class="mig-pills">
+        
+        <span class="mig-pill">⚡ 32% faster</span>
+        
+        
+        
+        
+      </div>
+      <p class="mig-verdict">
+        Safe to upgrade: <strong>true</strong>
+        
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Dimension overview</h2>
+      <p class="muted" style="margin-top:0">Worst risk per dimension, drift direction mix among affected probes (↑ / ↓ / →), and affected count.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Worst risk</th>
+            <th>Drift (affected)</th>
+            <th class="num">Probes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Morphology</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Tone</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Factual</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Schema</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Instruction</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Refusal</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Semantic</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓0</span><span class="d-up">↑1</span><span class="d-mid">→0</span></span></td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td><strong>Claim</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Consistency</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓0</span><span class="d-up">↑1</span><span class="d-mid">→0</span></span></td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td><strong>Custom assertions</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Red probes</h2>
+      
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>All probe results</h2>
+      <p class="muted" style="margin-top:0">Expand for prompt, dimension snapshot (with drift arrows), claim intelligence, and responses. Consistency σ shows run variance when multi-run sampling was enabled.</p>
+
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_javascript_arrow_function</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a JavaScript arrow function called `double` that takes a number and returns it multiplied by 2. Use const. Return only the function definition, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 4% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999576965958</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 642 ms · v2 775 ms · Δ 133 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ```javascript <span class="muted">↔ v2:</span> ```javascript</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> const double = (num) =&gt; num * 2; <span class="muted">↔ v2:</span> const double = num =&gt; num * 2;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```javascript
+const double = (num) =&gt; num * 2;
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```javascript
+const double = num =&gt; num * 2;
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_no_explanation_discipline</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python function called `fibonacci` that returns the nth Fibonacci number using recursion. Return ONLY the function. No explanation before it. No explanation after it. No usage example. Just the def block.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 2% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -2%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.999999992218997</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1441 ms · v2 1138 ms · Δ -303 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">6 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def fibonacci(n): <span class="muted">↔ v2:</span> def fibonacci(n):</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> if n &lt;= 0: <span class="muted">↔ v2:</span> if n &lt;= 0:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> return 0 <span class="muted">↔ v2:</span> return 0</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> elif n == 1: <span class="muted">↔ v2:</span> elif n == 1:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> return 1 <span class="muted">↔ v2:</span> return 1</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> return fibonacci(n - 1) + fibonacci(n - 2) <span class="muted">↔ v2:</span> return fibonacci(n-1) + fibonacci(n-2)</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+def fibonacci(n):
+    if n &lt;= 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fibonacci(n - 1) + fibonacci(n - 2)
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+def fibonacci(n):
+    if n &lt;= 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fibonacci(n-1) + fibonacci(n-2)
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_python_class_definition</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python class called `Counter` with: an `__init__` method that sets `self.count` to 0, an `increment` method that adds 1 to count, and a `reset` method that sets count back to 0. Return only the class definition, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.999999982479268</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 3984 ms · v2 1042 ms · Δ -2942 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">7 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> class Counter: <span class="muted">↔ v2:</span> class Counter:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def __init__(self): <span class="muted">↔ v2:</span> def __init__(self):</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> self.count = 0 <span class="muted">↔ v2:</span> self.count = 0</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def increment(self): <span class="muted">↔ v2:</span> def increment(self):</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> self.count += 1 <span class="muted">↔ v2:</span> self.count += 1</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def reset(self): <span class="muted">↔ v2:</span> def reset(self):</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> self.count = 0 <span class="muted">↔ v2:</span> self.count = 0</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+class Counter:
+    def __init__(self):
+        self.count = 0
+
+    def increment(self):
+        self.count += 1
+
+    def reset(self):
+        self.count = 0
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+class Counter:
+    def __init__(self):
+        self.count = 0
+
+    def increment(self):
+        self.count += 1
+
+    def reset(self):
+        self.count = 0
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_python_dict_manipulation</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python function called `invert_dict` that takes a dictionary and returns a new dictionary with keys and values swapped. Return only the function, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999889549346</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1064 ms · v2 734 ms · Δ -330 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def invert_dict(d): <span class="muted">↔ v2:</span> def invert_dict(d):</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+def invert_dict(d):
+    return {v: k for k, v in d.items()}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+def invert_dict(d):
+    return {v: k for k, v in d.items()}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_python_error_handling</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python function called `safe_divide` that takes two numbers `a` and `b`, returns `a &#x2F; b`, but returns `None` if `b` is zero. Use a try&#x2F;except block. Return only the function, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999824548148</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1316 ms · v2 831 ms · Δ -485 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">3 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> def safe_divide(a, b): <span class="muted">↔ v2:</span> def safe_divide(a, b):</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> except ZeroDivisionError: <span class="muted">↔ v2:</span> except ZeroDivisionError:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> return None <span class="muted">↔ v2:</span> return None</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+def safe_divide(a, b):
+    try:
+        return a &#x2F; b
+    except ZeroDivisionError:
+        return None
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+def safe_divide(a, b):
+    try:
+        return a &#x2F; b
+    except ZeroDivisionError:
+        return None
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_python_list_comprehension</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python one-liner using list comprehension that returns all even numbers from a list called `numbers`. Assign the result to a variable called `evens`. Return only the code, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.999999947142337</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1143 ms · v2 845 ms · Δ -298 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> evens = [num for num in numbers if num % 2 == 0] <span class="muted">↔ v2:</span> evens = [num for num in numbers if num % 2 == 0]</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+evens = [num for num in numbers if num % 2 == 0]
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+evens = [num for num in numbers if num % 2 == 0]
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_python_simple_function</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python function called `add` that takes two integers and returns their sum. Return only the function definition, no explanation, no usage example.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-na"></span></td>
+                <td>NotApplicable · sim 0.9999999659801694</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-na"></span></td>
+                <td>NotApplicable · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 1135 ms · v2 1689 ms · Δ 554 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">0 matched · 0 dropped · 0 new</span></summary>
+            
+            
+            
+            
+            
+            <p class="muted" style="margin:0.5rem 0 0">No claim rows extracted for this pair.</p>
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+def add(a: int, b: int) -&gt; int:
+    return a + b
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+def add(a: int, b: int) -&gt; int:
+    return a + b
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_regex_email</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a Python regex pattern string (just the pattern, assigned to a variable called `pattern`) that matches a basic email address format: word characters, an @ symbol, word characters, a dot, and 2-4 word characters for the domain. Return only the assignment, no explanation, no import.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 2% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 1</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1008 ms · v2 592 ms · Δ -416 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> pattern = r&#x27;^\w+@\w+\.\w{2,4}$&#x27; <span class="muted">↔ v2:</span> pattern = r&#x27;\w+@\w+\.\w{2,4}&#x27;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```python
+pattern = r&#x27;^\w+@\w+\.\w{2,4}$&#x27;
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```python
+pattern = r&#x27;\w+@\w+\.\w{2,4}&#x27;
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_sql_basic_select</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a SQL query that selects all columns from a table called `orders` where the `status` column equals &#x27;pending&#x27; and orders the results by `created_at` descending. Return only the SQL, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 1% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · sim 0.8005305268146136</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 2</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 1269 ms · v2 1024 ms · Δ -245 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 2 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> SELECT * FROM orders WHERE status = &#x27;pending&#x27; ORDER BY created_at DESC; <span class="muted">↔ v2:</span> ORDER BY created_at DESC;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>SELECT * FROM orders</li>
+                
+                <li>WHERE status = &#x27;pending&#x27;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```sql
+SELECT * FROM orders WHERE status = &#x27;pending&#x27; ORDER BY created_at DESC;
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```sql
+SELECT * FROM orders
+WHERE status = &#x27;pending&#x27;
+ORDER BY created_at DESC;
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">code_sql_join</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Write a SQL query that joins the `users` table with the `orders` table on `users.id = orders.user_id`, returning `users.name` and `orders.total`. Return only the SQL, no explanation.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999756073144</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 1269 ms · v2 1027 ms · Δ -242 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">3 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> SELECT users.name, orders.total <span class="muted">↔ v2:</span> SELECT users.name, orders.total</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> FROM users <span class="muted">↔ v2:</span> FROM users</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> JOIN orders ON users.id = orders.user_id; <span class="muted">↔ v2:</span> JOIN orders ON users.id = orders.user_id;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```sql
+SELECT users.name, orders.total
+FROM users
+JOIN orders ON users.id = orders.user_id;
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```sql
+SELECT users.name, orders.total
+FROM users
+JOIN orders ON users.id = orders.user_id;
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Upgrade path</h2>
+      <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
+      <p class="mono" style="font-size:0.82rem;color:var(--muted)">
+        Blocking 0
+        · Verify 0
+        · Neutral 0
+        · Validated 0
+      </p>
+
+      
+      
+      
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
+      
+      
+      
+
+      <h3 class="snap">Validated prompt patches</h3>
+      
+      <p class="upgrade-empty-note">No automated patches generated — run with <code>--mutate</code> to attempt prompt repairs.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Latency impact</h2>
+      <p class="muted" style="margin-top:0">Observational only — latency does not affect overall risk, probe direction, or upgrade path routing.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average baseline latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">1427 ms</p>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average target latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">969 ms</p>
+        </div>
+      </div>
+      <p style="margin:1rem 0 0.5rem">
+        Delta: <span class="mono">-458 ms</span>
+        (<span class="mono">-32.1%</span>)
+        · Direction: <span class="badge Improvement">Improvement</span>
+      </p>
+      <p style="margin:0;color:var(--fg)">v2 responded 32% faster on average across 10 probes</p>
+    </section>
+
+    
+
+    <section class="panel">
+      <h2>Upgrade recommendation</h2>
+      
+      <p>Overall risk is acceptable for a controlled rollout. Review amber items and any "verify" red valence before broad deployment.</p>
+      
+    </section>
+  </main>
+
+  <div id="arsenic-toast" class="toast" role="status">Copied to clipboard</div>
+  <script>
+    function arsenicCopy(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var t = document.getElementById('arsenic-toast');
+          if (t) { t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600); }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

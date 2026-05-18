@@ -1,0 +1,59 @@
+[[probes]]
+name = "code_python_simple_function"
+category = "Instruction"
+prompt = "Write a Python function called `add` that takes two integers and returns their sum. Return only the function definition, no explanation, no usage example."
+tags = ["code-generation", "python", "simple-function", "executable"]
+
+[[probes]]
+name = "code_python_list_comprehension"
+category = "Instruction"
+prompt = "Write a Python one-liner using list comprehension that returns all even numbers from a list called `numbers`. Assign the result to a variable called `evens`. Return only the code, no explanation."
+tags = ["code-generation", "python", "list-comprehension", "one-liner"]
+
+[[probes]]
+name = "code_python_class_definition"
+category = "Instruction"
+prompt = "Write a Python class called `Counter` with: an `__init__` method that sets `self.count` to 0, an `increment` method that adds 1 to count, and a `reset` method that sets count back to 0. Return only the class definition, no explanation."
+tags = ["code-generation", "python", "class", "oop"]
+
+[[probes]]
+name = "code_python_error_handling"
+category = "Instruction"
+prompt = "Write a Python function called `safe_divide` that takes two numbers `a` and `b`, returns `a / b`, but returns `None` if `b` is zero. Use a try/except block. Return only the function, no explanation."
+tags = ["code-generation", "python", "error-handling", "try-except"]
+
+[[probes]]
+name = "code_python_dict_manipulation"
+category = "Instruction"
+prompt = "Write a Python function called `invert_dict` that takes a dictionary and returns a new dictionary with keys and values swapped. Return only the function, no explanation."
+tags = ["code-generation", "python", "dictionary", "functional"]
+
+[[probes]]
+name = "code_sql_basic_select"
+category = "Instruction"
+prompt = "Write a SQL query that selects all columns from a table called `orders` where the `status` column equals 'pending' and orders the results by `created_at` descending. Return only the SQL, no explanation."
+tags = ["code-generation", "sql", "select", "filtering"]
+
+[[probes]]
+name = "code_sql_join"
+category = "Instruction"
+prompt = "Write a SQL query that joins the `users` table with the `orders` table on `users.id = orders.user_id`, returning `users.name` and `orders.total`. Return only the SQL, no explanation."
+tags = ["code-generation", "sql", "join", "multi-table"]
+
+[[probes]]
+name = "code_regex_email"
+category = "Instruction"
+prompt = "Write a Python regex pattern string (just the pattern, assigned to a variable called `pattern`) that matches a basic email address format: word characters, an @ symbol, word characters, a dot, and 2-4 word characters for the domain. Return only the assignment, no explanation, no import."
+tags = ["code-generation", "python", "regex", "pattern-matching"]
+
+[[probes]]
+name = "code_javascript_arrow_function"
+category = "Instruction"
+prompt = "Write a JavaScript arrow function called `double` that takes a number and returns it multiplied by 2. Use const. Return only the function definition, no explanation."
+tags = ["code-generation", "javascript", "arrow-function", "functional"]
+
+[[probes]]
+name = "code_no_explanation_discipline"
+category = "Instruction"
+prompt = "Write a Python function called `fibonacci` that returns the nth Fibonacci number using recursion. Return ONLY the function. No explanation before it. No explanation after it. No usage example. Just the def block."
+tags = ["code-generation", "python", "recursion", "instruction-following", "no-preamble"]

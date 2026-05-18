@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Drift 7efb5fe6-38d2-4013-a68f-2449f2f84122</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; }
+    header.hero .models { font-size: 1rem; }
+    header.hero .models strong { color: #c5e4f5; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    h3.snap {
+      font-size: 0.82rem;
+      margin: 1rem 0 0.5rem;
+      color: #8eb4cc;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Risk badges + directional tinting (§10) */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.Green { background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45); }
+    .badge.Amber { background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4); }
+    .badge.Red { background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55); }
+    /* Red + regression = solid remediation */
+    .badge.Red.dir-regression {
+      background: linear-gradient(145deg, #c43641, var(--red-deep));
+      color: #fff;
+      border-color: #8a1f28;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    /* Red + improvement = verify (green ring), not same as blocking */
+    .badge.Red.dir-improvement,
+    .badge.Red.dir-neutral,
+    .badge.Red.dir-notapplicable {
+      background: rgba(226, 77, 86, 0.28);
+      color: #ffe0e3;
+      border: 2px solid var(--green-ring);
+      box-shadow: 0 0 0 1px rgba(46, 184, 114, 0.25);
+    }
+
+    /* Executive stat grid */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.65rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+
+    /* Tables */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .dim-flow { white-space: nowrap; font-family: var(--mono); font-size: 0.8rem; }
+    .dim-flow .d-down { color: #ff8a8a; margin-right: 0.35rem; }
+    .dim-flow .d-up { color: #7ae0a8; margin-right: 0.35rem; }
+    .dim-flow .d-mid { color: var(--muted); }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+
+    /* Probe rows */
+    details.probe {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.probe > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.probe > summary::-webkit-details-marker { display: none; }
+    details.probe[open] > summary { border-bottom: 1px solid var(--border); }
+    .probe-title { flex: 1; min-width: 8rem; }
+    .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .migration-headline {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      color: #d4eaf7;
+      letter-spacing: -0.01em;
+    }
+    .migration-profile.safe .migration-headline { color: #9ee8c4; }
+    .migration-profile.unsafe .migration-headline { color: #f5c4a8; }
+    .mig-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+    }
+    .mig-pill {
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(8, 217, 198, 0.12);
+      border: 1px solid rgba(8, 217, 198, 0.35);
+      color: var(--accent);
+    }
+    .mig-verdict {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--muted);
+    }
+    .mig-verdict strong { color: var(--fg); }
+
+    .upgrade-safe-banner {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(46, 184, 114, 0.15);
+      border: 1px solid rgba(46, 184, 114, 0.45);
+      color: #9ee8c4;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .upgrade-empty-note {
+      margin: 0.35rem 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(139, 156, 176, 0.08);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .var-pill {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(139, 156, 176, 0.15);
+      border: 1px solid rgba(139, 156, 176, 0.35);
+      color: #b4c8dc;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    table.dimbreak { font-size: 0.82rem; margin: 0.75rem 0; width: 100%; }
+    table.dimbreak th {
+      text-align: left;
+      width: 6.5rem;
+      color: var(--muted);
+      font-weight: 600;
+      vertical-align: top;
+      padding: 0.35rem 0.5rem 0.35rem 0;
+    }
+    table.dimbreak td { padding: 0.35rem 0.35rem; vertical-align: top; }
+    table.dimbreak td.risk { white-space: nowrap; width: 4rem; }
+    table.dimbreak td.dir { font-family: var(--mono); font-size: 0.78rem; color: #9ecfff; width: 5rem; }
+    .dir-arrow-reg::before { content: "↓ "; color: #ff8a8a; }
+    .dir-arrow-imp::before { content: "↑ "; color: #7ae0a8; }
+    .dir-arrow-neu::before { content: "→ "; color: var(--muted); }
+    .dir-arrow-na::before { content: "— "; color: var(--muted); }
+
+    details.claim-diff {
+      margin: 1rem 0;
+      border: 1px dashed rgba(8, 217, 198, 0.35);
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(8, 217, 198, 0.03);
+    }
+    details.claim-diff > summary { cursor: pointer; font-weight: 600; color: #9ee4dc; }
+    .pill {
+      display: inline-block;
+      margin-left: 0.5rem;
+      font-size: 0.68rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(8, 217, 198, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .claim-block { margin: 0.75rem 0; }
+    .claim-block h4 { margin: 0 0 0.35rem; font-size: 0.8rem; color: #8eb4cc; }
+    ul.compact { margin: 0.25rem 0; padding-left: 1.1rem; color: #c5d4e0; font-size: 0.82rem; }
+
+    .diff-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+    button.copy-btn {
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: rgba(8, 217, 198, 0.12);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    button.copy-btn:hover { background: rgba(8, 217, 198, 0.22); }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+
+    ul.upgrade-list { margin: 0.35rem 0; padding-left: 1.15rem; }
+    ul.upgrade-list li { margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <header class="hero">
+    <h1>ARSENIC drift report</h1>
+    <p class="sub mono">Run <code>7efb5fe6-38d2-4013-a68f-2449f2f84122</code> · 2026-05-18T21:31:53.229194Z · Overall
+      <span class="badge Amber">Amber</span>
+    </p>
+    <p class="models"><strong>v1</strong>
+      <span class="muted">(gpt-4o-mini)</span>
+      <span class="muted"> vs </span>
+      <strong>v2</strong>
+      <span class="muted">(gpt-4.1-mini)</span>
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Executive summary</h2>
+      <p class="muted" style="margin:0 0 0.75rem">Probe outcomes and drift valence across the run.</p>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">10</div><div class="lbl">Total probes</div></div>
+        <div class="stat"><div class="val green">8</div><div class="lbl">Green</div></div>
+        <div class="stat"><div class="val amber">2</div><div class="lbl">Amber</div></div>
+        <div class="stat"><div class="val red">0</div><div class="lbl">Red</div></div>
+        <div class="stat"><div class="val" style="color:#ff8a8a">2</div><div class="lbl">↓ Regressions</div></div>
+        <div class="stat"><div class="val" style="color:#7ae0a8">0</div><div class="lbl">↑ Improvements</div></div>
+        <div class="stat"><div class="val" style="color:var(--muted)">8</div><div class="lbl">→ Neutral</div></div>
+        <div class="stat"><div class="val" style="color:var(--accent)">0</div><div class="lbl">Auto-fix candidates</div></div>
+      </div>
+      <p style="margin:1rem 0 0;font-size:0.9rem">
+        Safe to upgrade: <strong>true</strong>
+        · Manual review items: <strong>2</strong>
+      </p>
+      <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
+        Critical regressions: <strong>2</strong>
+        · Policy drift: <strong>0</strong>
+        · Fidelity drift: <strong>0</strong>
+        · Structural drift: <strong>0</strong>
+        · Content compression: <strong>0</strong>
+      </p>
+    </section>
+
+    <section class="panel migration-profile safe">
+      <h2>Migration profile</h2>
+      <p class="migration-headline">v2 is safe to upgrade — 2 probes warrant review before switching</p>
+      <div class="mig-pills">
+        
+        <span class="mig-pill">⚡ 23% faster</span>
+        
+        
+        
+        
+      </div>
+      <p class="mig-verdict">
+        Safe to upgrade: <strong>true</strong>
+        
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Dimension overview</h2>
+      <p class="muted" style="margin-top:0">Worst risk per dimension, drift direction mix among affected probes (↑ / ↓ / →), and affected count.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Worst risk</th>
+            <th>Drift (affected)</th>
+            <th class="num">Probes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Morphology</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow" title="Regression / Improvement / Neutral among affected"><span class="d-down">↓0</span><span class="d-up">↑0</span><span class="d-mid">→1</span></span></td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td><strong>Tone</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Factual</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓0</span><span class="d-up">↑0</span><span class="d-mid">→5</span></span></td>
+            <td class="num">5</td>
+          </tr>
+          <tr>
+            <td><strong>Schema</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Instruction</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Refusal</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Semantic</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓2</span><span class="d-up">↑0</span><span class="d-mid">→0</span></span></td>
+            <td class="num">2</td>
+          </tr>
+          <tr>
+            <td><strong>Claim</strong></td>
+            <td><span class="badge Red">Red</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓2</span><span class="d-up">↑0</span><span class="d-mid">→0</span></span></td>
+            <td class="num">2</td>
+          </tr>
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Consistency</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Custom assertions</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Red probes</h2>
+      
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>All probe results</h2>
+      <p class="muted" style="margin-top:0">Expand for prompt, dimension snapshot (with drift arrows), claim intelligence, and responses. Consistency σ shows run variance when multi-run sampling was enabled.</p>
+
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_array_of_objects</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON array containing exactly 3 objects. Each object must have: id (integer), label (string). No explanation, just the JSON array.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 17% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -8%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.5256409491254004</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.5 (≥ 0.7 for green band) · dropped 3 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 1367 ms · v2 1144 ms · Δ -223 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">3 matched · 3 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;id&quot;: 1, <span class="muted">↔ v2:</span> {&quot;id&quot;: 1, &quot;label&quot;: &quot;Apple&quot;},</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;id&quot;: 2, <span class="muted">↔ v2:</span> {&quot;id&quot;: 2, &quot;label&quot;: &quot;Banana&quot;},</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;id&quot;: 3, <span class="muted">↔ v2:</span> {&quot;id&quot;: 3, &quot;label&quot;: &quot;Cherry&quot;}</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>&quot;label&quot;: &quot;First Item&quot; · anchors: Item</li>
+                
+                <li>&quot;label&quot;: &quot;Second Item&quot; · anchors: Item</li>
+                
+                <li>&quot;label&quot;: &quot;Third Item&quot; · anchors: Item</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+[
+    {
+        &quot;id&quot;: 1,
+        &quot;label&quot;: &quot;First Item&quot;
+    },
+    {
+        &quot;id&quot;: 2,
+        &quot;label&quot;: &quot;Second Item&quot;
+    },
+    {
+        &quot;id&quot;: 3,
+        &quot;label&quot;: &quot;Third Item&quot;
+    }
+]
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+[
+  {&quot;id&quot;: 1, &quot;label&quot;: &quot;Apple&quot;},
+  {&quot;id&quot;: 2, &quot;label&quot;: &quot;Banana&quot;},
+  {&quot;id&quot;: 3, &quot;label&quot;: &quot;Cherry&quot;}
+]
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_classification_output</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Classify the following text and return ONLY a JSON object with fields: category (string), confidence (float 0-1, must be a number not a word), reasoning (string). No markdown fences. Raw JSON only.
+
+Text: &#x27;The quarterly revenue exceeded expectations by 12 percent.&#x27;</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 5% · type Δ true</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 5%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.38770385429172166</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.3333333333333333 (≥ 0.7 for green band) · dropped 2 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 963 ms · v2 908 ms · Δ -55 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 2 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;reasoning&quot;: &quot;The text discusses financial performance, specifically revenue and expectations, which are key elements in the business context.&quot; <span class="muted">↔ v2:</span> {&quot;category&quot;:&quot;Finance&quot;,&quot;confidence&quot;:0.95,&quot;reasoning&quot;:&quot;The text discusses quarterly revenue and its performance relative to expectations, which is directly related to financial reporting and business performance metrics.&quot;}</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>&quot;category&quot;: &quot;Business&quot;,</li>
+                
+                <li>&quot;confidence&quot;: 0.95, · anchors: 0.95</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>{
+  &quot;category&quot;: &quot;Business&quot;,
+  &quot;confidence&quot;: 0.95,
+  &quot;reasoning&quot;: &quot;The text discusses financial performance, specifically revenue and expectations, which are key elements in the business context.&quot;
+}</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>{&quot;category&quot;:&quot;Finance&quot;,&quot;confidence&quot;:0.95,&quot;reasoning&quot;:&quot;The text discusses quarterly revenue and its performance relative to expectations, which is directly related to financial reporting and business performance metrics.&quot;}</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_deeply_nested</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return this exact JSON with these exact values. No markdown code fences. No explanation. Raw JSON only:
+{
+  &quot;request&quot;: {
+    &quot;meta&quot;: {
+      &quot;version&quot;: 1,
+      &quot;source&quot;: &quot;api.example.com&quot;
+    },
+    &quot;payload&quot;: {
+      &quot;items&quot;: [&quot;item1&quot;, &quot;item2&quot;, &quot;item3&quot;]
+    }
+  }
+}</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 1</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 1138 ms · v2 1413 ms · Δ 275 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">4 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;request&quot;: { <span class="muted">↔ v2:</span> &quot;request&quot;: {</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;version&quot;: 1, <span class="muted">↔ v2:</span> &quot;version&quot;: 1,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;source&quot;: &quot;api.example.com&quot; <span class="muted">↔ v2:</span> &quot;source&quot;: &quot;api.example.com&quot;</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;payload&quot;: { <span class="muted">↔ v2:</span> &quot;payload&quot;: {</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>{
+  &quot;request&quot;: {
+    &quot;meta&quot;: {
+      &quot;version&quot;: 1,
+      &quot;source&quot;: &quot;api.example.com&quot;
+    },
+    &quot;payload&quot;: {
+      &quot;items&quot;: [&quot;item1&quot;, &quot;item2&quot;, &quot;item3&quot;]
+    }
+  }
+}</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>{
+  &quot;request&quot;: {
+    &quot;meta&quot;: {
+      &quot;version&quot;: 1,
+      &quot;source&quot;: &quot;api.example.com&quot;
+    },
+    &quot;payload&quot;: {
+      &quot;items&quot;: [&quot;item1&quot;, &quot;item2&quot;, &quot;item3&quot;]
+    }
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_enum_field</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with these fields: status (must be exactly the string &quot;pending&quot;), priority (integer, set it to 3). No explanation, just the JSON.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999883971046</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 857 ms · v2 1238 ms · Δ 381 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;status&quot;: &quot;pending&quot;, <span class="muted">↔ v2:</span> &quot;status&quot;: &quot;pending&quot;,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;priority&quot;: 3 <span class="muted">↔ v2:</span> &quot;priority&quot;: 3</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;priority&quot;: 3
+}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;priority&quot;: 3
+}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_flat_required_fields</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with exactly these fields: name (string), age (integer), active (boolean). No other fields. No explanation, just the JSON.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999734629076</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 913 ms · v2 1352 ms · Δ 439 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;name&quot;: &quot;John Doe&quot;, <span class="muted">↔ v2:</span> &quot;name&quot;: &quot;John Doe&quot;,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;age&quot;: 30, <span class="muted">↔ v2:</span> &quot;age&quot;: 30,</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+{
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;age&quot;: 30,
+  &quot;active&quot;: true
+}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+{
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;age&quot;: 30,
+  &quot;active&quot;: true
+}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_nested_object</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with this exact structure and these exact values. No explanation, just the JSON:
+{
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;email&quot;: &quot;user@example.com&quot;
+  },
+  &quot;status&quot;: &quot;active&quot;
+}</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.999999993085143</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 1141 ms · v2 1046 ms · Δ -95 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;id&quot;: 1, <span class="muted">↔ v2:</span> &quot;id&quot;: 1,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;email&quot;: &quot;user@example.com&quot; <span class="muted">↔ v2:</span> &quot;email&quot;: &quot;user@example.com&quot;</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+{
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;email&quot;: &quot;user@example.com&quot;
+  },
+  &quot;status&quot;: &quot;active&quot;
+}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+{
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;email&quot;: &quot;user@example.com&quot;
+  },
+  &quot;status&quot;: &quot;active&quot;
+}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_no_markdown_wrapping</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object: {&quot;ok&quot;: true, &quot;code&quot;: 200}. Output the raw JSON only. Do not wrap it in markdown code fences. Do not add any text before or after.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 1</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 889 ms · v2 560 ms · Δ -329 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> {&quot;ok&quot;: true, &quot;code&quot;: 200} <span class="muted">↔ v2:</span> {&quot;ok&quot;: true, &quot;code&quot;: 200}</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>{&quot;ok&quot;: true, &quot;code&quot;: 200}</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>{&quot;ok&quot;: true, &quot;code&quot;: 200}</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_nullable_field</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with these fields: title (string), description (string or null), count (integer). Set title to &quot;test&quot;, description to null, count to 0. No explanation, just the JSON.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999826690928</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · v1 965 ms · v2 1053 ms · Δ 88 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;description&quot;: null, <span class="muted">↔ v2:</span> &quot;description&quot;: null,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;count&quot;: 0 <span class="muted">↔ v2:</span> &quot;count&quot;: 0</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+{
+  &quot;title&quot;: &quot;test&quot;,
+  &quot;description&quot;: null,
+  &quot;count&quot;: 0
+}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+{
+  &quot;title&quot;: &quot;test&quot;,
+  &quot;description&quot;: null,
+  &quot;count&quot;: 0
+}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_numeric_types</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with: count (must be the integer 5), ratio (must be the float 0.75), label (must be the string &quot;test&quot;). Values must be exactly as specified. No explanation, just the JSON.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999826690928</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 4220 ms · v2 886 ms · Δ -3334 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">2 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;count&quot;: 5, <span class="muted">↔ v2:</span> &quot;count&quot;: 5,</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> &quot;ratio&quot;: 0.75, <span class="muted">↔ v2:</span> &quot;ratio&quot;: 0.75,</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>```json
+{
+  &quot;count&quot;: 5,
+  &quot;ratio&quot;: 0.75,
+  &quot;label&quot;: &quot;test&quot;
+}
+```</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>```json
+{
+  &quot;count&quot;: 5,
+  &quot;ratio&quot;: 0.75,
+  &quot;label&quot;: &quot;test&quot;
+}
+```</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">schema_strict_no_extras</span>
+          <span class="badge Green dir-neutral">Green</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Return a JSON object with ONLY these two fields: result (string), confidence (float between 0 and 1). Set result to the string &quot;ok&quot; and confidence to 0.9. Do not add any other fields. No markdown, no explanation. Raw JSON only.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ✓ No significant drift
+                  <span class="muted" style="margin-left:0.5rem">(NoSignificantDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 0% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · sim 0.9999999641035373</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · preservation 1 (≥ 0.7 for green band) · dropped 0 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 1077 ms · v2 803 ms · Δ -274 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">1 matched · 0 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> {&quot;result&quot;:&quot;ok&quot;,&quot;confidence&quot;:0.9} <span class="muted">↔ v2:</span> {&quot;result&quot;:&quot;ok&quot;,&quot;confidence&quot;:0.9}</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>{&quot;result&quot;:&quot;ok&quot;,&quot;confidence&quot;:0.9}</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>{&quot;result&quot;:&quot;ok&quot;,&quot;confidence&quot;:0.9}</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Upgrade path</h2>
+      <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
+      <p class="mono" style="font-size:0.82rem;color:var(--muted)">
+        Blocking 0
+        · Verify 2
+        · Neutral 0
+        · Validated 0
+      </p>
+
+      
+      
+      
+      <p class="upgrade-safe-banner">No blocking regressions detected.</p>
+      
+      
+      <h3 class="snap">Improvements to verify</h3>
+      <ul class="upgrade-list"><li><strong>schema_array_of_objects</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li><li><strong>schema_classification_output</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li></ul>
+      
+      
+
+      <h3 class="snap">Validated prompt patches</h3>
+      
+      <p class="upgrade-empty-note">No automated patches generated — run with <code>--mutate</code> to attempt prompt repairs.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Latency impact</h2>
+      <p class="muted" style="margin-top:0">Observational only — latency does not affect overall risk, probe direction, or upgrade path routing.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average baseline latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">1353 ms</p>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average target latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">1040 ms</p>
+        </div>
+      </div>
+      <p style="margin:1rem 0 0.5rem">
+        Delta: <span class="mono">-313 ms</span>
+        (<span class="mono">-23.1%</span>)
+        · Direction: <span class="badge Improvement">Improvement</span>
+      </p>
+      <p style="margin:0;color:var(--fg)">v2 responded 23% faster on average across 10 probes</p>
+    </section>
+
+    
+
+    <section class="panel">
+      <h2>Upgrade recommendation</h2>
+      
+      <p>Overall risk is acceptable for a controlled rollout. Review amber items and any "verify" red valence before broad deployment.</p>
+      
+    </section>
+  </main>
+
+  <div id="arsenic-toast" class="toast" role="status">Copied to clipboard</div>
+  <script>
+    function arsenicCopy(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var t = document.getElementById('arsenic-toast');
+          if (t) { t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600); }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
