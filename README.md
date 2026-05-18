@@ -119,9 +119,15 @@ Get a migration report your team can act on.
 
 Prebuilt reports — open directly in a browser, no build required:
 
-- [GPT-4o-mini → GPT-4.1-mini](examples/gpt-4o-mini_vs_gpt-4.1-mini.html) — real OpenAI API run, 18 probes, 3
-  validated patches
-- [Llama 3.1:8b → Llama 3.2:3b](examples/llama3.1-8b_vs_llama3.2-3b.html) — local Ollama run, full suite
+**General migration**
+- [GPT-4o-mini → GPT-4.1-mini (standard suite)](examples/gpt-4o-mini_vs_gpt-4.1-mini.html) — 18 probes, full dimensions
+- [Llama 3.1:8b → Llama 3.2:3b](examples/llama3.1-8b_vs_llama3.2-3b.html) — local Ollama run
+
+**Probe pack reports (gpt-4o-mini → gpt-4.1-mini)**
+- [Reasoning chains](examples/gpt-4o-mini_vs_gpt-4.1-mini_reasoning-chains.html) — safe_to_upgrade: false 🔴 — prime composite regression
+- [Sycophancy](examples/gpt-4o-mini_vs_gpt-4.1-mini_sycophancy.html) — safe_to_upgrade: true, Amber ⚠️
+- [Code generation](examples/gpt-4o-mini_vs_gpt-4.1-mini_code-generation.html) — safe_to_upgrade: true, Green ✅
+- [JSON schema](examples/gpt-4o-mini_vs_gpt-4.1-mini_json-schema.html) — safe_to_upgrade: true, Amber ⚠️
 
 ---
 
