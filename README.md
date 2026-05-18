@@ -123,17 +123,17 @@ Prebuilt reports — open directly in a browser, no build required.
 
 | Report | Probes | Result |
 |--------|--------|--------|
-| [Standard suite](examples/gpt-4o-mini_vs_gpt-4_1-mini.html) | 18 | ✅ Safe — 2 probes warrant review |
-| [Reasoning chains](examples/gpt-4o-mini_vs_gpt-4_1-mini_reasoning.html) | 10 | 🔴 **Not safe** — 3 critical regressions |
-| [Sycophancy](examples/gpt-4o-mini_vs_gpt-4_1-mini_sycophancy.html) | 10 | ⚠️ Safe — 1 probe warrants review |
-| [JSON schema](examples/gpt-4o-mini_vs_gpt-4_1-mini_json_schema.html) | 10 | ⚠️ Safe — 2 probes warrant review |
-| [Code generation](examples/gpt-4o-mini_vs_gpt-4_1-mini_code_generation.html) | 10 | ✅ Safe — 10/10 green |
+| [Standard suite](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini.html) | 18 | ✅ Safe — 2 probes warrant review |
+| [Reasoning chains](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_reasoning.html) | 10 | 🔴 **Not safe** — 3 critical regressions |
+| [Sycophancy](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_sycophancy.html) | 10 | ⚠️ Safe — 1 probe warrants review |
+| [JSON schema](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_json_schema.html) | 10 | ⚠️ Safe — 2 probes warrant review |
+| [Code generation](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_code_generation.html) | 10 | ✅ Safe — 10/10 green |
 
 **llama3.1:8b → llama3.2:3b (local Ollama)**
 
 | Report | Probes | Result |
 |--------|--------|--------|
-| [Standard suite](examples/llama3_1-8b_vs_llama3_2-3b.html) | 18 | 🔴 **Not safe** — 1 critical regression |
+| [Standard suite](https://markndg.github.io/arsenic/examples/llama3_1-8b_vs_llama3_2-3b.html) | 18 | 🔴 **Not safe** — 1 critical regression |
 
 ---
 
