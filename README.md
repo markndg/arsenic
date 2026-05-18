@@ -249,7 +249,8 @@ Use `--consistency-runs 1` to match v1 behaviour and halve your API spend.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--standard-suite` | — | Probe categories to run: `full`, `factual`, `tone`, `morphology`, `schema`, `instruction`, `refusal`, `semantic`. Comma-separate multiple. |
-| `--user-corpus` | — | Path to directory of user-defined probe TOML files |
+| `--user-corpus` | — | Path to directory of user-defined probe TOML files (appended to the standard suite by default) |
+| `--user-corpus-only` | off | Run only `--user-corpus` probes; skip the standard suite (requires `--user-corpus`) |
 | `--consistency-runs` | `3` | Runs per probe per model for consistency scoring |
 | `--mutate` | off | Run the prompt mutation engine after comparison |
 | `--no-semantic` | off | Disable semantic similarity dimension |

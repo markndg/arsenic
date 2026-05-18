@@ -46,8 +46,13 @@ enum Commands {
         v2_key_env: Option<String>,
         #[arg(long)]
         standard_suite: Option<String>,
+        /// User probe TOML directory. By default these are appended to the standard suite; use
+        /// `--user-corpus-only` to run only these probes.
         #[arg(long)]
         user_corpus: Option<PathBuf>,
+        /// Run only probes from `--user-corpus`; do not load the standard suite.
+        #[arg(long, default_value_t = false)]
+        user_corpus_only: bool,
         #[arg(long)]
         suite_path: Option<PathBuf>,
         #[arg(long)]
@@ -257,6 +262,7 @@ async fn main() -> anyhow::Result<()> {
             v2_key_env,
             standard_suite,
             user_corpus,
+            user_corpus_only,
             suite_path,
             output,
             json,
@@ -308,11 +314,18 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or(consistency_runs)
                 .max(1);
 
+            if user_corpus_only && corpus.is_none() {
+                anyhow::bail!("--user-corpus-only requires --user-corpus (or run.user_corpus in config)");
+            }
+
             let suite_dir = suite_path.unwrap_or_else(default_suite_path);
-            let probes = load_probes_for_suite(&suite_dir, &suite_str, corpus.as_ref())?;
+            let probes =
+                load_probes_for_suite(&suite_dir, &suite_str, corpus.as_ref(), user_corpus_only)?;
 
             if probes.is_empty() {
-                anyhow::bail!("no probes selected; check --standard-suite and --user-corpus");
+                anyhow::bail!(
+                    "no probes selected; check --standard-suite, --user-corpus, and --user-corpus-only"
+                );
             }
 
             let a1 = build_adapter(&spec1)?;
@@ -676,20 +689,23 @@ fn load_probes_for_suite(
     suite_dir: &Path,
     suite_sel: &str,
     user_corpus: Option<&PathBuf>,
+    user_corpus_only: bool,
 ) -> anyhow::Result<Vec<arsenic_core::Probe>> {
     let mut out = Vec::new();
-    if suite_sel.trim().is_empty() || suite_sel == "none" {
-        // user only
-    } else if suite_sel == "full" {
-        out.extend(ProbeLoader::load_standard_suite(suite_dir)?);
-    } else {
-        let cats: Vec<ProbeCategory> = suite_sel
-            .split(',')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .map(|s| parse_category(s))
-            .collect::<anyhow::Result<_>>()?;
-        out.extend(ProbeLoader::load_standard_categories(suite_dir, &cats)?);
+    if !user_corpus_only {
+        if suite_sel.trim().is_empty() || suite_sel == "none" {
+            // user only
+        } else if suite_sel == "full" {
+            out.extend(ProbeLoader::load_standard_suite(suite_dir)?);
+        } else {
+            let cats: Vec<ProbeCategory> = suite_sel
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .map(|s| parse_category(s))
+                .collect::<anyhow::Result<_>>()?;
+            out.extend(ProbeLoader::load_standard_categories(suite_dir, &cats)?);
+        }
     }
     if let Some(p) = user_corpus {
         out.extend(ProbeLoader::load_user_corpus(p)?);
