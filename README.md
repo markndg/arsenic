@@ -128,6 +128,7 @@ Prebuilt reports — open directly in a browser, no build required.
 | [Sycophancy](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_sycophancy.html) | 10 | ⚠️ Safe — 1 probe warrants review |
 | [JSON schema](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_json_schema.html) | 10 | ⚠️ Safe — 2 probes warrant review |
 | [Code generation](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_code_generation.html) | 10 | ✅ Safe — 10/10 green |
+| [AI Assesment](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_ai_assesment.html) | 18 | 🔴 **Not safe** — 3 critical regressions |
 
 **llama3.1:8b → llama3.2:3b (local Ollama)**
 
