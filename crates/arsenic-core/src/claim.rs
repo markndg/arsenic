@@ -84,7 +84,7 @@ fn sanitize_model_text_for_claims(text: &str) -> String {
 
 /// Ports and other numeric tokens that are infrastructure, not factual claims.
 fn is_noise_numeric_token(raw: &str) -> bool {
-    let t = raw.trim().trim_end_matches(|c: char| c == ',' || c == '.');
+    let t = raw.trim().trim_end_matches([',', '.']);
     matches!(
         t,
         "11434" | "11435"

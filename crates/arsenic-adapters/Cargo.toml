@@ -4,10 +4,15 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "ARSENIC model endpoint adapters"
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["development-tools::testing"]
+description = "ARSENIC model endpoint adapters (OpenAI-compatible, Anthropic, Google)"
 
 [dependencies]
-arsenic-core = { path = "../arsenic-core" }
+arsenic-core = { path = "../arsenic-core", version = "0.1.0" }
 async-trait.workspace = true
 reqwest.workspace = true
 serde.workspace = true

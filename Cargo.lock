@@ -77,21 +77,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
-name = "arsenic-adapters"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arsenic-core",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "uuid",
-]
-
-[[package]]
-name = "arsenic-cli"
+name = "arsenic"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -111,6 +97,20 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "arsenic-adapters"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arsenic-core",
+ "async-trait",
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 

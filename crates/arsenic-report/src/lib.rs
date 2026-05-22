@@ -103,10 +103,12 @@ mod tests {
     use super::*;
     use arsenic_core::DriftReport;
 
+    const FIXTURE_REPORT: &str = include_str!("../fixtures/report_openai_upgrade.json");
+
     #[test]
     fn mirror_summary_valence_aliases_fills_short_keys() {
-        let json = include_str!("../../../example_report_llama_upgrade.json");
-        let report: DriftReport = serde_json::from_str(json).expect("parse example_report_llama_upgrade.json");
+        let report: DriftReport =
+            serde_json::from_str(FIXTURE_REPORT).expect("parse fixtures/report_openai_upgrade.json");
         let v = drift_report_json_value(&report).expect("export");
         let s = v.get("summary").expect("summary");
         assert_eq!(s.get("probe_regressions"), s.get("regressions"));
@@ -118,8 +120,8 @@ mod tests {
     fn red_probes_panel_empty_shows_banner_only() {
         use arsenic_core::RiskLevel;
 
-        let json = include_str!("../../../example_report_llama_upgrade.json");
-        let mut report: DriftReport = serde_json::from_str(json).expect("parse example_report_llama_upgrade.json");
+        let mut report: DriftReport =
+            serde_json::from_str(FIXTURE_REPORT).expect("parse fixtures/report_openai_upgrade.json");
         for pr in &mut report.probe_results {
             pr.overall_risk = RiskLevel::Green;
         }

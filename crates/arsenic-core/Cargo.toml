@@ -4,7 +4,12 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "ARSENIC types, metrics, and comparison engine"
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["development-tools::testing"]
+description = "ARSENIC types, metrics, and comparison engine for LLM behavioural drift"
 
 [dependencies]
 serde.workspace = true

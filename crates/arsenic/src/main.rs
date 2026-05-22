@@ -379,6 +379,8 @@ async fn main() -> anyhow::Result<()> {
                     &report.probe_results,
                     &pair_by_id,
                     v2_for_mutate.as_ref(),
+                    runner.retry_attempts,
+                    runner.retry_delay_ms,
                 )
                 .await?;
                 ComparisonEngine::attach_mutations(&mut report, mutation_results);
@@ -565,7 +567,7 @@ async fn main() -> anyhow::Result<()> {
 
 fn load_report_json(path: &Path) -> anyhow::Result<DriftReport> {
     let text = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
-    Ok(serde_json::from_str(&text).context("parse drift JSON")?)
+    serde_json::from_str(&text).context("parse drift JSON")
 }
 
 fn validate_corpus(path: &Path) -> anyhow::Result<()> {
@@ -585,6 +587,7 @@ fn parse_category(s: &str) -> anyhow::Result<ProbeCategory> {
     }
 }
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn merge_compare_config(
     cfg: Option<&ArsenicConfig>,
     v1: Option<String>,
@@ -702,7 +705,7 @@ fn load_probes_for_suite(
                 .split(',')
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
-                .map(|s| parse_category(s))
+                .map(parse_category)
                 .collect::<anyhow::Result<_>>()?;
             out.extend(ProbeLoader::load_standard_categories(suite_dir, &cats)?);
         }

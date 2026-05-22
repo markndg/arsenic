@@ -283,7 +283,7 @@ impl ComparisonEngine {
             t.morphology_token_delta_amber,
             t.morphology_token_delta_red,
         );
-        let direction = direction_morphology(&pair.probe, m1.word_count, m2.word_count, response_type_changed);
+        let direction = direction_morphology(&pair.probe, m1.word_count, m2.word_count);
         MorphologyDiff {
             risk,
             direction,
@@ -415,8 +415,6 @@ impl ComparisonEngine {
             RiskLevel::Red
         } else if !v1_ok && !v2_ok {
             RiskLevel::Amber
-        } else if improvement {
-            RiskLevel::Green
         } else {
             RiskLevel::Green
         };
@@ -582,7 +580,7 @@ impl ComparisonEngine {
         } else {
             RiskLevel::Green
         };
-        let direction = claim.direction.clone();
+        let direction = claim.direction;
         Ok(SemanticDiff {
             risk,
             direction,
@@ -1105,12 +1103,7 @@ fn run_variance(runs: &[ModelResponse], _thresh: f64) -> f64 {
     }
 }
 
-fn direction_morphology(
-    probe: &Probe,
-    w1: usize,
-    w2: usize,
-    response_type_changed: bool,
-) -> DriftDirection {
+fn direction_morphology(probe: &Probe, w1: usize, w2: usize) -> DriftDirection {
     use ExpectedVerbosity::*;
     if let Some(ev) = &probe.expected_verbosity {
         return match ev {
@@ -1132,20 +1125,10 @@ fn direction_morphology(
                     DriftDirection::Neutral
                 }
             }
-            Moderate => {
-                if response_type_changed {
-                    DriftDirection::Neutral
-                } else {
-                    DriftDirection::Neutral
-                }
-            }
+            Moderate => DriftDirection::Neutral,
         };
     }
-    if response_type_changed {
-        DriftDirection::Neutral
-    } else {
-        DriftDirection::Neutral
-    }
+    DriftDirection::Neutral
 }
 
 fn direction_tone(probe: &Probe, f1: f64, f2: f64) -> DriftDirection {
@@ -1252,11 +1235,11 @@ fn probe_overall_direction(d: &ProbeDimensions, overall_risk: &RiskLevel) -> Dri
     let mut reg = false;
     let mut imp = false;
     let dims: Vec<DriftDirection> = vec![
-        d.morphology.direction.clone(),
-        d.tone.direction.clone(),
-        d.refusal.direction.clone(),
-        d.semantic.direction.clone(),
-        d.claim.direction.clone(),
+        d.morphology.direction,
+        d.tone.direction,
+        d.refusal.direction,
+        d.semantic.direction,
+        d.claim.direction,
     ];
     for x in dims {
         if matches!(x, DriftDirection::Regression) {
@@ -1561,9 +1544,9 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
             .map(|m| m.mutated_prompt.clone());
         let item = UpgradePathItem {
             probe_name: pr.probe.name.clone(),
-            category: pr.probe.category.clone(),
+            category: pr.probe.category,
             overall_risk: pr.overall_risk.clone(),
-            overall_direction: pr.overall_direction.clone(),
+            overall_direction: pr.overall_direction,
             drift_category: pr.drift_category,
             summary: format!(
                 "{:?} / {:?} / {:?} / {:?}",

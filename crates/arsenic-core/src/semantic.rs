@@ -61,7 +61,7 @@ fn token_cosine(a: &str, b: &str) -> f64 {
             dot += va * vb;
         }
     }
-    for (_, vb) in &freq_b {
+    for vb in freq_b.values() {
         nb += vb * vb;
     }
     let denom = (na.sqrt() * nb.sqrt()).max(1e-9);

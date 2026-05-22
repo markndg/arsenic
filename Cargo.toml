@@ -4,14 +4,19 @@ members = [
     "crates/arsenic-probes",
     "crates/arsenic-adapters",
     "crates/arsenic-report",
-    "crates/arsenic-cli",
+    "crates/arsenic",
 ]
+default-members = ["crates/arsenic"]
 resolver = "2"
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.75"
-license = "MIT OR Apache-2.0"
+rust-version = "1.80"
+license = "Apache-2.0"
+repository = "https://github.com/markndg/arsenic"
+homepage = "https://github.com/markndg/arsenic"
+readme = "README.md"
+keywords = ["llm", "drift", "evaluation", "testing", "regression"]
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }

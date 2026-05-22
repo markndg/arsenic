@@ -574,9 +574,9 @@ fn trim_word_punctuation(word: &str) -> String {
 
 fn normalize_topic_label(s: &str) -> String {
     trim_word_punctuation(
-        &s.trim()
+        s.trim()
             .trim_end_matches(':')
-            .trim_end_matches(|c: char| c == '.' || c == ','),
+            .trim_end_matches(['.', ',']),
     )
 }
 
@@ -721,6 +721,7 @@ fn same_strategy(a: &MutationStrategy, b: &MutationStrategy) -> bool {
 }
 
 /// Full reconcile pipeline: analyse delta, rank signals, validate cumulative strategies against the target model.
+#[allow(clippy::too_many_arguments)]
 pub async fn run_reconcile(
     engine: &ComparisonEngine,
     probe: Probe,

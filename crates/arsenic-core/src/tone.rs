@@ -97,7 +97,7 @@ impl ToneAnalyser {
 }
 
 fn sentence_split_simple(text: &str) -> Vec<String> {
-    text.split(|c| c == '.' || c == '!' || c == '?')
+    text.split(['.', '!', '?'])
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect()

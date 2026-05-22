@@ -48,6 +48,14 @@ validates them against v2, and produces validated remediation candidates. You ge
 
 ## Quickstart
 
+Install from source:
+
+```bash
+cargo install --git https://github.com/markndg/arsenic
+```
+
+This puts `arsenic` on your `PATH` (in `~/.cargo/bin`). Or clone and build locally:
+
 ```bash
 cargo build --release
 ```
@@ -55,7 +63,7 @@ cargo build --release
 List the standard probe suite:
 
 ```bash
-./target/release/arsenic probe list
+arsenic probe list
 ```
 
 Compare two models (OpenAI):
@@ -123,12 +131,12 @@ Prebuilt reports — open directly in a browser, no build required.
 
 | Report | Probes | Result |
 |--------|--------|--------|
-| [Standard suite](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini.html) | 18 | ✅ Safe — 2 probes warrant review |
+| [Standard suite](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini.html) | 18 | ⚠️ Safe — 3 probe warrants review |
 | [Reasoning chains](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_reasoning.html) | 10 | 🔴 **Not safe** — 3 critical regressions |
 | [Sycophancy](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_sycophancy.html) | 10 | ⚠️ Safe — 1 probe warrants review |
 | [JSON schema](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_json_schema.html) | 10 | ⚠️ Safe — 2 probes warrant review |
 | [Code generation](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_code_generation.html) | 10 | ✅ Safe — 10/10 green |
-| [AI Assesment](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_ai_assesment.html) | 18 | 🔴 **Not safe** — 3 critical regressions |
+| [AI Assesment](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini_ai_assessment.html) | 18 | 🔴 **Not safe** — 3 critical regressions |
 
 **llama3.1:8b → llama3.2:3b (local Ollama)**
 
@@ -424,7 +432,7 @@ crates/
   arsenic-probes/     TOML probe loader
   arsenic-adapters/   OpenAI-compatible, Anthropic, Google adapters
   arsenic-report/     HTML / JSON / Markdown report rendering
-  arsenic-cli/        arsenic binary
+  arsenic/            arsenic binary
 probe-suite/standard/ Standard probe suite (18 probes, 7 categories)
 report-templates/     Tera templates
 examples/             Prebuilt HTML drift reports (open in a browser)

@@ -1,20 +1,25 @@
 [package]
-name = "arsenic-cli"
+name = "arsenic"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "ARSENIC command-line interface"
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["command-line-utilities", "development-tools::testing"]
+description = "ARSENIC — detect behavioural drift between LLM versions before production upgrades"
 
 [[bin]]
 name = "arsenic"
 path = "src/main.rs"
 
 [dependencies]
-arsenic-core = { path = "../arsenic-core" }
-arsenic-probes = { path = "../arsenic-probes" }
-arsenic-adapters = { path = "../arsenic-adapters" }
-arsenic-report = { path = "../arsenic-report" }
+arsenic-core = { path = "../arsenic-core", version = "0.1.0" }
+arsenic-probes = { path = "../arsenic-probes", version = "0.1.0" }
+arsenic-adapters = { path = "../arsenic-adapters", version = "0.1.0" }
+arsenic-report = { path = "../arsenic-report", version = "0.1.0" }
 tokio.workspace = true
 clap.workspace = true
 anyhow.workspace = true
