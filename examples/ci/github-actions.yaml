@@ -1,0 +1,44 @@
+name: Arsenic Regression Check
+
+on:
+  pull_request:
+    paths:
+      - 'prompts/**'
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  arsenic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Arsenic
+        run: |
+          curl -L https://github.com/markndg/arsenic/releases/latest/download/arsenic-linux-x86_64 \
+            -o /usr/local/bin/arsenic && chmod +x /usr/local/bin/arsenic
+
+      - name: Run regression analysis
+        run: |
+          arsenic compare \
+            --v1 "openai:gpt-4.1-mini" \
+            --v2 "openai:gpt-5-mini" \
+            --v1-key-env OPENAI_API_KEY \
+            --v2-key-env OPENAI_API_KEY \
+            --user-corpus ./prompts \
+            --standard-suite full \
+            --output report.html \
+            --json report.json
+
+      - name: Check for blocking regressions
+        run: arsenic report summary report.json --fail-on-blocking
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenic-report
+          path: |
+            report.html
+            report.json
