@@ -3,53 +3,68 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+
 permissions:
   contents: write
-  
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: arsenic-linux-x86_64
+            archive: arsenic-linux-x86_64.tar.gz
+            binary: arsenic
+
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: arsenic-macos-x86_64
+            archive: arsenic-macos-x86_64.tar.gz
+            binary: arsenic
+
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact: arsenic-macos-aarch64
+            archive: arsenic-macos-aarch64.tar.gz
+            binary: arsenic
+
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: arsenic-windows-x86_64.exe
+            archive: arsenic-windows-x86_64.zip
+            binary: arsenic.exe
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Rename binary (Unix)
-        if: matrix.os != 'windows-latest'
-        run: mv target/${{ matrix.target }}/release/arsenic ${{ matrix.artifact }}
+      - name: Package Unix
+        if: runner.os != 'Windows'
+        run: |
+          mkdir dist
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/arsenic
+          cp README.md LICENSE dist/ 2>/dev/null || true
+          tar -czf ${{ matrix.archive }} -C dist .
 
-      - name: Rename binary (Windows)
-        if: matrix.os == 'windows-latest'
-        run: mv target/${{ matrix.target }}/release/arsenic.exe ${{ matrix.artifact }}
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Copy-Item "target/${{ matrix.target }}/release/${{ matrix.binary }}" "dist/arsenic.exe"
+          if (Test-Path README.md) { Copy-Item README.md dist/ }
+          if (Test-Path LICENSE) { Copy-Item LICENSE dist/ }
+          Compress-Archive -Path dist/* -DestinationPath ${{ matrix.archive }}
 
-      - name: Upload to release
+      - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.artifact }}
+          files: ${{ matrix.archive }}
