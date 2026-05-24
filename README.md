@@ -2,16 +2,29 @@
 
 ARSENIC detects behavioural drift between LLM versions before production upgrades.
 
-You get a deprecation notice. Your model is going away in 90 days. You upgrade to the new version, your tests pass,
-and three weeks later someone notices the support bot sounds different. The sales assistant lost something. The legal
-tool started hedging in ways that undermine confidence. Nothing broke — it just changed. And you had no way to see it
-coming.
+Most eval frameworks tell you whether your model passed your tests.
 
-Detect behavioural drift, classify regression severity, and generate validated prompt patches before switching models.
+ARSENIC tells you what changed about your model's behaviour whether you anticipated it or not.
 
-Most eval frameworks tell you whether your model passed your tests. ARSENIC tells you what changed about your model's
-behaviour whether you anticipated it or not — and for regressions it can't automatically fix, it proposes validated 
-prompt changes that can help recover the original behaviour
+For regressions it cannot automatically fix, it proposes validated prompt changes that can help recover the original behaviour.
+
+You get a deprecation notice. Your model disappears in 90 days.
+
+You upgrade. Tests pass.
+
+Three weeks later:
+- the support bot sounds different
+- the sales assistant lost something
+- the legal workflow hedges in ways that undermine confidence
+
+Nothing broke.
+
+It just changed.
+
+And you had no way to see it coming.
+
+Detect behavioural drift, classify regression severity, and generate validated prompt patches before deploying a model upgrade.
+
 
 ![ARSENIC Report](docs/report-screenshot.png)
 
@@ -21,8 +34,7 @@ Licensed under Apache-2.0.
 
 ## What it does
 
-ARSENIC runs a structured probe suite against two model endpoints in parallel and produces a behavioural drift report
-across seven dimensions:
+ARSENIC runs a structured probe suite against two model endpoints in parallel and produces a behavioural drift report across seven dimensions:
 
 - **Morphology** — did the response shape change? Length, structure, paragraph count, response type
 - **Tone** — formality, assertiveness, hedging, contraction rate
@@ -33,18 +45,19 @@ across seven dimensions:
 - **Claim** — sentence-level cross-matching: does v2 convey the same information as v1, or did it drop claims, add new
   ones, or drift on specific values?
 
-Every dimension gets a risk level (Green / Amber / Red) and a direction (Improvement / Regression / Neutral). The
-upgrade path section splits results into blocking regressions, improvements worth verifying, and neutral changes — so
-you know exactly what needs attention before you cut over.
+Every dimension gets a risk level (Green / Amber / Red) and a direction (Improvement / Regression / Neutral). The upgrade path section splits results into blocking regressions, improvements worth verifying, and neutral changes — so you know exactly what needs attention before you cut over.
 
 **Latency** is measured per probe and summarised in a dedicated **Latency impact** report section (average baseline vs
 target, delta, direction). It does not affect overall risk, probe direction, or upgrade path routing — timing is
 observational, not a validation signal. Per-probe latency remains in the dimension snapshot table for drill-down.
 
-The mutation engine goes one step further. For regressions it can address, it generates candidate prompt mutations,
-validates them against v2, and produces validated remediation candidates. You get the diff, a copy button, and confidence the fix actually works.
+The mutation engine goes one step further. For regressions it can address, it generates candidate prompt mutations, validates them against v2, and produces validated remediation candidates. You get the diff, a copy button, and confidence the fix actually works.
 
----
+ARSENIC does not attempt to determine whether models are fundamentally equivalent systems or preserve any notion of identity continuity.
+
+It measures operational behavioural drift and migration risk when substituting models in real workflows.
+
+
 
 ## Quickstart
 
@@ -118,7 +131,7 @@ A legal disclaimer stopped appearing. The JSON shape changed on one endpoint.
 Nobody noticed until a customer complained.
 
 ARSENIC catches this before you deploy.
-Run it against your production prompts before switching models.
+Run it against your production prompts before deploying a model upgrade.
 Get a migration report your team can act on.
 
 ---
