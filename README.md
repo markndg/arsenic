@@ -198,6 +198,33 @@ arsenic baseline timeline --model gpt-4o-mini
 
 ---
 
+## CI integration
+
+Gate model upgrades on pull requests with the [`markndg/arsenic-action`](https://github.com/markndg/arsenic-action) GitHub Action:
+
+```yaml
+name: AI Regression Check
+on: [pull_request]
+
+jobs:
+  arsenic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: markndg/arsenic-action@v1
+        with:
+          old-model: gpt-4.1-mini
+          new-model: gpt-5-mini
+          corpus: ./prompts
+          fail-on-risk: high
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+A copyable workflow and a longer recipe — installing the binary directly, replaying a `--baseline`, uploading HTML/JSON reports as artefacts — are in [`examples/ci/`](examples/ci/).
+
+---
+
 ## Why it matters
 
 Your support bot runs on GPT-4o-mini. OpenAI deprecates it.
