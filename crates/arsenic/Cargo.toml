@@ -1,6 +1,6 @@
 [package]
 name = "arsenic"
-version = "0.1.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -16,10 +16,10 @@ name = "arsenic"
 path = "src/main.rs"
 
 [dependencies]
-arsenic-core = { path = "../arsenic-core", version = "0.1.0" }
-arsenic-probes = { path = "../arsenic-probes", version = "0.1.0" }
-arsenic-adapters = { path = "../arsenic-adapters", version = "0.1.0" }
-arsenic-report = { path = "../arsenic-report", version = "0.1.0" }
+arsenic-core = { path = "../arsenic-core", version = "0.3.0" }
+arsenic-probes = { path = "../arsenic-probes", version = "0.3.0" }
+arsenic-adapters = { path = "../arsenic-adapters", version = "0.3.0" }
+arsenic-report = { path = "../arsenic-report", version = "0.3.0" }
 tokio.workspace = true
 clap.workspace = true
 anyhow.workspace = true
