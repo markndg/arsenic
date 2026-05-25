@@ -121,6 +121,83 @@ decision.
 
 ---
 
+## Baseline snapshots
+
+Capture a model's responses once, replay them against every future challenger without paying the API again.
+
+```bash
+export OPENAI_API_KEY=sk-...
+
+arsenic baseline create \
+  --name prod-2026-q2 \
+  --model "openai:gpt-4o-mini" \
+  --key-env OPENAI_API_KEY \
+  --standard-suite full \
+  --consistency-runs 3 \
+  --notes "Production baseline — locked at quarter end"
+```
+
+Baselines are written to `.arsenic/baselines/<name>/` next to your project (override with `--cache-dir`).
+
+### What invalidates a cached response
+
+The rule:
+
+> **Changing analysis expectations re-analyses cached outputs. Changing prompts, model, or runtime settings invalidates cached outputs.**
+
+Concretely, the cache key hashes:
+
+| Hashed (changing these invalidates the cache) | Not hashed (changing these re-analyses cached outputs) |
+|---|---|
+| Adapter type (openai / anthropic / google) | `tags` |
+| Endpoint URL | `known_answer` |
+| Model id | `refusal_expectation` |
+| Temperature, max tokens | `expected_verbosity`, `expected_tone` |
+| System prompt | `mutation_hint` |
+| User prompt | `custom_assertions` |
+| `expected_schema` (sent to the model) | `instructions` (rubric checks like `MaxWords`, `MustNotContain`) |
+
+This is deliberate. The model never sees `known_answer`, `custom_assertions`, or the instruction rubric — those drive scoring after the response comes back. Editing them re-grades the existing baseline against new rules, which is what you usually want. Editing the prompt or model is a different question being asked of a different system and gets a fresh API call.
+
+If you'd rather force a re-capture (for example, you suspect the model changed under a fixed alias like `gpt-4o-mini`), delete the baseline (`arsenic baseline remove`) and re-create it, or use cache-warming mode (pass both `--baseline NAME` and a live `--v1` spec).
+
+Replay the baseline as v1 in any future comparison:
+
+```bash
+arsenic compare \
+  --baseline prod-2026-q2 \
+  --v2 "openai:gpt-4.1-mini" \
+  --v2-key-env OPENAI_API_KEY \
+  --standard-suite full \
+  --output ./report.html
+```
+
+Cache-warming: pass both `--baseline NAME` and a live `--v1` spec to top up the baseline with any probes the cache is missing — already-captured probes stay untouched (rest of the suite hits the API once and is appended to the cache).
+
+Two baselines compared against each other — fully offline, zero API calls:
+
+```bash
+arsenic compare \
+  --baseline prod-2026-q2 \
+  --baseline-target prod-2026-q4 \
+  --output ./quarterly-drift.html
+```
+
+Manage baselines:
+
+```bash
+arsenic baseline list
+arsenic baseline show prod-2026-q2
+arsenic baseline verify prod-2026-q2        # re-hashes every cached file
+arsenic baseline freeze prod-2026-q2        # rejects future writes
+arsenic baseline diff prod-2026-q2 prod-2026-q4
+arsenic baseline timeline --model gpt-4o-mini
+```
+
+`baseline verify` re-hashes every cached file and confirms the on-disk SHA matches the recorded `key_hash` and the filename — surfacing corruption or tampering. `freeze` is for end-of-quarter golden masters and CI pinning.
+
+---
+
 ## Why it matters
 
 Your support bot runs on GPT-4o-mini. OpenAI deprecates it.

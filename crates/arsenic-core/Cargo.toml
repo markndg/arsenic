@@ -24,3 +24,5 @@ tokio.workspace = true
 futures.workspace = true
 # Spec lists regex at workspace level; core needs it for tone + refusal heuristics.
 regex = { workspace = true }
+# Baseline cache: SHA-256 hashing of cache keys.
+sha2.workspace = true

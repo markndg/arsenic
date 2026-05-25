@@ -102,3 +102,84 @@ fn sentence_split_simple(text: &str) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hedge_count_finds_each_hedge_token() {
+        let text = "It might rain. Possibly tomorrow. Generally speaking, however, forecasts vary.";
+        // might + possibly + generally + however = 4
+        assert_eq!(ToneAnalyser::hedge_word_count(text), 4);
+    }
+
+    #[test]
+    fn hedge_count_is_case_insensitive_and_does_not_match_substrings() {
+        // "Mightily" should NOT count as "might"; "POSSIBLY" should count.
+        assert_eq!(ToneAnalyser::hedge_word_count("Mightily strong."), 0);
+        assert_eq!(ToneAnalyser::hedge_word_count("POSSIBLY yes."), 1);
+    }
+
+    #[test]
+    fn contraction_count_handles_apostrophes() {
+        assert_eq!(
+            ToneAnalyser::contraction_count("I'm sure they're right and won't argue."),
+            3
+        );
+        assert_eq!(ToneAnalyser::contraction_count("I am not contracting."), 0);
+    }
+
+    #[test]
+    fn passive_voice_ratio_picks_up_was_verbed_constructions() {
+        // 2 sentences: one passive, one active. Expect ratio 0.5.
+        let text = "The cake was eaten by the dog. The cat sleeps.";
+        let r = ToneAnalyser::passive_voice_ratio(text);
+        assert!(
+            (r - 0.5).abs() < 0.0001,
+            "expected ~0.5, got {r} for `{text}`"
+        );
+    }
+
+    #[test]
+    fn passive_voice_ratio_returns_zero_on_empty_text() {
+        assert_eq!(ToneAnalyser::passive_voice_ratio(""), 0.0);
+        assert_eq!(ToneAnalyser::passive_voice_ratio("   "), 0.0);
+    }
+
+    #[test]
+    fn formality_score_distinguishes_casual_from_formal() {
+        let casual = "Hey, I'm just gonna grab a coffee, you know? It's all good.";
+        let formal = "The applicant shall submit the requisite documentation prior to consideration by the committee.";
+        let casual_score = ToneAnalyser::formality_score(casual);
+        let formal_score = ToneAnalyser::formality_score(formal);
+        assert!(
+            formal_score > casual_score,
+            "formal ({formal_score}) must exceed casual ({casual_score})"
+        );
+        // Bounded.
+        assert!((0.0..=1.0).contains(&casual_score));
+        assert!((0.0..=1.0).contains(&formal_score));
+    }
+
+    #[test]
+    fn assertiveness_drops_with_hedge_density() {
+        let assertive = "The answer is 42.";
+        let hedged = "It might be, perhaps, possibly something like 42, generally speaking.";
+        let a = ToneAnalyser::assertiveness_score(assertive);
+        let h = ToneAnalyser::assertiveness_score(hedged);
+        assert!(a > h, "assertive ({a}) must exceed hedged ({h})");
+        assert!((0.0..=1.0).contains(&a));
+        assert!((0.0..=1.0).contains(&h));
+    }
+
+    #[test]
+    fn analyse_handles_empty_string_without_division_by_zero() {
+        let m = ToneAnalyser::analyse("");
+        assert_eq!(m.hedge_word_count, 0);
+        assert_eq!(m.contraction_count, 0);
+        assert_eq!(m.average_sentence_length, 1.0); // word_count clamped to >= 1
+        assert!((0.0..=1.0).contains(&m.formality_score));
+        assert!((0.0..=1.0).contains(&m.assertiveness_score));
+    }
+}

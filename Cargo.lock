@@ -85,8 +85,10 @@ dependencies = [
  "arsenic-core",
  "arsenic-probes",
  "arsenic-report",
+ "chrono",
  "clap",
  "colored",
+ "futures",
  "futures-util",
  "indicatif",
  "reqwest",
@@ -111,6 +113,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -125,6 +128,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "tokio",
  "unicode-segmentation",

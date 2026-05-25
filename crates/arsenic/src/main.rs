@@ -3,9 +3,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Context;
-use arsenic_adapters::{build_adapter, AdapterSpec};
+use arsenic_adapters::{
+    build_adapter, AdapterSpec, BaselineIdentity, CacheMode, CachingAdapter,
+};
 use arsenic_core::{
-    ComparisonEngine, DriftReport, ModelInfo, ProbeCategory, ProbeRunner, RiskThresholds,
+    cache::BaselineCache, ComparisonEngine, DriftReport, ModelAdapter, ModelInfo, ProbeCategory,
+    ProbeRunner, RiskThresholds,
 };
 use arsenic_probes::ProbeLoader;
 use arsenic_report::ReportRenderer;
@@ -15,6 +18,7 @@ use indicatif::ProgressBar;
 use serde::Deserialize;
 use uuid::Uuid;
 
+mod baseline_cmd;
 mod model_download;
 mod mutation_validate;
 mod reconcile;
@@ -84,6 +88,20 @@ enum Commands {
         /// v2: after compare, try rule-based prompt mutations against v2 and record results.
         #[arg(long)]
         mutate: bool,
+        /// Replay v1 from a cached baseline instead of (or in addition to) calling the v1 API.
+        #[arg(long)]
+        baseline: Option<String>,
+        /// Replay v2 from a cached baseline (offline drift report). Incompatible with --mutate.
+        #[arg(long)]
+        baseline_target: Option<String>,
+        /// Override the default `.arsenic/baselines` location.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Capture, inspect, verify, and manage cached v1 response sets
+    Baseline {
+        #[command(subcommand)]
+        sub: BaselineCmd,
     },
     /// Inspect probe suites
     Probe {
@@ -150,6 +168,102 @@ enum Commands {
         v2_label: String,
         #[arg(long, default_value_t = 0.0)]
         temperature: f64,
+    },
+}
+
+#[derive(Subcommand)]
+enum BaselineCmd {
+    /// Capture model responses for a probe corpus and save them as a baseline.
+    Create {
+        /// Baseline name (becomes directory under <cache-dir>).
+        #[arg(long)]
+        name: String,
+        /// Model spec, e.g. `openai:gpt-4o-mini` or `anthropic:claude-3-5-sonnet-20241022`.
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        endpoint: Option<String>,
+        #[arg(long)]
+        key_env: String,
+        #[arg(long)]
+        standard_suite: Option<String>,
+        #[arg(long)]
+        user_corpus: Option<PathBuf>,
+        #[arg(long, default_value_t = false)]
+        user_corpus_only: bool,
+        #[arg(long)]
+        suite_path: Option<PathBuf>,
+        #[arg(long, default_value_t = 3)]
+        consistency_runs: usize,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+        #[arg(long, default_value_t = 10)]
+        concurrency: usize,
+        #[arg(long, default_value_t = 3)]
+        retry_attempts: usize,
+        #[arg(long, default_value_t = 1000)]
+        retry_delay_ms: u64,
+        #[arg(long, default_value_t = 0.0)]
+        temperature: f64,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+        #[arg(long)]
+        notes: Option<String>,
+        /// Overwrite an existing baseline of the same name.
+        #[arg(long, default_value_t = false)]
+        force: bool,
+    },
+    /// List all baselines under the cache directory.
+    List {
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Show manifest details for a single baseline.
+    Show {
+        name: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Re-hash all cached files and confirm the cache hasn't been tampered with.
+    Verify {
+        name: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Permanently delete a baseline.
+    Remove {
+        name: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+        /// Confirm deletion (required for frozen baselines).
+        #[arg(long, default_value_t = false)]
+        yes: bool,
+    },
+    /// Mark a baseline as immutable (rejects future writes).
+    Freeze {
+        name: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Allow writes back to a previously frozen baseline.
+    Unfreeze {
+        name: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Summarise overlap and first-run content differences between two baselines.
+    Diff {
+        baseline_a: String,
+        baseline_b: String,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
+    },
+    /// Chronological list of baselines, optionally filtered by model id substring.
+    Timeline {
+        #[arg(long)]
+        model: Option<String>,
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
     },
 }
 
@@ -277,6 +391,9 @@ async fn main() -> anyhow::Result<()> {
             consistency_runs,
             timeout_secs,
             mutate,
+            baseline,
+            baseline_target,
+            cache_dir,
         } => {
             let mut cfg_opt: Option<ArsenicConfig> = None;
             if let Some(p) = &config {
@@ -289,24 +406,84 @@ async fn main() -> anyhow::Result<()> {
                 .and_then(|c| c.run.timeout_secs)
                 .unwrap_or(timeout_secs);
 
-            let (spec1, spec2, suite_str, corpus, conc, sem_thr, out_html, out_json) =
-                merge_compare_config(
-                    cfg_opt.as_ref(),
+            // Baseline pre-load (manifests only — we'll open caches once we know which sides are using them).
+            let cache_root = baseline_cmd::resolve_cache_dir(cache_dir.as_ref());
+            let v1_manifest_opt = match baseline.as_deref() {
+                Some(name) => {
+                    let cache = BaselineCache::new(cache_root.join(name));
+                    if !cache.exists() {
+                        anyhow::bail!(
+                            "baseline {name} not found at {}",
+                            cache_root.join(name).display()
+                        );
+                    }
+                    Some(cache.read_manifest()?)
+                }
+                None => None,
+            };
+            let v2_manifest_opt = match baseline_target.as_deref() {
+                Some(name) => {
+                    let cache = BaselineCache::new(cache_root.join(name));
+                    if !cache.exists() {
+                        anyhow::bail!(
+                            "baseline {name} not found at {}",
+                            cache_root.join(name).display()
+                        );
+                    }
+                    Some(cache.read_manifest()?)
+                }
+                None => None,
+            };
+            if mutate && v2_manifest_opt.is_some() {
+                anyhow::bail!(
+                    "--mutate requires a live v2 adapter; remove --baseline-target or drop --mutate"
+                );
+            }
+
+            // We only require a v1 spec if either (a) no baseline supplied or
+            // (b) baseline + live spec supplied (cache-warming).
+            let v1_needs_spec = v1_manifest_opt.is_none() || v1.is_some();
+            let v2_needs_spec = v2_manifest_opt.is_none() || v2.is_some();
+
+            let spec1_opt = if v1_needs_spec {
+                Some(parse_model_cli_or_cfg(
+                    cfg_opt.as_ref().map(|c| &c.v1),
                     v1,
-                    v2,
                     v1_endpoint,
-                    v2_endpoint,
                     v1_key_env,
-                    v2_key_env,
-                    standard_suite,
-                    user_corpus,
-                    concurrency,
-                    &semantic_threshold,
-                    output,
-                    json,
                     temperature,
                     timeout_secs_effective,
-                )?;
+                )?)
+            } else {
+                None
+            };
+            let spec2_opt = if v2_needs_spec {
+                Some(parse_model_cli_or_cfg(
+                    cfg_opt.as_ref().map(|c| &c.v2),
+                    v2,
+                    v2_endpoint,
+                    v2_key_env,
+                    temperature,
+                    timeout_secs_effective,
+                )?)
+            } else {
+                None
+            };
+
+            let suite_str = standard_suite
+                .or_else(|| cfg_opt.as_ref().and_then(|c| c.run.standard_suite.clone()))
+                .unwrap_or_else(|| "full".to_string());
+            let corpus = user_corpus.or_else(|| cfg_opt.as_ref().and_then(|c| c.run.user_corpus.clone()));
+            let conc = cfg_opt
+                .as_ref()
+                .and_then(|c| c.run.concurrency)
+                .unwrap_or(concurrency);
+            let sem_thr = cfg_opt
+                .as_ref()
+                .and_then(|c| c.run.semantic_threshold)
+                .unwrap_or_else(|| semantic_threshold.parse().unwrap_or(0.85));
+            let out_html = output.or_else(|| cfg_opt.as_ref().and_then(|c| c.output.html.clone()));
+            let out_json = json.or_else(|| cfg_opt.as_ref().and_then(|c| c.output.json.clone()));
 
             let consistency_runs_effective = cfg_opt
                 .as_ref()
@@ -328,9 +505,33 @@ async fn main() -> anyhow::Result<()> {
                 );
             }
 
-            let a1 = build_adapter(&spec1)?;
-            let a2 = build_adapter(&spec2)?;
-            let v2_for_mutate = Arc::clone(&a2);
+            // Build the v1 adapter (live, cache-replay, or cache-warming).
+            let (a1, v1_info) = build_side_adapter(
+                spec1_opt.as_ref(),
+                baseline.as_deref(),
+                v1_manifest_opt.as_ref(),
+                &cache_root,
+                &v1_label,
+            )?;
+            // Build the v2 adapter (live, cache-replay, or cache-warming).
+            let (a2, v2_info) = build_side_adapter(
+                spec2_opt.as_ref(),
+                baseline_target.as_deref(),
+                v2_manifest_opt.as_ref(),
+                &cache_root,
+                &v2_label,
+            )?;
+            // For mutation validation we need a live v2 adapter, not the
+            // caching wrapper (mutated prompts will always cache-miss).
+            let v2_for_mutate: Arc<dyn ModelAdapter> = if let Some(spec) = &spec2_opt {
+                if baseline_target.is_some() {
+                    a2.clone()
+                } else {
+                    build_adapter(spec)?
+                }
+            } else {
+                a2.clone()
+            };
 
             let runner = ProbeRunner {
                 v1_adapter: a1,
@@ -355,22 +556,7 @@ async fn main() -> anyhow::Result<()> {
 
             let risk = RiskThresholds::default();
             let engine = ComparisonEngine::new(!no_semantic, sem_thr, risk);
-            let mut report = engine.compare(
-                Uuid::new_v4(),
-                pairs,
-                ModelInfo {
-                    label: v1_label.clone(),
-                    model_id: spec1.model_id.clone(),
-                    adapter: spec1.adapter_type.clone(),
-                    endpoint: spec1.endpoint.clone().unwrap_or_default(),
-                },
-                ModelInfo {
-                    label: v2_label.clone(),
-                    model_id: spec2.model_id.clone(),
-                    adapter: spec2.adapter_type.clone(),
-                    endpoint: spec2.endpoint.clone().unwrap_or_default(),
-                },
-            )?;
+            let mut report = engine.compare(Uuid::new_v4(), pairs, v1_info, v2_info)?;
             report.sync_valence_from_probe_results();
 
             if mutate {
@@ -561,8 +747,130 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         },
+        Commands::Baseline { sub } => match sub {
+            BaselineCmd::Create {
+                name,
+                model,
+                endpoint,
+                key_env,
+                standard_suite,
+                user_corpus,
+                user_corpus_only,
+                suite_path,
+                consistency_runs,
+                timeout_secs,
+                concurrency,
+                retry_attempts,
+                retry_delay_ms,
+                temperature,
+                cache_dir,
+                notes,
+                force,
+            } => {
+                baseline_cmd::run_create(baseline_cmd::CreateArgs {
+                    name,
+                    model,
+                    endpoint,
+                    key_env,
+                    standard_suite,
+                    user_corpus,
+                    user_corpus_only,
+                    suite_path,
+                    consistency_runs,
+                    timeout_secs,
+                    concurrency,
+                    retry_attempts,
+                    retry_delay_ms,
+                    temperature,
+                    cache_dir,
+                    notes,
+                    force,
+                })
+                .await?;
+            }
+            BaselineCmd::List { cache_dir } => baseline_cmd::run_list(cache_dir.as_ref())?,
+            BaselineCmd::Show { name, cache_dir } => {
+                baseline_cmd::run_show(&name, cache_dir.as_ref())?
+            }
+            BaselineCmd::Verify { name, cache_dir } => {
+                baseline_cmd::run_verify(&name, cache_dir.as_ref())?
+            }
+            BaselineCmd::Remove {
+                name,
+                cache_dir,
+                yes,
+            } => baseline_cmd::run_remove(&name, cache_dir.as_ref(), yes)?,
+            BaselineCmd::Freeze { name, cache_dir } => {
+                baseline_cmd::run_freeze(&name, cache_dir.as_ref())?
+            }
+            BaselineCmd::Unfreeze { name, cache_dir } => {
+                baseline_cmd::run_unfreeze(&name, cache_dir.as_ref())?
+            }
+            BaselineCmd::Diff {
+                baseline_a,
+                baseline_b,
+                cache_dir,
+            } => baseline_cmd::run_diff(&baseline_a, &baseline_b, cache_dir.as_ref())?,
+            BaselineCmd::Timeline { model, cache_dir } => {
+                baseline_cmd::run_timeline(model.as_deref(), cache_dir.as_ref())?
+            }
+        },
     }
     Ok(())
+}
+
+/// Construct one side of the runner's adapter pair, honouring baseline
+/// replay / cache-warming when a manifest is supplied.
+fn build_side_adapter(
+    spec: Option<&AdapterSpec>,
+    baseline_name: Option<&str>,
+    manifest: Option<&arsenic_core::cache::BaselineManifest>,
+    cache_root: &Path,
+    label: &str,
+) -> anyhow::Result<(Arc<dyn ModelAdapter>, ModelInfo)> {
+    match (baseline_name, manifest) {
+        (Some(name), Some(m)) => {
+            let cache = Arc::new(BaselineCache::new(cache_root.join(name)));
+            let identity = BaselineIdentity {
+                adapter_type: m.model.adapter_type.clone(),
+                endpoint: m.model.endpoint.clone(),
+                model_id: m.model.model_id.clone(),
+                temperature: m.model.temperature,
+                max_tokens: m.model.max_tokens,
+            };
+            let (inner, mode) = match spec {
+                Some(spec) => (Some(build_adapter(spec)?), CacheMode::ReadWrite),
+                None => (None, CacheMode::ReadOnly),
+            };
+            let adapter: Arc<dyn ModelAdapter> = Arc::new(CachingAdapter::new(
+                inner,
+                Arc::clone(&cache),
+                mode,
+                identity,
+            ));
+            let info = ModelInfo {
+                label: label.to_string(),
+                model_id: m.model.model_id.clone(),
+                adapter: m.model.adapter_type.clone(),
+                endpoint: m.model.endpoint.clone(),
+            };
+            Ok((adapter, info))
+        }
+        (None, _) => {
+            let spec = spec
+                .ok_or_else(|| anyhow::anyhow!("no model spec for side {label} and no baseline"))?;
+            let adapter = build_adapter(spec)?;
+            let info = ModelInfo {
+                label: label.to_string(),
+                model_id: spec.model_id.clone(),
+                adapter: spec.adapter_type.clone(),
+                endpoint: spec.endpoint.clone().unwrap_or_default(),
+            };
+            Ok((adapter, info))
+        }
+        // baseline_name without manifest is impossible (we read it earlier).
+        (Some(_), None) => unreachable!("baseline name present but manifest missing"),
+    }
 }
 
 fn load_report_json(path: &Path) -> anyhow::Result<DriftReport> {
@@ -587,7 +895,7 @@ fn parse_category(s: &str) -> anyhow::Result<ProbeCategory> {
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[allow(dead_code, clippy::too_many_arguments, clippy::type_complexity)]
 fn merge_compare_config(
     cfg: Option<&ArsenicConfig>,
     v1: Option<String>,

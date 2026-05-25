@@ -7,3 +7,6 @@
 /report_openai_upgrade.html
 /report*.json
 /report*.html
+
+# local baselines
+.arsenic/

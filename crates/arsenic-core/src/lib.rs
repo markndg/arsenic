@@ -1,6 +1,7 @@
 //! ARSENIC core: probe/response types, drift dimensions, comparison engine, and probe runner.
 
 pub mod adapter;
+pub mod cache;
 pub mod category_infer;
 pub mod claim;
 pub mod comparison;
@@ -17,6 +18,10 @@ pub mod tone;
 pub mod types;
 
 pub use adapter::ModelAdapter;
+pub use cache::{
+    corpus_fingerprint, BaselineCache, BaselineManifest, BaselineModel, BaselineProbeEntry,
+    CacheKey, CachedResponse, CachedRun, VerifyReport, CACHE_SCHEMA_VERSION,
+};
 pub use claim::{ClaimExtractor, ClaimMatcher};
 pub use comparison::{
     compute_latency_summary, compute_migration_profile, compute_probe_risk, dimension_severity,

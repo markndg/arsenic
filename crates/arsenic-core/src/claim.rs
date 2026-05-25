@@ -713,7 +713,7 @@ mod anchor_tests {
             .map(|x| x.value.as_str())
             .collect();
         assert!(
-            !proper.iter().any(|v| *v == "I'll"),
+            !proper.contains(&"I'll"),
             "contraction should not be a proper-noun anchor: {proper:?}"
         );
         assert!(proper.contains(&"Paris"), "expected Paris as anchor, got {proper:?}");
@@ -743,7 +743,7 @@ mod anchor_tests {
         assert!(proper.contains(&"London"), "expected London, got {proper:?}");
         for banned in ["However", "Debt"] {
             assert!(
-                !proper.iter().any(|v| *v == banned),
+                !proper.contains(&banned),
                 "did not expect {banned} in {proper:?}"
             );
         }

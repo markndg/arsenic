@@ -67,3 +67,79 @@ fn token_cosine(a: &str, b: &str) -> f64 {
     let denom = (na.sqrt() * nb.sqrt()).max(1e-9);
     (dot / denom).clamp(0.0, 1.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disabled_analyser_returns_one_without_tokenising() {
+        let a = SemanticAnalyser::new(false);
+        let sim = a.cosine_similarity("anything", "completely different").unwrap();
+        assert_eq!(sim, 1.0);
+        assert!(!a.is_enabled());
+    }
+
+    #[test]
+    fn identical_text_scores_one() {
+        let a = SemanticAnalyser::new(true);
+        let sim = a
+            .cosine_similarity(
+                "Paris is the capital of France.",
+                "Paris is the capital of France.",
+            )
+            .unwrap();
+        assert!((sim - 1.0).abs() < 1e-9, "got {sim}");
+    }
+
+    #[test]
+    fn disjoint_token_sets_score_zero() {
+        let a = SemanticAnalyser::new(true);
+        let sim = a
+            .cosine_similarity("apple banana cherry", "violin trumpet drum")
+            .unwrap();
+        assert!(sim.abs() < 1e-9, "expected ~0, got {sim}");
+    }
+
+    #[test]
+    fn partial_overlap_scores_between_zero_and_one() {
+        let a = SemanticAnalyser::new(true);
+        let sim = a
+            .cosine_similarity(
+                "The capital of France is Paris.",
+                "Paris is a beautiful city in France.",
+            )
+            .unwrap();
+        assert!(sim > 0.0 && sim < 1.0, "expected (0,1), got {sim}");
+    }
+
+    #[test]
+    fn empty_texts_score_one() {
+        let a = SemanticAnalyser::new(true);
+        assert_eq!(a.cosine_similarity("", "").unwrap(), 1.0);
+    }
+
+    #[test]
+    fn one_empty_one_nonempty_scores_zero() {
+        let a = SemanticAnalyser::new(true);
+        assert_eq!(a.cosine_similarity("", "hello world").unwrap(), 0.0);
+        assert_eq!(a.cosine_similarity("hello world", "").unwrap(), 0.0);
+    }
+
+    #[test]
+    fn tokenisation_is_case_insensitive() {
+        let a = SemanticAnalyser::new(true);
+        let sim = a
+            .cosine_similarity("Paris IS the capital", "paris is THE capital")
+            .unwrap();
+        assert!((sim - 1.0).abs() < 1e-9, "expected 1.0, got {sim}");
+    }
+
+    #[test]
+    fn single_char_tokens_are_filtered_out() {
+        // tokenize() drops 1-char tokens; "a b c" becomes empty → empty-vs-empty = 1.0
+        let a = SemanticAnalyser::new(true);
+        let sim = a.cosine_similarity("a b c", "x y z").unwrap();
+        assert_eq!(sim, 1.0);
+    }
+}

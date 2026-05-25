@@ -2372,7 +2372,7 @@ mod tests {
             improvement: false,
         });
         let pr = test_probe_from_dims(ProbeCategory::Factual, dims);
-        let latency = compute_latency_summary(&[pr.clone()]);
+        let latency = compute_latency_summary(std::slice::from_ref(&pr));
         let profile = compute_migration_profile(&[pr], &latency);
         assert!(!profile.safe_to_upgrade);
         assert!(profile.headline.contains("critical regression"));
@@ -2451,7 +2451,7 @@ mod tests {
         dims.refusal.new_refusal = true;
         dims.refusal.direction = DriftDirection::Regression;
         let pr = test_probe_from_dims(ProbeCategory::Refusal, dims);
-        let latency = compute_latency_summary(&[pr.clone()]);
+        let latency = compute_latency_summary(std::slice::from_ref(&pr));
         let profile = compute_migration_profile(&[pr], &latency);
         assert!(profile.safe_to_upgrade);
         assert!(profile.headline.contains("warrant review"));
