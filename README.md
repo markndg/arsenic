@@ -61,7 +61,22 @@ It measures operational behavioural drift and migration risk when substituting m
 
 ## Quickstart
 
-Install from source:
+### Download a pre-built binary
+
+Grab the latest release for your platform from the [Releases page](https://github.com/markndg/arsenic/releases):
+
+| Platform | File |
+|----------|------|
+| Linux x86_64 | `arsenic-linux-x86_64.tar.gz` |
+| macOS Apple Silicon | `arsenic-macos-aarch64.tar.gz` |
+| macOS Intel | `arsenic-macos-x86_64.tar.gz` |
+| Windows | `arsenic-windows-x86_64.zip` |
+
+Extract and run. No build tools required.
+
+> **macOS note:** Right-click the binary and select Open → Open Anyway. Required once due to Gatekeeper. Alternatively: `xattr -dr com.apple.quarantine ./arsenic`
+
+### Install from source
 
 ```bash
 cargo install --git https://github.com/markndg/arsenic
@@ -73,18 +88,17 @@ This puts `arsenic` on your `PATH` (in `~/.cargo/bin`). Or clone and build local
 cargo build --release
 ```
 
-List the standard probe suite:
+### Run your first comparison
 
+List the standard probe suite:
 ```bash
 arsenic probe list
 ```
 
 Compare two models (OpenAI):
-
 ```bash
 export OPENAI_API_KEY=sk-...
-
-./target/release/arsenic compare \
+arsenic compare \
   --v1 "openai:gpt-4o-mini" \
   --v2 "openai:gpt-4.1-mini" \
   --v1-key-env OPENAI_API_KEY \
@@ -97,11 +111,9 @@ export OPENAI_API_KEY=sk-...
 ```
 
 Compare local models via Ollama:
-
 ```bash
 export OLLAMA_KEY=ollama
-
-./target/release/arsenic compare \
+arsenic compare \
   --v1 "openai:llama3.1:8b" \
   --v2 "openai:llama3.2:3b" \
   --v1-endpoint "http://localhost:11434/v1" \
@@ -116,8 +128,7 @@ export OLLAMA_KEY=ollama
   --json ./report.json
 ```
 
-The report is a self-contained HTML file. Open it in a browser. Share it with whoever needs to make the upgrade
-decision.
+The report is a self-contained HTML file. Open it in a browser. Share it with whoever needs to make the upgrade decision.
 
 ---
 
