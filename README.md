@@ -31,8 +31,8 @@ until a customer complained.
 That distinction is invisible to standard test suites. Arsenic surfaces it before you cut over.
 
 Open the prebuilt reports in your browser — no install required:
-- [GPT-4o-mini → GPT-4.1-mini](examples/gpt-4o-mini_vs_gpt-4.1-mini.html)
-- [Llama 3.1:8b → Llama 3.2:3b](examples/llama3.1-8b_vs_llama3.2-3b.html)
+- [GPT-4o-mini → GPT-4.1-mini](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini.html)
+- [Llama 3.1:8b → Llama 3.2:3b](https://markndg.github.io/arsenic/examples/llama3_1-8b_vs_llama3_2-3b.html)
 
 ---
 
@@ -42,10 +42,10 @@ Open the prebuilt reports in your browser — no install required:
 
 | Platform | File |
 |----------|------|
-| Linux x86_64 | `arsenic-x86_64-unknown-linux-gnu.tar.gz` |
-| macOS Apple Silicon | `arsenic-aarch64-apple-darwin.tar.gz` |
-| macOS Intel | `arsenic-x86_64-apple-darwin.tar.gz` |
-| Windows | `arsenic-x86_64-pc-windows-msvc.zip` |
+| Linux x86_64 | `arsenic-linux-x86_64.tar.gz` |
+| macOS Apple Silicon | `arsenic-macos-aarch64.tar.gz` |
+| macOS Intel | `arsenic-macos-x86_64.tar.gz` |
+| Windows | `arsenic-windows-x86_64.zip` |
 
 Grab the latest from the [Releases page](https://github.com/markndg/arsenic/releases).
 
@@ -134,9 +134,7 @@ and cross-matches them between v1 and v2 at sentence level.
 A probe that drops "the interest rate is 4.5%" and replaces it with "interest rates vary"
 is a regression. Cosine similarity doesn't catch it. Arsenic does.
 
-<!-- IMAGE: Close-up of the claim cross-matching section of the report — show a concrete
-     example of a dropped claim or anchor drift highlighted in the UI. Place here, below
-     this paragraph. This is the technical differentiator and a visual makes it tangible. -->
+![Arsenic claim diff showing dropped claims and drifted anchors](docs/claim-diff-screenshot.png)
 
 ---
 
