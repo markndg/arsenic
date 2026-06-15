@@ -1,4 +1,4 @@
-# Arsenic
+# ARSENIC ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
 > Using Arsenic? Drop a note — I read everything: [open a blank issue titled "Using this"](https://github.com/markndg/arsenic/issues/new)
 
