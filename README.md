@@ -1,4 +1,6 @@
-# ARSENIC ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+# Arsenic
+
+![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg) [![Release](https://img.shields.io/github/v/release/markndg/arsenic?style=flat-square&color=111111&label=release)](https://github.com/markndg/arsenic/releases) [![Build](https://img.shields.io/github/actions/workflow/status/markndg/arsenic/release.yml?style=flat-square&label=build)](https://github.com/markndg/arsenic/actions) [![Platforms](https://img.shields.io/badge/platforms-linux%20·%20macOS%20·%20windows-111111?style=flat-square)](https://github.com/markndg/arsenic/releases) [![Downloads](https://img.shields.io/github/downloads/markndg/arsenic/total?style=flat-square&label=downloads)](https://github.com/markndg/arsenic/releases) [![Rust](https://img.shields.io/badge/built%20with-Rust-orange?style=flat-square)](https://www.rust-lang.org)
 
 > Using Arsenic? Drop a note — I read everything: [open a blank issue titled "Using this"](https://github.com/markndg/arsenic/issues/new)
 
