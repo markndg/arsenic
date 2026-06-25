@@ -10,3 +10,5 @@
 
 # local baselines
 .arsenic/
+
+/scripts/

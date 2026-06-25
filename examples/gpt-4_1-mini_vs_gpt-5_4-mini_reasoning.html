@@ -1,0 +1,4711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Drift 1f527aaa-2ce7-4c99-ae9e-edfc101a1760</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; }
+    header.hero .models { font-size: 1rem; }
+    header.hero .models strong { color: #c5e4f5; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    h3.snap {
+      font-size: 0.82rem;
+      margin: 1rem 0 0.5rem;
+      color: #8eb4cc;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Risk badges + directional tinting (§10) */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.Green { background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45); }
+    .badge.Amber { background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4); }
+    .badge.Red { background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55); }
+    /* Red + regression = solid remediation */
+    .badge.Red.dir-regression {
+      background: linear-gradient(145deg, #c43641, var(--red-deep));
+      color: #fff;
+      border-color: #8a1f28;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    /* Red + improvement = verify (green ring), not same as blocking */
+    .badge.Red.dir-improvement,
+    .badge.Red.dir-neutral,
+    .badge.Red.dir-notapplicable {
+      background: rgba(226, 77, 86, 0.28);
+      color: #ffe0e3;
+      border: 2px solid var(--green-ring);
+      box-shadow: 0 0 0 1px rgba(46, 184, 114, 0.25);
+    }
+
+    /* Executive stat grid */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.65rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+
+    /* Tables */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .dim-flow { white-space: nowrap; font-family: var(--mono); font-size: 0.8rem; }
+    .dim-flow .d-down { color: #ff8a8a; margin-right: 0.35rem; }
+    .dim-flow .d-up { color: #7ae0a8; margin-right: 0.35rem; }
+    .dim-flow .d-mid { color: var(--muted); }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+
+    /* Probe rows */
+    details.probe {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.probe > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.probe > summary::-webkit-details-marker { display: none; }
+    details.probe[open] > summary { border-bottom: 1px solid var(--border); }
+    .probe-title { flex: 1; min-width: 8rem; }
+    .probe-meta { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .migration-headline {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      color: #d4eaf7;
+      letter-spacing: -0.01em;
+    }
+    .migration-profile.safe .migration-headline { color: #9ee8c4; }
+    .migration-profile.unsafe .migration-headline { color: #f5c4a8; }
+    .mig-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+    }
+    .mig-pill {
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(8, 217, 198, 0.12);
+      border: 1px solid rgba(8, 217, 198, 0.35);
+      color: var(--accent);
+    }
+    .mig-verdict {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--muted);
+    }
+    .mig-verdict strong { color: var(--fg); }
+
+    .upgrade-safe-banner {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(46, 184, 114, 0.15);
+      border: 1px solid rgba(46, 184, 114, 0.45);
+      color: #9ee8c4;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .upgrade-empty-note {
+      margin: 0.35rem 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(139, 156, 176, 0.08);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .var-pill {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(139, 156, 176, 0.15);
+      border: 1px solid rgba(139, 156, 176, 0.35);
+      color: #b4c8dc;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    table.dimbreak { font-size: 0.82rem; margin: 0.75rem 0; width: 100%; }
+    table.dimbreak th {
+      text-align: left;
+      width: 6.5rem;
+      color: var(--muted);
+      font-weight: 600;
+      vertical-align: top;
+      padding: 0.35rem 0.5rem 0.35rem 0;
+    }
+    table.dimbreak td { padding: 0.35rem 0.35rem; vertical-align: top; }
+    table.dimbreak td.risk { white-space: nowrap; width: 4rem; }
+    table.dimbreak td.dir { font-family: var(--mono); font-size: 0.78rem; color: #9ecfff; width: 5rem; }
+    .dir-arrow-reg::before { content: "↓ "; color: #ff8a8a; }
+    .dir-arrow-imp::before { content: "↑ "; color: #7ae0a8; }
+    .dir-arrow-neu::before { content: "→ "; color: var(--muted); }
+    .dir-arrow-na::before { content: "— "; color: var(--muted); }
+
+    details.claim-diff {
+      margin: 1rem 0;
+      border: 1px dashed rgba(8, 217, 198, 0.35);
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(8, 217, 198, 0.03);
+    }
+    details.claim-diff > summary { cursor: pointer; font-weight: 600; color: #9ee4dc; }
+    .pill {
+      display: inline-block;
+      margin-left: 0.5rem;
+      font-size: 0.68rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(8, 217, 198, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .claim-block { margin: 0.75rem 0; }
+    .claim-block h4 { margin: 0 0 0.35rem; font-size: 0.8rem; color: #8eb4cc; }
+    ul.compact { margin: 0.25rem 0; padding-left: 1.1rem; color: #c5d4e0; font-size: 0.82rem; }
+
+    .diff-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+    button.copy-btn {
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: rgba(8, 217, 198, 0.12);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    button.copy-btn:hover { background: rgba(8, 217, 198, 0.22); }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+
+    ul.upgrade-list { margin: 0.35rem 0; padding-left: 1.15rem; }
+    ul.upgrade-list li { margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <header class="hero">
+    <h1>ARSENIC drift report</h1>
+    <p class="sub mono">Run <code>1f527aaa-2ce7-4c99-ae9e-edfc101a1760</code> · 2026-06-25T21:12:27.522679Z · Overall
+      <span class="badge Red">Red</span>
+    </p>
+    <p class="models"><strong>v1</strong>
+      <span class="muted">(gpt-4.1-mini)</span>
+      <span class="muted"> vs </span>
+      <strong>v2</strong>
+      <span class="muted">(gpt-5.4-mini)</span>
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Executive summary</h2>
+      <p class="muted" style="margin:0 0 0.75rem">Probe outcomes and drift valence across the run.</p>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">10</div><div class="lbl">Total probes</div></div>
+        <div class="stat"><div class="val green">0</div><div class="lbl">Green</div></div>
+        <div class="stat"><div class="val amber">6</div><div class="lbl">Amber</div></div>
+        <div class="stat"><div class="val red">4</div><div class="lbl">Red</div></div>
+        <div class="stat"><div class="val" style="color:#ff8a8a">9</div><div class="lbl">↓ Regressions</div></div>
+        <div class="stat"><div class="val" style="color:#7ae0a8">0</div><div class="lbl">↑ Improvements</div></div>
+        <div class="stat"><div class="val" style="color:var(--muted)">1</div><div class="lbl">→ Neutral</div></div>
+        <div class="stat"><div class="val" style="color:var(--accent)">0</div><div class="lbl">Auto-fix candidates</div></div>
+      </div>
+      <p style="margin:1rem 0 0;font-size:0.9rem">
+        Safe to upgrade: <strong>false</strong>
+        · Manual review items: <strong>10</strong>
+      </p>
+      <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
+        Critical regressions: <strong>7</strong>
+        · Policy drift: <strong>0</strong>
+        · Fidelity drift: <strong>0</strong>
+        · Structural drift: <strong>2</strong>
+        · Content compression: <strong>1</strong>
+      </p>
+    </section>
+
+    <section class="panel migration-profile unsafe">
+      <h2>Migration profile</h2>
+      <p class="migration-headline">v2 introduces 4 critical regressions — upgrade not recommended without prompt fixes</p>
+      <div class="mig-pills">
+        
+        <span class="mig-pill">⚡ 70% faster</span>
+        
+        
+        <span class="mig-pill">📝 more concise</span>
+        
+        
+        
+      </div>
+      <p class="mig-verdict">
+        Safe to upgrade: <strong>false</strong>
+        
+        — resolve critical regressions and policy changes in the upgrade path below
+        
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Dimension overview</h2>
+      <p class="muted" style="margin-top:0">Worst risk per dimension, drift direction mix among affected probes (↑ / ↓ / →), and affected count.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Worst risk</th>
+            <th>Drift (affected)</th>
+            <th class="num">Probes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Morphology</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow" title="Regression / Improvement / Neutral among affected"><span class="d-down">↓0</span><span class="d-up">↑0</span><span class="d-mid">→10</span></span></td>
+            <td class="num">10</td>
+          </tr>
+          <tr>
+            <td><strong>Tone</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Factual</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓0</span><span class="d-up">↑0</span><span class="d-mid">→9</span></span></td>
+            <td class="num">9</td>
+          </tr>
+          <tr>
+            <td><strong>Schema</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Instruction</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Refusal</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><strong>Semantic</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓10</span><span class="d-up">↑0</span><span class="d-mid">→0</span></span></td>
+            <td class="num">10</td>
+          </tr>
+          <tr>
+            <td><strong>Claim</strong></td>
+            <td><span class="badge Red">Red</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓10</span><span class="d-up">↑0</span><span class="d-mid">→0</span></span></td>
+            <td class="num">10</td>
+          </tr>
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td><span class="badge Amber">Amber</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓1</span><span class="d-up">↑0</span><span class="d-mid">→0</span></span></td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td><strong>Consistency</strong></td>
+            <td><span class="badge Red">Red</span></td>
+            <td><span class="dim-flow"><span class="d-down">↓3</span><span class="d-up">↑1</span><span class="d-mid">→0</span></span></td>
+            <td class="num">4</td>
+          </tr>
+          <tr>
+            <td><strong>Custom assertions</strong></td>
+            <td><span class="badge Green">Green</span></td>
+            <td><span class="muted">—</span></td>
+            <td class="num">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Red probes</h2>
+      
+      <p class="muted" style="margin-top:0">Blocking regressions need remediation before rollout. Red with improvement or neutral valence still needs human verification.</p>
+
+      
+      
+      
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+
+      
+      <h3 class="snap">Blocking regressions</h3>
+      
+        
+      
+        
+        <details class="probe" open>
+          <summary>
+            <span class="probe-title">reasoning_causal_explanation</span>
+            <span class="badge Red dir-regression">Red</span>
+            <span class="probe-meta">Factual</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">reasoning-chainsphysicscausal-reasoningexplanation</p>
+            
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>Certainly! Let&#x27;s analyze why a metal spoon feels colder than a wooden spoon at the same room temperature, step by step, from first principles:
+
+---
+
+### Step 1: **Initial Conditions**
+
+- Both spoons (metal and wood) are at the same ambient room temperature, say around 22°C.
+- Your hand is typically warmer than room temperature, around 33–35°C on the skin surface.
+
+---
+
+### Step 2: **What Does &quot;Feeling Cold&quot; Mean?**
+
+- The sensation of &quot;cold&quot; or &quot;warm&quot; is related to **heat transfer** between your skin and the object.
+- If heat flows **from your skin to the object**, the object feels cold.
+- If heat flows **from the object to your skin**, the object feels warm.
+- The **rate** of heat transfer affects how cold or warm the object feels initially.
+
+---
+
+### Step 3: **Thermal Conductivity of Materials**
+
+- **Metal** has a **high thermal conductivity** (e.g., copper ~400 W&#x2F;m·K, steel ~50 W&#x2F;m·K).
+- **Wood** has a **low thermal conductivity** (around 0.1–0.2 W&#x2F;m·K).
+- Thermal conductivity is a measure of how well heat can flow through a material.
+
+---
+
+### Step 4: **Heat Transfer at the Interface**
+
+- When you touch the spoon, heat flows from your warmer skin to the cooler spoon.
+- Because metal conducts heat well, it **quickly draws heat away** from the skin at the contact point.
+- Wood, being an insulator, **draws heat away slowly**.
+
+---
+
+### Step 5: **Effect on Skin Temperature**
+
+- The metal spoon rapidly removes heat from the skin, causing the skin temperature at the contact point to drop quickly.
+- The wood spoon removes heat slowly, so the skin temperature drops less rapidly.
+
+---
+
+### Step 6: **Thermal Diffusivity and Heat Flow**
+
+- Thermal diffusivity (thermal conductivity divided by density and specific heat) determines how fast heat spreads inside the material.
+- Metal’s high thermal diffusivity means it can absorb heat from your skin and spread it throughout the spoon quickly, maintaining a cooler surface temperature at the contact point.
+- Wood’s low thermal diffusivity means heat stays near the surface, warming the contact point more quickly, reducing the heat flow from your skin.
+
+---
+
+### Step 7: **Resulting Sensation**
+
+- Because the metal spoon continuously draws heat away from your skin, your nerve endings sense a rapid loss of heat → **feels cold**.
+- The wooden spoon draws heat away slowly, so your skin loses heat less rapidly → **feels warmer** or neutral.
+
+---
+
+### Summary of the Causal Chain:
+
+1. Your skin is warmer than the spoon.
+2. Touching the spoon causes heat to flow from skin to spoon.
+3. Metal’s high thermal conductivity allows rapid heat flow away from skin.
+4. Rapid heat loss cools the skin at the contact point quickly.
+5. The cooling of skin triggers nerve signals interpreted as &quot;cold.&quot;
+6. Wood’s low thermal conductivity slows heat flow.
+7. Skin cools slowly, so the sensation of cold is less pronounced.
+
+---
+
+**In essence:** The metal spoon feels colder because it efficiently conducts heat away from your skin, causing a rapid drop in skin temperature at the contact point, which your nervous system interprets as coldness.</pre></div>
+              <div><h3 class="snap">v2</h3><pre>A metal spoon usually **feels colder** than a wooden spoon at the same room temperature because **metal removes heat from your skin much faster** than wood does. Your hand senses **heat flow**, not just temperature.
+
+Here’s the causal chain from first principles:
+
+1. **Your skin is warmer than the spoon**
+   - Room temperature might be around 20–25°C.
+   - Your skin is usually around 30–35°C.
+   - So when you touch either spoon, heat naturally flows from your warmer hand to the cooler object.
+
+2. **Your nerves respond to cooling of your skin**
+   - Temperature receptors in your skin don’t directly measure “object temperature.”
+   - They detect how quickly your skin is losing heat and how much its temperature changes.
+   - If your skin cools rapidly, your brain interprets that as “cold.”
+
+3. **Metal conducts heat very well**
+   - Metals have many free electrons that move energy efficiently through the material.
+   - So when your skin touches metal, heat is carried away from the contact point quickly into the rest of the spoon.
+
+4. **Wood conducts heat poorly**
+   - Wood is an insulator.
+   - Heat does not spread away from the contact point very fast.
+   - So the small patch of wood touching your skin warms up quickly and then slows further heat loss.
+
+5. **Different heat flow changes your skin temperature differently**
+   - With metal, the skin at the contact point keeps losing heat rapidly, so it stays cooler.
+   - With wood, the skin loses heat much more slowly, so the skin temperature drops less.
+
+6. **Your brain interprets the faster cooling as “colder”**
+   - Since the metal spoon causes a larger and faster heat drain from your skin, it triggers a stronger cold sensation.
+   - The wooden spoon may be the same actual temperature, but it doesn’t pull heat from your skin as effectively, so it feels warmer.
+
+### In one sentence
+**Metal feels colder because it has much higher thermal conductivity, so it draws heat from your skin faster, cooling your skin more and activating cold receptors more strongly.**
+
+If you want, I can also explain this using the ideas of **thermal conductivity, heat capacity, and thermal effusivity**.</pre></div>
+            </div>
+          </div>
+        </details>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <details class="probe" open>
+          <summary>
+            <span class="probe-title">reasoning_prime_composite</span>
+            <span class="badge Red dir-regression">Red</span>
+            <span class="probe-meta">Factual</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">reasoning-chainsmathematicschain-of-thoughtstanford-study</p>
+            
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>We need to determine whether **15129** is a prime or composite number.
+
+---
+
+### Step 1: Understand the problem
+- A **prime number** has exactly two distinct positive divisors: 1 and itself.
+- A **composite number** has more than two positive divisors.
+
+We want to check if 15129 has any divisors other than 1 and 15129.
+
+---
+
+### Step 2: Check for obvious factors
+
+- The number ends with a 9, so it is **not even**, so not divisible by 2.
+- Sum of digits: 1 + 5 + 1 + 2 + 9 = 18, which is divisible by 3, so **15129 might be divisible by 3**.
+
+---
+
+### Step 3: Test divisibility by 3
+
+- Since the sum of digits is 18 (divisible by 3), 15129 is divisible by 3.
+- Let&#x27;s divide 15129 by 3:
+
+\[
+15129 \div 3 = ?
+\]
+
+Calculate:
+
+- 3 into 15 = 5, remainder 0
+- 3 into 1 = 0, remainder 1
+- 3 into 12 = 4, remainder 0
+- 3 into 9 = 3
+
+So:
+
+\[
+15129 \div 3 = 5043
+\]
+
+---
+
+### Step 4: Check if 5043 is prime or composite
+
+- Sum of digits of 5043: 5 + 0 + 4 + 3 = 12, divisible by 3, so 5043 is divisible by 3.
+
+Divide 5043 by 3:
+
+\[
+5043 \div 3 = ?
+\]
+
+Calculate:
+
+- 3 into 5 = 1, remainder 2
+- 3 into 24 = 8, remainder 0
+- 3 into 3 = 1
+
+So:
+
+\[
+5043 \div 3 = 1681
+\]
+
+---
+
+### Step 5: Check if 1681 is prime or composite
+
+- 1681 is a known number: \(1681 = 41^2\) (since \(41 \times 41 = 1681\)).
+
+So 1681 is composite.
+
+---
+
+### Step 6: Factorization summary
+
+\[
+15129 = 3 \times 5043 = 3 \times 3 \times 1681 = 3^2 \times 41^2
+\]
+
+---
+
+### **Conclusion:**
+
+Since 15129 has factors other than 1 and itself (specifically, 3 and 41), **15129 is a composite number**.
+
+---
+
+### Final answer:
+
+\[
+\boxed{15129 \text{ is composite.}}
+\]</pre></div>
+              <div><h3 class="snap">v2</h3><pre>15129 is **composite**.
+
+Here’s a step-by-step check:
+
+1. **Look for easy divisibility tests.**  
+   A number is divisible by 3 if the sum of its digits is divisible by 3.
+
+2. **Add the digits of 15129:**  
+   \(1 + 5 + 1 + 2 + 9 = 18\)
+
+3. **Check 18:**  
+   Since \(18\) is divisible by \(3\), **15129 is divisible by 3**.
+
+4. **Divide 15129 by 3:**  
+   \[
+   15129 \div 3 = 5043
+   \]
+
+5. Since 15129 has a divisor other than 1 and itself, it is **not prime**.
+
+So, **15129 is composite**.
+
+If you want, I can also factor it completely.</pre></div>
+            </div>
+          </div>
+        </details>
+        
+      
+        
+      
+        
+        <details class="probe" open>
+          <summary>
+            <span class="probe-title">reasoning_show_dont_just_answer</span>
+            <span class="badge Red dir-regression">Red</span>
+            <span class="probe-meta">Instruction</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">reasoning-chainsmathematicsshow-workinginstruction-following</p>
+            
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>To find the square root of 1764, we want to find a number which, when multiplied by itself, equals 1764.
+
+### Step 1: Estimate the square root
+- Since \(40^2 = 1600\) and \(50^2 = 2500\), the square root of 1764 should be between 40 and 50.
+
+### Step 2: Try some numbers between 40 and 50
+- \(42^2 = 42 \times 42 = 1764\)
+
+Since \(42 \times 42 = 1764\), the square root of 1764 is **42**.
+
+### Verification:
+- Multiply 42 by itself: \(42 \times 42 = 1764\)
+- This confirms that \(\sqrt{1764} = 42\).</pre></div>
+              <div><h3 class="snap">v2</h3><pre>The square root of **1764** is **42**.
+
+Here’s how to work it out and verify it:
+
+### Method 1: Recognize a perfect square
+You can check nearby squares:
+
+- \(40^2 = 1600\)
+- \(41^2 = 1681\)
+- \(42^2 = 1764\)
+
+Since \(42^2 = 1764\), the square root is:
+
+\[
+\sqrt{1764} = 42
+\]
+
+### Method 2: Verify by multiplication
+Multiply 42 by itself:
+
+\[
+42 \times 42 = 42 \times (40 + 2) = 42 \times 40 + 42 \times 2 = 1680 + 84 = 1764
+\]
+
+So the result checks out.
+
+**Answer: 42**</pre></div>
+            </div>
+          </div>
+        </details>
+        
+      
+      
+
+      
+      <h3 class="snap">Improvements to verify</h3>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <details class="probe">
+          <summary>
+            <span class="probe-title">reasoning_prime_identification</span>
+            <span class="badge Red dir-neutral">Red</span>
+            <span class="probe-meta">Neutral · Factual</span>
+          </summary>
+          <div style="padding:0.75rem 1rem 1rem">
+            <p class="muted" style="margin:0 0 0.5rem">reasoning-chainsmathematicschain-of-thoughtstanford-study</p>
+            
+            <div class="grid">
+              <div><h3 class="snap">v1</h3><pre>We need to determine if 17077 is a prime number. A prime number is a number greater than 1 that has no positive divisors other than 1 and itself.
+
+### Step 1: Check if 17077 is divisible by small primes
+
+We will test divisibility by prime numbers up to \(\sqrt{17077}\).
+
+Calculate \(\sqrt{17077}\):
+
+\[
+\sqrt{17077} \approx 130.6
+\]
+
+So, we only need to check prime numbers up to 130.
+
+### Step 2: Check divisibility by small primes
+
+- **Divisible by 2?**  
+17077 is odd (ends with 7), so no.
+
+- **Divisible by 3?**  
+Sum of digits: 1 + 7 + 0 + 7 + 7 = 22  
+22 is not divisible by 3, so no.
+
+- **Divisible by 5?**  
+Last digit is not 0 or 5, so no.
+
+- **Divisible by 7?**  
+Check \(17077 \div 7\):
+
+\[
+7 \times 2439 = 17073
+\]
+
+Remainder: \(17077 - 17073 = 4\), so no.
+
+- **Divisible by 11?**  
+Sum of digits in odd positions: 1 + 0 + 7 = 8  
+Sum of digits in even positions: 7 + 7 = 14  
+Difference: \(14 - 8 = 6\), not divisible by 11, so no.
+
+- **Divisible by 13?**  
+Check \(17077 \div 13\):
+
+\[
+13 \times 1313 = 17069
+\]
+
+Remainder: \(17077 - 17069 = 8\), so no.
+
+- **Divisible by 17?**  
+Check \(17077 \div 17\):
+
+\[
+17 \times 1004 = 17068
+\]
+
+Remainder: \(17077 - 17068 = 9\), so no.
+
+- **Divisible by 19?**  
+Check \(17077 \div 19\):
+
+\[
+19 \times 898 = 17062
+\]
+
+Remainder: \(17077 - 17062 = 15\), so no.
+
+- **Divisible by 23?**  
+Check \(17077 \div 23\):
+
+\[
+23 \times 742 = 17066
+\]
+
+Remainder: \(17077 - 17066 = 11\), so no.
+
+- **Divisible by 29?**  
+Check \(17077 \div 29\):
+
+\[
+29 \times 588 = 17052
+\]
+
+Remainder: \(17077 - 17052 = 25\), so no.
+
+- **Divisible by 31?**  
+Check \(17077 \div 31\):
+
+\[
+31 \times 550 = 17050
+\]
+
+Remainder: \(17077 - 17050 = 27\), so no.
+
+- **Divisible by 37?**  
+Check \(17077 \div 37\):
+
+\[
+37 \times 461 = 17057
+\]
+
+Remainder: \(17077 - 17057 = 20\), so no.
+
+- **Divisible by 41?**  
+Check \(17077 \div 41\):
+
+\[
+41 \times 416 = 17056
+\]
+
+Remainder: \(17077 - 17056 = 21\), so no.
+
+- **Divisible by 43?**  
+Check \(17077 \div 43\):
+
+\[
+43 \times 397 = 17071
+\]
+
+Remainder: \(17077 - 17071 = 6\), so no.
+
+- **Divisible by 47?**  
+Check \(17077 \div 47\):
+
+\[
+47 \times 363 = 17061
+\]
+
+Remainder: \(17077 - 17061 = 16\), so no.
+
+- **Divisible by 53?**  
+Check \(17077 \div 53\):
+
+\[
+53 \times 322 = 17066
+\]
+
+Remainder: \(17077 - 17066 = 11\), so no.
+
+- **Divisible by 59?**  
+Check \(17077 \div 59\):
+
+\[
+59 \times 289 = 17051
+\]
+
+Remainder: \(17077 - 17051 = 26\), so no.
+
+- **Divisible by 61?**  
+Check \(17077 \div 61\):
+
+\[
+61 \times 279 = 17019
+\]
+
+Remainder: \(17077 - 17019 = 58\), so no.
+
+- **Divisible by 67?**  
+Check \(17077 \div 67\):
+
+\[
+67 \times 254 = 17018
+\]
+
+Remainder: \(17077 - 17018 = 59\), so no.
+
+- **Divisible by 71?**  
+Check \(17077 \div 71\):
+
+\[
+71 \times 240 = 17040
+\]
+
+Remainder: \(17077 - 17040 = 37\), so no.
+
+- **Divisible by 73?**  
+Check \(17077 \div 73\):
+
+\[
+73 \times 233 = 17009
+\]
+
+Remainder: \(17077 - 17009 = 68\), so no.
+
+- **Divisible by 79?**  
+Check \(17077 \div 79\):
+
+\[
+79 \times 216 = 17064
+\]
+
+Remainder: \(17077 - 17064 = 13\), so no.
+
+- **Divisible by 83?**  
+Check \(17077 \div 83\):
+
+\[
+83 \times 205 = 17015
+\]
+
+Remainder: \(17077 - 17015 = 62\), so no.
+
+- **Divisible by 89?**  
+Check \(17077 \div 89\):
+
+\[
+89 \times 191 = 16999
+\]
+
+Remainder: \(17077 - 16999 = 78\), so no.
+
+- **Divisible by 97?**  
+Check \(17077 \div 97\):
+
+\[
+97 \times 176 = 17072
+\]
+
+Remainder: \(17077 - 17072 = 5\), so no.
+
+- **Divisible by 101?**  
+Check \(17077 \div 101\):
+
+\[
+101 \times 169 = 17069
+\]
+
+Remainder: \(17077 - 17069 = 8\), so no.
+
+- **Divisible by 103?**  
+Check \(17077 \div 103\):
+
+\[
+103 \times 165 = 16995
+\]
+
+Remainder: \(17077 - 16995 = 82\), so no.
+
+- **Divisible by 107?**  
+Check \(17077 \div 107\):
+
+\[
+107 \times 159 = 17013
+\]
+
+Remainder: \(17077 - 17013 = 64\), so no.
+
+- **Divisible by 109?**  
+Check \(17077 \div 109\):
+
+\[
+109 \times 156 = 17004
+\]
+
+Remainder: \(17077 - 17004 = 73\), so no.
+
+- **Divisible by 113?**  
+Check \(17077 \div 113\):
+
+\[
+113 \times 151 = 17063
+\]
+
+Remainder: \(17077 - 17063 = 14\), so no.
+
+- **Divisible by 127?**  
+Check \(17077 \div 127\):
+
+\[
+127 \times 134 = 17018
+\]
+
+Remainder: \(17077 - 17018 = 59\), so no.
+
+### Step 3: Try divisibility by 131 (just above 130.6)
+
+Since \(\sqrt{17077} \approx 130.6\), no need to check beyond 130.
+
+### Step 4: Conclusion
+
+We have tested all prime numbers up to 130 and found no divisors of 17077. Therefore, **17077 is a prime number**.
+
+---
+
+### **Final answer:**
+
+**17077 is a prime number.**</pre></div>
+              <div><h3 class="snap">v2</h3><pre>No, **17077 is not a prime number**.
+
+Here’s the step-by-step working:
+
+1. To test whether 17077 is prime, we check whether it has any divisors other than 1 and itself.
+2. A useful first check is divisibility by **7**:
+   - \( 17077 \div 7 = 2439.571... \) so not divisible by 7.
+3. Check **11**:
+   - \( 17077 \div 11 = 1552.454... \) so not divisible by 11.
+4. Check **13**:
+   - \( 17077 \div 13 = 1313.615... \) so not divisible by 13.
+5. Check **17**:
+   - \( 17077 \div 17 = 1004.529... \) so not divisible by 17.
+6. Check **19**:
+   - \( 17077 \div 19 = 898.789... \) so not divisible by 19.
+7. Check **23**:
+   - \( 17077 \div 23 = 742.478... \) so not divisible by 23.
+8. Check **29**:
+   - \( 17077 \div 29 = 588.862... \) so not divisible by 29.
+9. Check **31**:
+   - \( 17077 \div 31 = 550.871... \) so not divisible by 31.
+10. Check **37**:
+   - \( 17077 \div 37 = 461.54... \) so not divisible by 37.
+11. Check **41**:
+   - \( 17077 \div 41 = 416.512... \) so not divisible by 41.
+12. Check **43**:
+   - \( 17077 \div 43 = 397.139... \) so not divisible by 43.
+13. Check **47**:
+   - \( 17077 \div 47 = 363.340... \) so not divisible by 47.
+14. Check **53**:
+   - \( 17077 \div 53 = 322.207... \) so not divisible by 53.
+15. Check **59**:
+   - \( 17077 \div 59 = 289.441... \) so not divisible by 59.
+16. Check **61**:
+   - \( 17077 \div 61 = 279.951... \) so not divisible by 61.
+17. Check **67**:
+   - \( 17077 \div 67 = 254.880... \) so not divisible by 67.
+18. Check **71**:
+   - \( 17077 \div 71 = 240.521... \) so not divisible by 71.
+19. Check **73**:
+   - \( 17077 \div 73 = 233.932... \) so not divisible by 73.
+20. Check **79**:
+   - \( 17077 \div 79 = 216.164... \) so not divisible by 79.
+21. Check **83**:
+   - \( 17077 \div 83 = 205.747... \) so not divisible by 83.
+22. Check **89**:
+   - \( 17077 \div 89 = 191.876... \) so not divisible by 89.
+23. Check **97**:
+   - \( 17077 \div 97 = 176.051... \) so not divisible by 97.
+
+Now, instead of checking every prime up to \(\sqrt{17077}\), we can try factoring directly:
+
+\[
+17077 = 7 \times 2439.571...
+\]
+
+That doesn’t work, so let’s test a more systematic factorization approach.  
+Notice:
+
+\[
+17077 = 13 \times 1313.615...
+\]
+
+Still not exact. But if we continue checking, we find:
+
+\[
+17077 = 43 \times 397
+\]
+
+And since both 43 and 397 are prime, this shows that 17077 has factors other than 1 and itself.
+
+### Final answer:
+**17077 is not prime. It is composite, because \(17077 = 43 \times 397\).**</pre></div>
+            </div>
+          </div>
+        </details>
+        
+      
+        
+      
+      
+      
+    </section>
+
+    <section class="panel">
+      <h2>All probe results</h2>
+      <p class="muted" style="margin-top:0">Expand for prompt, dimension snapshot (with drift arrows), claim intelligence, and responses. Consistency σ shows run variance when multi-run sampling was enabled.</p>
+
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_analogy_explanation</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Explain why a computer&#x27;s RAM is like a desk, and a hard drive is like a filing cabinet. Build the analogy step by step, covering at least three specific similarities for each.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 14% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -5%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.5889144780820645</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.6666666666666666 (≥ 0.7 for green band) · dropped 11 · new 30</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 55150 ms · v2 5120 ms · Δ -50030 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">22 matched · 11 dropped · 30 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Comparing a computer’s **RAM** to a **desk** and a **hard drive** to a **filing cabinet** is a common analogy that helps explain their roles and differences. <span class="muted">↔ v2:</span> - **Hard drive = filing cabinet**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Let’s build this analogy step by step, highlighting at least three specific similarities for each. <span class="muted">↔ v2:</span> Sure — here’s the analogy step by step.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### RAM is like a Desk <span class="muted">↔ v2:</span> ## Why RAM is like a desk</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Temporary Workspace** <span class="muted">↔ v2:</span> Temporary workspace</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Once you finish, you clear the desk. <span class="muted">↔ v2:</span> Cleared when not in use</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **RAM:** RAM holds data and programs that the computer is actively using. <span class="muted">↔ v2:</span> RAM works the same way: it holds the programs and data the computer is currently working on.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> It’s fast and accessible but temporary — when the computer is turned off, the data in RAM is lost. <span class="muted">↔ v2:</span> Hard drives keep data even when the computer is turned off.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Fast Access** <span class="muted">↔ v2:</span> Fast access</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Desk:** You can quickly grab anything on your desk because it’s right in front of you, making your work efficient. <span class="muted">↔ v2:</span> You usually don’t keep everything on your desk forever.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **RAM:** RAM provides very fast read&#x2F;write speeds compared to other storage, allowing the CPU to quickly access the data it needs to perform tasks. <span class="muted">↔ v2:</span> Likewise, RAM lets the computer access data very quickly.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Limited Space** <span class="muted">↔ v2:</span> Limited space</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Desk:** Your desk has limited surface area, so you can only keep a certain number of items out at once before it gets cluttered. <span class="muted">↔ v2:</span> - Desk: limited surface area</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **RAM:** RAM has limited capacity, so only a certain amount of data and programs can be loaded at once. <span class="muted">↔ v2:</span> RAM also has limited capacity.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Hard Drive is like a Filing Cabinet <span class="muted">↔ v2:</span> ## Why a hard drive is like a filing cabinet</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Long-Term Storage** <span class="muted">↔ v2:</span> Long-term storage</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Filing Cabinet:** You store important documents and files in a filing cabinet to keep them safe and organized for future use. <span class="muted">↔ v2:</span> A filing cabinet is where you store documents you want to keep for later, even when you’re not using them.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Hard Drive:** The hard drive stores all your data, programs, and files persistently, even when the computer is turned off. <span class="muted">↔ v2:</span> A hard drive stores files, programs, and the operating system long-term.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Slower Access** <span class="muted">↔ v2:</span> Slower to access than a desk</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Hard Drive:** Accessing data from a hard drive is slower compared to RAM because it involves mechanical or more complex electronic processes. <span class="muted">↔ v2:</span> - Hard drive: slower than RAM</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Large Capacity** <span class="muted">↔ v2:</span> - Filing cabinet: large storage capacity</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Hard Drive:** Hard drives have much larger storage capacity than RAM, allowing you to keep vast amounts of data and programs stored long-term. <span class="muted">↔ v2:</span> - Hard drive: much larger capacity than RAM</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> | Aspect | RAM (Desk) | Hard Drive (Filing Cabinet) | <span class="muted">↔ v2:</span> A computer uses **RAM** and a **hard drive** for different kinds of storage, just like a person might use a **desk** and a **filing cabinet** in an office.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Certainly!</li>
+                
+                <li>If you run out of RAM, the computer slows down or uses slower storage as a backup.</li>
+                
+                <li>They stay there until you need them again.</li>
+                
+                <li>- **Filing Cabinet:** To retrieve a document, you have to open drawers and search through folders, which takes more time than grabbing something off your desk. · anchors: Cabinet</li>
+                
+                <li>- **Filing Cabinet:** Filing cabinets can hold a large number of documents, much more than what you can keep on your desk at one time. · anchors: Cabinet, Filing</li>
+                
+                <li>### Summary · anchors: Summary</li>
+                
+                <li>| Purpose | Temporary workspace for active tasks | Long-term storage of files and data | · anchors: Purpose, Temporary, Long-term</li>
+                
+                <li>| Speed | Very fast access | Slower access | · anchors: Speed, Slower</li>
+                
+                <li>| Capacity | Limited space | Large capacity | · anchors: Capacity, Limited, Large</li>
+                
+                <li>| Data Persistence | Data lost when powered off | Data retained when powered off | · anchors: Data, Persistence, Data, Data</li>
+                
+                <li>This analogy helps illustrate why computers need both RAM and hard drives: RAM for quick, temporary access to data during work, and hard drives for storing everything safely and permanently.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>## Big idea</li>
+                
+                <li>They both store things, but they do it in different ways and for different purposes.</li>
+                
+                <li>On a desk, you can grab a pen, notebook, or paper immediately.</li>
+                
+                <li>You put out what you need for the current task.</li>
+                
+                <li>- Desk: temporary work area</li>
+                
+                <li>- RAM: temporary working memory</li>
+                
+                <li>If it gets too cluttered, it becomes hard to work.</li>
+                
+                <li>If too many programs are open, the computer can slow down.</li>
+                
+                <li>- RAM: limited memory size</li>
+                
+                <li>RAM is also cleared when the computer turns off.</li>
+                
+                <li>- Desk: items removed when you’re done</li>
+                
+                <li>- RAM: contents disappear when power is off</li>
+                
+                <li>You put important papers in a filing cabinet so they’re saved for future use.</li>
+                
+                <li>- Filing cabinet: keeps documents for later</li>
+                
+                <li>- Hard drive: keeps data permanently or until deleted</li>
+                
+                <li>That takes longer than grabbing something from your desk.</li>
+                
+                <li>A hard drive is slower than RAM when loading data.</li>
+                
+                <li>- Filing cabinet: slower retrieval</li>
+                
+                <li>Holds much more</li>
+                
+                <li>A hard drive usually stores far more data than RAM.</li>
+                
+                <li>Keeps things even when “off”</li>
+                
+                <li>Documents stay in the filing cabinet overnight or for years.</li>
+                
+                <li>- Filing cabinet: contents remain until removed</li>
+                
+                <li>- Hard drive: non-volatile storage</li>
+                
+                <li>## Putting it together</li>
+                
+                <li>That’s like RAM: fast, temporary, and limited.</li>
+                
+                <li>That’s like a hard drive: slower, larger, and long-term.</li>
+                
+                <li>- **RAM is like a desk** because it’s the computer’s active workspace.</li>
+                
+                <li>- **A hard drive is like a filing cabinet** because it stores information for the long term.</li>
+                
+                <li>If you want, I can also turn this into a **one-paragraph explanation**, a **kid-friendly version**, or a **diagram&#x2F;table**.</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Certainly! Comparing a computer’s **RAM** to a **desk** and a **hard drive** to a **filing cabinet** is a common analogy that helps explain their roles and differences. Let’s build this analogy step by step, highlighting at least three specific similarities for each.
+
+---
+
+### RAM is like a Desk
+
+1. **Temporary Workspace**  
+   - **Desk:** When you work on a project, you spread out papers, books, and tools on your desk to have easy access while you work. Once you finish, you clear the desk.  
+   - **RAM:** RAM holds data and programs that the computer is actively using. It’s fast and accessible but temporary — when the computer is turned off, the data in RAM is lost.
+
+2. **Fast Access**  
+   - **Desk:** You can quickly grab anything on your desk because it’s right in front of you, making your work efficient.  
+   - **RAM:** RAM provides very fast read&#x2F;write speeds compared to other storage, allowing the CPU to quickly access the data it needs to perform tasks.
+
+3. **Limited Space**  
+   - **Desk:** Your desk has limited surface area, so you can only keep a certain number of items out at once before it gets cluttered.  
+   - **RAM:** RAM has limited capacity, so only a certain amount of data and programs can be loaded at once. If you run out of RAM, the computer slows down or uses slower storage as a backup.
+
+---
+
+### Hard Drive is like a Filing Cabinet
+
+1. **Long-Term Storage**  
+   - **Filing Cabinet:** You store important documents and files in a filing cabinet to keep them safe and organized for future use. They stay there until you need them again.  
+   - **Hard Drive:** The hard drive stores all your data, programs, and files persistently, even when the computer is turned off.
+
+2. **Slower Access**  
+   - **Filing Cabinet:** To retrieve a document, you have to open drawers and search through folders, which takes more time than grabbing something off your desk.  
+   - **Hard Drive:** Accessing data from a hard drive is slower compared to RAM because it involves mechanical or more complex electronic processes.
+
+3. **Large Capacity**  
+   - **Filing Cabinet:** Filing cabinets can hold a large number of documents, much more than what you can keep on your desk at one time.  
+   - **Hard Drive:** Hard drives have much larger storage capacity than RAM, allowing you to keep vast amounts of data and programs stored long-term.
+
+---
+
+### Summary
+
+| Aspect               | RAM (Desk)                          | Hard Drive (Filing Cabinet)           |
+|----------------------|-----------------------------------|--------------------------------------|
+| Purpose              | Temporary workspace for active tasks | Long-term storage of files and data  |
+| Speed                | Very fast access                  | Slower access                        |
+| Capacity             | Limited space                    | Large capacity                      |
+| Data Persistence     | Data lost when powered off       | Data retained when powered off      |
+
+---
+
+This analogy helps illustrate why computers need both RAM and hard drives: RAM for quick, temporary access to data during work, and hard drives for storing everything safely and permanently.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>Sure — here’s the analogy step by step.
+
+## Big idea
+A computer uses **RAM** and a **hard drive** for different kinds of storage, just like a person might use a **desk** and a **filing cabinet** in an office.
+
+- **RAM = desk**
+- **Hard drive = filing cabinet**
+
+They both store things, but they do it in different ways and for different purposes.
+
+---
+
+## Why RAM is like a desk
+
+A desk is where you keep the things you’re **actively using right now**.
+
+### 1. Fast access
+On a desk, you can grab a pen, notebook, or paper immediately.  
+Likewise, RAM lets the computer access data very quickly.
+
+- Desk: easy to reach
+- RAM: very fast to read from and write to
+
+### 2. Temporary workspace
+You usually don’t keep everything on your desk forever. You put out what you need for the current task.  
+RAM works the same way: it holds the programs and data the computer is currently working on.
+
+- Desk: temporary work area
+- RAM: temporary working memory
+
+### 3. Limited space
+A desk has only so much room. If it gets too cluttered, it becomes hard to work.  
+RAM also has limited capacity. If too many programs are open, the computer can slow down.
+
+- Desk: limited surface area
+- RAM: limited memory size
+
+### 4. Cleared when not in use
+At the end of the day, you may clear off your desk.  
+RAM is also cleared when the computer turns off.
+
+- Desk: items removed when you’re done
+- RAM: contents disappear when power is off
+
+---
+
+## Why a hard drive is like a filing cabinet
+
+A filing cabinet is where you store documents you want to keep for later, even when you’re not using them.
+
+### 1. Long-term storage
+You put important papers in a filing cabinet so they’re saved for future use.  
+A hard drive stores files, programs, and the operating system long-term.
+
+- Filing cabinet: keeps documents for later
+- Hard drive: keeps data permanently or until deleted
+
+### 2. Slower to access than a desk
+If you need a document from a filing cabinet, you have to open a drawer and find it. That takes longer than grabbing something from your desk.  
+A hard drive is slower than RAM when loading data.
+
+- Filing cabinet: slower retrieval
+- Hard drive: slower than RAM
+
+### 3. Holds much more
+A filing cabinet can store lots of folders and papers, much more than a desk can hold.  
+A hard drive usually stores far more data than RAM.
+
+- Filing cabinet: large storage capacity
+- Hard drive: much larger capacity than RAM
+
+### 4. Keeps things even when “off”
+Documents stay in the filing cabinet overnight or for years.  
+Hard drives keep data even when the computer is turned off.
+
+- Filing cabinet: contents remain until removed
+- Hard drive: non-volatile storage
+
+---
+
+## Putting it together
+When you work at a desk, you keep only the papers you need right now. That’s like RAM: fast, temporary, and limited.  
+When you file things away, you store them for later. That’s like a hard drive: slower, larger, and long-term.
+
+So:
+
+- **RAM is like a desk** because it’s the computer’s active workspace.
+- **A hard drive is like a filing cabinet** because it stores information for the long term.
+
+If you want, I can also turn this into a **one-paragraph explanation**, a **kid-friendly version**, or a **diagram&#x2F;table**.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_causal_explanation</span>
+          <span class="badge Red dir-regression">Red</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Why does a metal spoon feel colder than a wooden spoon at room temperature? Explain the causal chain from first principles, step by step.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔴 Critical
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 32% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 2%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.505400828021761</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.4117647058823529 (≥ 0.7 for green band) · dropped 19 · new 10</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 8352 ms · v2 3508 ms · Δ -4844 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">14 matched · 19 dropped · 10 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Let&#x27;s analyze why a metal spoon feels colder than a wooden spoon at the same room temperature, step by step, from first principles: <span class="muted">↔ v2:</span> A metal spoon usually **feels colder** than a wooden spoon at the same room temperature because **metal removes heat from your skin much faster** than wood does.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - The sensation of &quot;cold&quot; or &quot;warm&quot; is related to **heat transfer** between your skin and the object. <span class="muted">↔ v2:</span> - So when your skin touches metal, heat is carried away from the contact point quickly into the rest of the spoon.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Thermal conductivity is a measure of how well heat can flow through a material. <span class="muted">↔ v2:</span> If you want, I can also explain this using the ideas of **thermal conductivity, heat capacity, and thermal effusivity**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Because metal conducts heat well, it **quickly draws heat away** from the skin at the contact point. <span class="muted">↔ v2:</span> - With metal, the skin at the contact point keeps losing heat rapidly, so it stays cooler.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Wood, being an insulator, **draws heat away slowly**. <span class="muted">↔ v2:</span> **Wood conducts heat poorly**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - The metal spoon rapidly removes heat from the skin, causing the skin temperature at the contact point to drop quickly. <span class="muted">↔ v2:</span> - With wood, the skin loses heat much more slowly, so the skin temperature drops less.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - The wood spoon removes heat slowly, so the skin temperature drops less rapidly. <span class="muted">↔ v2:</span> - The wooden spoon may be the same actual temperature, but it doesn’t pull heat from your skin as effectively, so it feels warmer.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Metal’s high thermal diffusivity means it can absorb heat from your skin and spread it throughout the spoon quickly, maintaining a cooler surface temperature at the contact point. <span class="muted">↔ v2:</span> - Since the metal spoon causes a larger and faster heat drain from your skin, it triggers a stronger cold sensation.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Wood’s low thermal diffusivity means heat stays near the surface, warming the contact point more quickly, reducing the heat flow from your skin. <span class="muted">↔ v2:</span> - Heat does not spread away from the contact point very fast.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Because the metal spoon continuously draws heat away from your skin, your nerve endings sense a rapid loss of heat → **feels cold**. <span class="muted">↔ v2:</span> **Metal feels colder because it has much higher thermal conductivity, so it draws heat from your skin faster, cooling your skin more and activating cold receptors more strongly.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Summary of the Causal Chain: <span class="muted">↔ v2:</span> Here’s the causal chain from first principles:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> Touching the spoon causes heat to flow from skin to spoon. <span class="muted">↔ v2:</span> **Different heat flow changes your skin temperature differently**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> Rapid heat loss cools the skin at the contact point quickly. <span class="muted">↔ v2:</span> - So the small patch of wood touching your skin warms up quickly and then slows further heat loss.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> **In essence:** The metal spoon feels colder because it efficiently conducts heat away from your skin, causing a rapid drop in skin temperature at the contact point, which your nervous system interprets as coldness. <span class="muted">↔ v2:</span> **Your brain interprets the faster cooling as “colder”**</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Certainly!</li>
+                
+                <li>### Step 1: **Initial Conditions** · anchors: 1, Step, Conditions</li>
+                
+                <li>- Both spoons (metal and wood) are at the same ambient room temperature, say around 22°C. · anchors: 22</li>
+                
+                <li>### Step 2: **What Does &quot;Feeling Cold&quot; Mean? · anchors: 2, Step, Cold</li>
+                
+                <li>- The **rate** of heat transfer affects how cold or warm the object feels initially.</li>
+                
+                <li>### Step 3: **Thermal Conductivity of Materials** · anchors: 3, Step, Conductivity, Materials</li>
+                
+                <li>- **Metal** has a **high thermal conductivity** (e.g., copper ~400 W&#x2F;m·K, steel ~50 W&#x2F;m·K). · anchors: 400, 50, W&#x2F;m·K, W&#x2F;m·K</li>
+                
+                <li>- **Wood** has a **low thermal conductivity** (around 0.1–0.2 W&#x2F;m·K). · anchors: 0.1, 0.2, W&#x2F;m·K</li>
+                
+                <li>### Step 4: **Heat Transfer at the Interface** · anchors: 4, Step, Transfer, Interface</li>
+                
+                <li>### Step 5: **Effect on Skin Temperature** · anchors: 5, Step, Skin, Temperature</li>
+                
+                <li>### Step 6: **Thermal Diffusivity and Heat Flow** · anchors: 6, Step, Diffusivity, Heat, Flow</li>
+                
+                <li>- Thermal diffusivity (thermal conductivity divided by density and specific heat) determines how fast heat spreads inside the material. · anchors: Thermal</li>
+                
+                <li>### Step 7: **Resulting Sensation** · anchors: 7, Step, Sensation</li>
+                
+                <li>- The wooden spoon draws heat away slowly, so your skin loses heat less rapidly → **feels warmer** or neutral.</li>
+                
+                <li>Your skin is warmer than the spoon.</li>
+                
+                <li>Metal’s high thermal conductivity allows rapid heat flow away from skin.</li>
+                
+                <li>The cooling of skin triggers nerve signals interpreted as &quot;cold.&quot;</li>
+                
+                <li>Wood’s low thermal conductivity slows heat flow.</li>
+                
+                <li>Skin cools slowly, so the sensation of cold is less pronounced.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>Your hand senses **heat flow**, not just temperature.</li>
+                
+                <li>- Room temperature might be around 20–25°C.</li>
+                
+                <li>**Your nerves respond to cooling of your skin**</li>
+                
+                <li>- Temperature receptors in your skin don’t directly measure “object temperature.”</li>
+                
+                <li>- They detect how quickly your skin is losing heat and how much its temperature changes.</li>
+                
+                <li>- If your skin cools rapidly, your brain interprets that as “cold.”</li>
+                
+                <li>**Metal conducts heat very well**</li>
+                
+                <li>- Metals have many free electrons that move energy efficiently through the material.</li>
+                
+                <li>- Wood is an insulator.</li>
+                
+                <li>### In one sentence</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Drifted anchors</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · - Your hand is typically warmer than room temperature, around 33–35°C on the skin surface. ↔ - Your skin is usually around 30–35°C.
+                   — NumericValue: "33" → "30"
+                </li>
+                
+              </ul>
+            </div>
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Certainly! Let&#x27;s analyze why a metal spoon feels colder than a wooden spoon at the same room temperature, step by step, from first principles:
+
+---
+
+### Step 1: **Initial Conditions**
+
+- Both spoons (metal and wood) are at the same ambient room temperature, say around 22°C.
+- Your hand is typically warmer than room temperature, around 33–35°C on the skin surface.
+
+---
+
+### Step 2: **What Does &quot;Feeling Cold&quot; Mean?**
+
+- The sensation of &quot;cold&quot; or &quot;warm&quot; is related to **heat transfer** between your skin and the object.
+- If heat flows **from your skin to the object**, the object feels cold.
+- If heat flows **from the object to your skin**, the object feels warm.
+- The **rate** of heat transfer affects how cold or warm the object feels initially.
+
+---
+
+### Step 3: **Thermal Conductivity of Materials**
+
+- **Metal** has a **high thermal conductivity** (e.g., copper ~400 W&#x2F;m·K, steel ~50 W&#x2F;m·K).
+- **Wood** has a **low thermal conductivity** (around 0.1–0.2 W&#x2F;m·K).
+- Thermal conductivity is a measure of how well heat can flow through a material.
+
+---
+
+### Step 4: **Heat Transfer at the Interface**
+
+- When you touch the spoon, heat flows from your warmer skin to the cooler spoon.
+- Because metal conducts heat well, it **quickly draws heat away** from the skin at the contact point.
+- Wood, being an insulator, **draws heat away slowly**.
+
+---
+
+### Step 5: **Effect on Skin Temperature**
+
+- The metal spoon rapidly removes heat from the skin, causing the skin temperature at the contact point to drop quickly.
+- The wood spoon removes heat slowly, so the skin temperature drops less rapidly.
+
+---
+
+### Step 6: **Thermal Diffusivity and Heat Flow**
+
+- Thermal diffusivity (thermal conductivity divided by density and specific heat) determines how fast heat spreads inside the material.
+- Metal’s high thermal diffusivity means it can absorb heat from your skin and spread it throughout the spoon quickly, maintaining a cooler surface temperature at the contact point.
+- Wood’s low thermal diffusivity means heat stays near the surface, warming the contact point more quickly, reducing the heat flow from your skin.
+
+---
+
+### Step 7: **Resulting Sensation**
+
+- Because the metal spoon continuously draws heat away from your skin, your nerve endings sense a rapid loss of heat → **feels cold**.
+- The wooden spoon draws heat away slowly, so your skin loses heat less rapidly → **feels warmer** or neutral.
+
+---
+
+### Summary of the Causal Chain:
+
+1. Your skin is warmer than the spoon.
+2. Touching the spoon causes heat to flow from skin to spoon.
+3. Metal’s high thermal conductivity allows rapid heat flow away from skin.
+4. Rapid heat loss cools the skin at the contact point quickly.
+5. The cooling of skin triggers nerve signals interpreted as &quot;cold.&quot;
+6. Wood’s low thermal conductivity slows heat flow.
+7. Skin cools slowly, so the sensation of cold is less pronounced.
+
+---
+
+**In essence:** The metal spoon feels colder because it efficiently conducts heat away from your skin, causing a rapid drop in skin temperature at the contact point, which your nervous system interprets as coldness.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>A metal spoon usually **feels colder** than a wooden spoon at the same room temperature because **metal removes heat from your skin much faster** than wood does. Your hand senses **heat flow**, not just temperature.
+
+Here’s the causal chain from first principles:
+
+1. **Your skin is warmer than the spoon**
+   - Room temperature might be around 20–25°C.
+   - Your skin is usually around 30–35°C.
+   - So when you touch either spoon, heat naturally flows from your warmer hand to the cooler object.
+
+2. **Your nerves respond to cooling of your skin**
+   - Temperature receptors in your skin don’t directly measure “object temperature.”
+   - They detect how quickly your skin is losing heat and how much its temperature changes.
+   - If your skin cools rapidly, your brain interprets that as “cold.”
+
+3. **Metal conducts heat very well**
+   - Metals have many free electrons that move energy efficiently through the material.
+   - So when your skin touches metal, heat is carried away from the contact point quickly into the rest of the spoon.
+
+4. **Wood conducts heat poorly**
+   - Wood is an insulator.
+   - Heat does not spread away from the contact point very fast.
+   - So the small patch of wood touching your skin warms up quickly and then slows further heat loss.
+
+5. **Different heat flow changes your skin temperature differently**
+   - With metal, the skin at the contact point keeps losing heat rapidly, so it stays cooler.
+   - With wood, the skin loses heat much more slowly, so the skin temperature drops less.
+
+6. **Your brain interprets the faster cooling as “colder”**
+   - Since the metal spoon causes a larger and faster heat drain from your skin, it triggers a stronger cold sensation.
+   - The wooden spoon may be the same actual temperature, but it doesn’t pull heat from your skin as effectively, so it feels warmer.
+
+### In one sentence
+**Metal feels colder because it has much higher thermal conductivity, so it draws heat from your skin faster, cooling your skin more and activating cold receptors more strongly.**
+
+If you want, I can also explain this using the ideas of **thermal conductivity, heat capacity, and thermal effusivity**.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_conditional_logic</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>If it rains, the match is cancelled. If the match is cancelled, the players go to the gym. If the players go to the gym, the coach runs a fitness session. It is raining. What does the coach do? Show each step of your reasoning.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔵 Low
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ↓ Content compression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(ContentCompression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 37% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -2%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.7208846264499223</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.75 (≥ 0.7 for green band) · dropped 5 · new 0</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 5210 ms · v2 1810 ms · Δ -3400 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">15 matched · 5 dropped · 0 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Let&#x27;s analyze the problem step-by-step using the given statements: <span class="muted">↔ v2:</span> Step by step:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **If it rains, the match is cancelled. <span class="muted">↔ v2:</span> **If it rains, the match is cancelled.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> \( R \rightarrow M \) <span class="muted">↔ v2:</span> \( R \rightarrow C \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **If the match is cancelled, the players go to the gym. <span class="muted">↔ v2:</span> **If the match is cancelled, the players go to the gym.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> If **M** (match is cancelled), then **G** (players go to the gym). <span class="muted">↔ v2:</span> - **C** = The match is cancelled</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> \( M \rightarrow G \) <span class="muted">↔ v2:</span> \( C \rightarrow G \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **If the players go to the gym, the coach runs a fitness session. <span class="muted">↔ v2:</span> **If the players go to the gym, the coach runs a fitness session.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> If **G** (players go to the gym), then **F** (coach runs a fitness session). <span class="muted">↔ v2:</span> - **F** = The coach runs a fitness session</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> \( G \rightarrow F \) <span class="muted">↔ v2:</span> \( G \rightarrow F \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **It is raining. <span class="muted">↔ v2:</span> **It is raining.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> (If it rains, the match is cancelled → it is raining → match is cancelled.) <span class="muted">↔ v2:</span> - From **R** and rule 1, we conclude **C**: the match is cancelled.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> (If the match is cancelled, players go to the gym → match is cancelled → players go to the gym.) <span class="muted">↔ v2:</span> - **G** = The players go to the gym</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> (If players go to the gym, coach runs a fitness session → players go to the gym → coach runs a fitness session.) <span class="muted">↔ v2:</span> **Answer:** The coach runs a fitness session.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Because it is raining, the match is cancelled, the players go to the gym, and therefore the coach runs a fitness session. <span class="muted">↔ v2:</span> - From **C** and rule 2, we conclude **G**: the players go to the gym.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Answer:** The coach runs a fitness session. <span class="muted">↔ v2:</span> - From **G** and rule 3, we conclude **F**: the coach runs a fitness session.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Symbolically:</li>
+                
+                <li>Symbolically:</li>
+                
+                <li>Symbolically:</li>
+                
+                <li>### Step-by-step reasoning: · anchors: Step-by-step</li>
+                
+                <li>### Conclusion: · anchors: Conclusion</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Let&#x27;s analyze the problem step-by-step using the given statements:
+
+1. **If it rains, the match is cancelled.**  
+   Symbolically:  
+   If **R** (it rains), then **M** (match is cancelled).  
+   \( R \rightarrow M \)
+
+2. **If the match is cancelled, the players go to the gym.**  
+   Symbolically:  
+   If **M** (match is cancelled), then **G** (players go to the gym).  
+   \( M \rightarrow G \)
+
+3. **If the players go to the gym, the coach runs a fitness session.**  
+   Symbolically:  
+   If **G** (players go to the gym), then **F** (coach runs a fitness session).  
+   \( G \rightarrow F \)
+
+4. **It is raining.**  
+   Given: \( R \) is true.
+
+---
+
+### Step-by-step reasoning:
+
+- Since \( R \) is true and \( R \rightarrow M \), then \( M \) must be true.  
+  (If it rains, the match is cancelled → it is raining → match is cancelled.)
+
+- Since \( M \) is true and \( M \rightarrow G \), then \( G \) must be true.  
+  (If the match is cancelled, players go to the gym → match is cancelled → players go to the gym.)
+
+- Since \( G \) is true and \( G \rightarrow F \), then \( F \) must be true.  
+  (If players go to the gym, coach runs a fitness session → players go to the gym → coach runs a fitness session.)
+
+---
+
+### Conclusion:
+
+Because it is raining, the match is cancelled, the players go to the gym, and therefore the coach runs a fitness session.
+
+**Answer:** The coach runs a fitness session.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>Let:
+
+- **R** = It rains
+- **C** = The match is cancelled
+- **G** = The players go to the gym
+- **F** = The coach runs a fitness session
+
+Given:
+
+1. **If it rains, the match is cancelled.**  
+   \( R \rightarrow C \)
+
+2. **If the match is cancelled, the players go to the gym.**  
+   \( C \rightarrow G \)
+
+3. **If the players go to the gym, the coach runs a fitness session.**  
+   \( G \rightarrow F \)
+
+4. **It is raining.**  
+   \( R \)
+
+Step by step:
+
+- From **R** and rule 1, we conclude **C**: the match is cancelled.
+- From **C** and rule 2, we conclude **G**: the players go to the gym.
+- From **G** and rule 3, we conclude **F**: the coach runs a fitness session.
+
+**Answer:** The coach runs a fitness session.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_hypothesis_testing</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>A user reports that their web app is slow only on Mondays. List at least four distinct hypotheses that could explain this, and for each one explain what evidence would confirm or rule it out.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 57% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -1%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.4253009886478479</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.45 (≥ 0.7 for green band) · dropped 22 · new 39</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 5403 ms · v2 7660 ms · Δ 2257 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">18 matched · 22 dropped · 39 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> Certainly! <span class="muted">↔ v2:</span> - Scaling events lag behind demand.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Here are four distinct hypotheses explaining why a web app might be slow only on Mondays, along with the evidence that would confirm or rule out each: <span class="muted">↔ v2:</span> Here are several distinct hypotheses for “slow only on Mondays,” along with evidence that would support or refute each one:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Explanation:** More users access the app on Mondays (e.g., start of the workweek), causing higher load and slower response times. <span class="muted">↔ v2:</span> - Slow requests do not involve the dependency, or the dependency’s latency is normal on Mondays.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Evidence to Confirm:** <span class="muted">↔ v2:</span> - **Confirming evidence:**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Analytics data showing a spike in user sessions or requests on Mondays compared to other days. <span class="muted">↔ v2:</span> - **Hypothesis:** A payment provider, auth service, analytics SDK, API, or DNS&#x2F;CDN path is slower on Mondays due to their own weekly patterns or maintenance.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Server logs indicating higher CPU, memory, or network usage on Mondays. <span class="muted">↔ v2:</span> - Metrics show higher concurrent users, request rate, CPU, memory, DB connections, or queue depth on Mondays.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Hypothesis 2: **Scheduled Maintenance or Batch Jobs Running on Mondays** <span class="muted">↔ v2:</span> **Scheduled Monday batch jobs or maintenance tasks**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Evidence to Confirm:** <span class="muted">↔ v2:</span> - **Confirming evidence:**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Logs showing heavy database or server activity during Monday slow periods. <span class="muted">↔ v2:</span> - Cache hit rate drops sharply Monday morning.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Hypothesis 3: **Third-Party Service or API Dependency Slowness on Mondays** <span class="muted">↔ v2:</span> **External dependency or third-party service is degraded on Mondays**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Explanation:** The app depends on external APIs or services that experience degraded performance or rate limiting on Mondays. <span class="muted">↔ v2:</span> - Autoscaling events or saturation indicators appear mainly on Mondays.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Evidence to Confirm:** <span class="muted">↔ v2:</span> - **Confirming evidence:**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> ### Hypothesis 4: **Monday-Specific Code Paths or Features Triggered** <span class="muted">↔ v2:</span> - **Hypothesis:** Monday requests hit a different code path or data shape, such as weekly reports, fresh Monday-specific filters, or larger datasets after weekend accumulation.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Evidence to Confirm:** <span class="muted">↔ v2:</span> - **Confirming evidence:**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Code review or feature flags indicating Monday-specific logic. <span class="muted">↔ v2:</span> **Monday-specific deployment or configuration change**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - No Monday-specific code or features identified. <span class="muted">↔ v2:</span> - No Monday-specific jobs run, or the slowdown persists even when those jobs are paused.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> These hypotheses cover common causes related to traffic patterns, scheduled tasks, external dependencies, and application logic. <span class="muted">↔ v2:</span> - Monday traffic is similar to other days, and infrastructure utilization stays normal while latency still rises.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> Investigating these systematically should help pinpoint the root cause of the Monday slowness. <span class="muted">↔ v2:</span> - Version comparison shows the issue only in the Monday release.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>### Hypothesis 1: **Increased User Traffic on Mondays** · anchors: 1, Hypothesis, User, Traffic, Mondays</li>
+                
+                <li>- Monitoring tools showing increased request queue lengths or slower response times correlating with traffic spikes. · anchors: Monitoring</li>
+                
+                <li>- **Evidence to Rule Out:** · anchors: Rule</li>
+                
+                <li>- User traffic metrics are consistent across all days, with no significant increase on Mondays. · anchors: User, Mondays</li>
+                
+                <li>- Server resource usage remains stable and low on Mondays despite reported slowness. · anchors: Server, Mondays</li>
+                
+                <li>- **Explanation:** Background jobs, database maintenance, backups, or batch processing tasks run on Monday mornings, consuming resources and slowing the app. · anchors: Background, Monday</li>
+                
+                <li>- Cron jobs, scheduled tasks, or maintenance windows configured to run on Mondays. · anchors: Cron, Mondays</li>
+                
+                <li>- Monitoring showing resource contention (CPU, disk I&#x2F;O) coinciding with scheduled jobs. · anchors: Monitoring</li>
+                
+                <li>- **Evidence to Rule Out:** · anchors: Rule</li>
+                
+                <li>- No scheduled jobs or maintenance tasks configured for Mondays. · anchors: Mondays</li>
+                
+                <li>- Resource usage remains normal during the reported slow periods. · anchors: Resource</li>
+                
+                <li>- Logs showing increased latency or errors when calling third-party APIs on Mondays. · anchors: Logs, APIs, Mondays</li>
+                
+                <li>- Monitoring or status pages of third-party services reporting issues or maintenance on Mondays. · anchors: Monitoring, Mondays</li>
+                
+                <li>- Correlation between slow app responses and slow third-party API responses. · anchors: Correlation</li>
+                
+                <li>- **Evidence to Rule Out:** · anchors: Rule</li>
+                
+                <li>- Third-party API response times and error rates are consistent across all days. · anchors: Third-party</li>
+                
+                <li>- No reported issues from third-party providers on Mondays. · anchors: Mondays</li>
+                
+                <li>- **Explanation:** The app executes special code paths, reports, or features only on Mondays (e.g., weekly reports, data aggregation), which are resource-intensive. · anchors: Mondays</li>
+                
+                <li>- Logs or telemetry showing execution of heavy processes only on Mondays. · anchors: Logs, Mondays</li>
+                
+                <li>- Profiling data showing CPU or memory spikes during Monday-specific operations. · anchors: Profiling, Monday-specific</li>
+                
+                <li>- **Evidence to Rule Out:** · anchors: Rule</li>
+                
+                <li>- Performance profiling shows no difference in code execution paths on Mondays. · anchors: Performance, Mondays</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>**Monday traffic spike &#x2F; load surge**</li>
+                
+                <li>- **Hypothesis:** More users log in on Monday morning, causing higher request volume, queueing, or resource contention.</li>
+                
+                <li>- Slow requests correlate with peak traffic windows.</li>
+                
+                <li>- **Hypothesis:** A cron job, ETL process, backup, report generation, index rebuild, or cache warmup runs on Mondays and competes for resources.</li>
+                
+                <li>- Job scheduler logs show tasks starting around the slowdown.</li>
+                
+                <li>- Database&#x2F;storage&#x2F;CPU spikes align with the job window.</li>
+                
+                <li>- Disabling or rescheduling the job removes the slowdown.</li>
+                
+                <li>**Weekly data pattern causing expensive queries**</li>
+                
+                <li>- Slow endpoints are specific to Monday workflows or Monday-only pages.</li>
+                
+                <li>- Query plans differ on Mondays, or queries scan more rows &#x2F; use different indexes.</li>
+                
+                <li>- The data volume or cardinality is larger on Mondays.</li>
+                
+                <li>- The same endpoints and queries are slow regardless of day, and Monday data characteristics are unchanged.</li>
+                
+                <li>**Cache cold start after weekend inactivity**</li>
+                
+                <li>- **Hypothesis:** Caches expire or are evicted over the weekend, so Monday morning traffic suffers from cache misses and repeated backend work.</li>
+                
+                <li>- Backend&#x2F;database load rises as cache misses increase.</li>
+                
+                <li>- Performance improves after caches warm up.</li>
+                
+                <li>- **Confirming evidence:**</li>
+                
+                <li>- Traces show time spent waiting on external calls.</li>
+                
+                <li>- Only requests that use the dependency are slow.</li>
+                
+                <li>- Vendor status pages, logs, or synthetic checks show Monday degradation.</li>
+                
+                <li>- **Hypothesis:** Releases, feature flags, config pushes, or certificate&#x2F;key rotations happen on Mondays and introduce regressions.</li>
+                
+                <li>- **Confirming evidence:**</li>
+                
+                <li>- Slowdowns begin immediately after Monday deployments or config changes.</li>
+                
+                <li>- Rolling back the change restores performance.</li>
+                
+                <li>- No Monday changes occur, or the slowdown predates the change and persists after rollback.</li>
+                
+                <li>**Infrastructure scaling or capacity issue tied to weekly patterns**</li>
+                
+                <li>- **Hypothesis:** Auto-scaling, reserved capacity, or scheduled instance shutdowns leave the system underprovisioned on Mondays.</li>
+                
+                <li>- **Confirming evidence:**</li>
+                
+                <li>- Instance counts, pod counts, or DB capacity are lower than needed on Mondays.</li>
+                
+                <li>- Performance improves when capacity is manually increased.</li>
+                
+                <li>- Capacity is ample and stable, yet latency still spikes.</li>
+                
+                <li>**Client-side or user-behavior pattern**</li>
+                
+                <li>- **Hypothesis:** Monday users may be on slower networks, VPNs, or older devices, or they may perform heavier workflows than on other days.</li>
+                
+                <li>- **Confirming evidence:**</li>
+                
+                <li>- Frontend telemetry shows higher page load times, JS errors, or network latency mainly for Monday cohorts.</li>
+                
+                <li>- Slowdowns are concentrated in certain geographies, devices, or browsers.</li>
+                
+                <li>- Server-side timings are normal while client-side metrics worsen.</li>
+                
+                <li>- Server-side latency is high too, or client metrics are unchanged across days.</li>
+                
+                <li>If you want, I can also turn this into a **debugging checklist** ordered by fastest-to-test hypotheses.</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Certainly! Here are four distinct hypotheses explaining why a web app might be slow only on Mondays, along with the evidence that would confirm or rule out each:
+
+---
+
+### Hypothesis 1: **Increased User Traffic on Mondays**
+
+- **Explanation:** More users access the app on Mondays (e.g., start of the workweek), causing higher load and slower response times.
+- **Evidence to Confirm:**
+  - Analytics data showing a spike in user sessions or requests on Mondays compared to other days.
+  - Server logs indicating higher CPU, memory, or network usage on Mondays.
+  - Monitoring tools showing increased request queue lengths or slower response times correlating with traffic spikes.
+- **Evidence to Rule Out:**
+  - User traffic metrics are consistent across all days, with no significant increase on Mondays.
+  - Server resource usage remains stable and low on Mondays despite reported slowness.
+
+---
+
+### Hypothesis 2: **Scheduled Maintenance or Batch Jobs Running on Mondays**
+
+- **Explanation:** Background jobs, database maintenance, backups, or batch processing tasks run on Monday mornings, consuming resources and slowing the app.
+- **Evidence to Confirm:**
+  - Cron jobs, scheduled tasks, or maintenance windows configured to run on Mondays.
+  - Logs showing heavy database or server activity during Monday slow periods.
+  - Monitoring showing resource contention (CPU, disk I&#x2F;O) coinciding with scheduled jobs.
+- **Evidence to Rule Out:**
+  - No scheduled jobs or maintenance tasks configured for Mondays.
+  - Resource usage remains normal during the reported slow periods.
+
+---
+
+### Hypothesis 3: **Third-Party Service or API Dependency Slowness on Mondays**
+
+- **Explanation:** The app depends on external APIs or services that experience degraded performance or rate limiting on Mondays.
+- **Evidence to Confirm:**
+  - Logs showing increased latency or errors when calling third-party APIs on Mondays.
+  - Monitoring or status pages of third-party services reporting issues or maintenance on Mondays.
+  - Correlation between slow app responses and slow third-party API responses.
+- **Evidence to Rule Out:**
+  - Third-party API response times and error rates are consistent across all days.
+  - No reported issues from third-party providers on Mondays.
+
+---
+
+### Hypothesis 4: **Monday-Specific Code Paths or Features Triggered**
+
+- **Explanation:** The app executes special code paths, reports, or features only on Mondays (e.g., weekly reports, data aggregation), which are resource-intensive.
+- **Evidence to Confirm:**
+  - Code review or feature flags indicating Monday-specific logic.
+  - Logs or telemetry showing execution of heavy processes only on Mondays.
+  - Profiling data showing CPU or memory spikes during Monday-specific operations.
+- **Evidence to Rule Out:**
+  - No Monday-specific code or features identified.
+  - Performance profiling shows no difference in code execution paths on Mondays.
+
+---
+
+These hypotheses cover common causes related to traffic patterns, scheduled tasks, external dependencies, and application logic. Investigating these systematically should help pinpoint the root cause of the Monday slowness.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>Here are several distinct hypotheses for “slow only on Mondays,” along with evidence that would support or refute each one:
+
+1. **Monday traffic spike &#x2F; load surge**
+   - **Hypothesis:** More users log in on Monday morning, causing higher request volume, queueing, or resource contention.
+   - **Confirming evidence:**  
+     - Metrics show higher concurrent users, request rate, CPU, memory, DB connections, or queue depth on Mondays.
+     - Slow requests correlate with peak traffic windows.
+     - Autoscaling events or saturation indicators appear mainly on Mondays.
+   - **Ruling it out:**  
+     - Monday traffic is similar to other days, and infrastructure utilization stays normal while latency still rises.
+
+2. **Scheduled Monday batch jobs or maintenance tasks**
+   - **Hypothesis:** A cron job, ETL process, backup, report generation, index rebuild, or cache warmup runs on Mondays and competes for resources.
+   - **Confirming evidence:**  
+     - Job scheduler logs show tasks starting around the slowdown.
+     - Database&#x2F;storage&#x2F;CPU spikes align with the job window.
+     - Disabling or rescheduling the job removes the slowdown.
+   - **Ruling it out:**  
+     - No Monday-specific jobs run, or the slowdown persists even when those jobs are paused.
+
+3. **Weekly data pattern causing expensive queries**
+   - **Hypothesis:** Monday requests hit a different code path or data shape, such as weekly reports, fresh Monday-specific filters, or larger datasets after weekend accumulation.
+   - **Confirming evidence:**  
+     - Slow endpoints are specific to Monday workflows or Monday-only pages.
+     - Query plans differ on Mondays, or queries scan more rows &#x2F; use different indexes.
+     - The data volume or cardinality is larger on Mondays.
+   - **Ruling it out:**  
+     - The same endpoints and queries are slow regardless of day, and Monday data characteristics are unchanged.
+
+4. **Cache cold start after weekend inactivity**
+   - **Hypothesis:** Caches expire or are evicted over the weekend, so Monday morning traffic suffers from cache misses and repeated backend work.
+   - **Confirming evidence:**  
+     - Cache hit rate drops sharply Monday morning.
+     - Backend&#x2F;database load rises as cache misses increase.
+     - Performance improves after caches warm up.
+   - **Ruling it out:**  
+     - Cache hit rates remain stable, or the app is slow even when caches are already warm.
+
+5. **External dependency or third-party service is degraded on Mondays**
+   - **Hypothesis:** A payment provider, auth service, analytics SDK, API, or DNS&#x2F;CDN path is slower on Mondays due to their own weekly patterns or maintenance.
+   - **Confirming evidence:**  
+     - Traces show time spent waiting on external calls.
+     - Only requests that use the dependency are slow.
+     - Vendor status pages, logs, or synthetic checks show Monday degradation.
+   - **Ruling it out:**  
+     - Slow requests do not involve the dependency, or the dependency’s latency is normal on Mondays.
+
+6. **Monday-specific deployment or configuration change**
+   - **Hypothesis:** Releases, feature flags, config pushes, or certificate&#x2F;key rotations happen on Mondays and introduce regressions.
+   - **Confirming evidence:**  
+     - Slowdowns begin immediately after Monday deployments or config changes.
+     - Version comparison shows the issue only in the Monday release.
+     - Rolling back the change restores performance.
+   - **Ruling it out:**  
+     - No Monday changes occur, or the slowdown predates the change and persists after rollback.
+
+7. **Infrastructure scaling or capacity issue tied to weekly patterns**
+   - **Hypothesis:** Auto-scaling, reserved capacity, or scheduled instance shutdowns leave the system underprovisioned on Mondays.
+   - **Confirming evidence:**  
+     - Instance counts, pod counts, or DB capacity are lower than needed on Mondays.
+     - Scaling events lag behind demand.
+     - Performance improves when capacity is manually increased.
+   - **Ruling it out:**  
+     - Capacity is ample and stable, yet latency still spikes.
+
+8. **Client-side or user-behavior pattern**
+   - **Hypothesis:** Monday users may be on slower networks, VPNs, or older devices, or they may perform heavier workflows than on other days.
+   - **Confirming evidence:**  
+     - Frontend telemetry shows higher page load times, JS errors, or network latency mainly for Monday cohorts.
+     - Slowdowns are concentrated in certain geographies, devices, or browsers.
+     - Server-side timings are normal while client-side metrics worsen.
+   - **Ruling it out:**  
+     - Server-side latency is high too, or client metrics are unchanged across days.
+
+If you want, I can also turn this into a **debugging checklist** ordered by fastest-to-test hypotheses.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_logical_deduction</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>All mammals are warm-blooded. Whales are mammals. Dolphins are mammals. Snakes are not mammals. Which of these animals are warm-blooded? Explain your reasoning for each.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 1% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.8142798232707189</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.75 (≥ 0.7 for green band) · dropped 4 · new 5</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 2979 ms · v2 2092 ms · Δ -887 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">12 matched · 4 dropped · 5 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Let&#x27;s analyze each animal based on the given information: <span class="muted">↔ v2:</span> - **Snakes: cannot be determined from the given information**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **All mammals are warm-blooded. <span class="muted">↔ v2:</span> **All mammals are warm-blooded.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Whales are mammals. <span class="muted">↔ v2:</span> **Whales are mammals.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Dolphins are mammals. <span class="muted">↔ v2:</span> **Dolphins are mammals.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Snakes are not mammals. <span class="muted">↔ v2:</span> **Snakes are not mammals.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Since whales are mammals, and all mammals are warm-blooded, **whales are warm-blooded**. <span class="muted">↔ v2:</span> Since whales are mammals, and all mammals are warm-blooded, **whales are warm-blooded**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Dolphins: <span class="muted">↔ v2:</span> - **Dolphins**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Dolphins are also mammals, and since all mammals are warm-blooded, **dolphins are warm-blooded**. <span class="muted">↔ v2:</span> Since dolphins are mammals, and all mammals are warm-blooded, **dolphins are warm-blooded**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Snakes are not mammals. <span class="muted">↔ v2:</span> We are told snakes are **not mammals**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> The statement only guarantees that mammals are warm-blooded, but it does not say anything about non-mammals. <span class="muted">↔ v2:</span> The rule only says all mammals are warm-blooded, but it does **not** say that non-mammals are not warm-blooded.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Therefore, **snakes are not warm-blooded**. <span class="muted">↔ v2:</span> - **Whales: warm-blooded**</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Whales:** Warm-blooded (because they are mammals) <span class="muted">↔ v2:</span> - **Dolphins: warm-blooded**</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>- In reality, snakes are reptiles and are cold-blooded (ectothermic).</li>
+                
+                <li>### Summary: · anchors: Summary</li>
+                
+                <li>- **Dolphins:** Warm-blooded (because they are mammals) · anchors: Warm-blooded</li>
+                
+                <li>- **Snakes:** Not warm-blooded (because they are not mammals and are reptiles)</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>From the statements:</li>
+                
+                <li>### Reasoning for each animal</li>
+                
+                <li>So from the given information, we **cannot conclude** that snakes are warm-blooded.</li>
+                
+                <li>**Answer: unknown from the statements provided**.</li>
+                
+                <li>### Final answer</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Let&#x27;s analyze each animal based on the given information:
+
+1. **All mammals are warm-blooded.**  
+2. **Whales are mammals.**  
+3. **Dolphins are mammals.**  
+4. **Snakes are not mammals.**
+
+---
+
+### Whales:
+- Since whales are mammals, and all mammals are warm-blooded, **whales are warm-blooded**.
+
+### Dolphins:
+- Dolphins are also mammals, and since all mammals are warm-blooded, **dolphins are warm-blooded**.
+
+### Snakes:
+- Snakes are not mammals. The statement only guarantees that mammals are warm-blooded, but it does not say anything about non-mammals.  
+- In reality, snakes are reptiles and are cold-blooded (ectothermic).  
+- Therefore, **snakes are not warm-blooded**.
+
+---
+
+### Summary:
+- **Whales:** Warm-blooded (because they are mammals)  
+- **Dolphins:** Warm-blooded (because they are mammals)  
+- **Snakes:** Not warm-blooded (because they are not mammals and are reptiles)</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>From the statements:
+
+1. **All mammals are warm-blooded.**
+2. **Whales are mammals.**
+3. **Dolphins are mammals.**
+4. **Snakes are not mammals.**
+
+### Reasoning for each animal
+
+- **Whales**:  
+  Since whales are mammals, and all mammals are warm-blooded, **whales are warm-blooded**.
+
+- **Dolphins**:  
+  Since dolphins are mammals, and all mammals are warm-blooded, **dolphins are warm-blooded**.
+
+- **Snakes**:  
+  We are told snakes are **not mammals**. The rule only says all mammals are warm-blooded, but it does **not** say that non-mammals are not warm-blooded. So from the given information, we **cannot conclude** that snakes are warm-blooded.  
+  **Answer: unknown from the statements provided**.
+
+### Final answer
+- **Whales: warm-blooded**
+- **Dolphins: warm-blooded**
+- **Snakes: cannot be determined from the given information**</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_multi_step_arithmetic</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>A shop sells apples for 35p each. Someone buys 7 apples and pays with a £5 note. How much change do they receive? Show each step of your working.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  ⚪ Informational
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ≈ Structural drift
+                  
+                  <span class="muted" style="margin-left:0.5rem">(StructuralDrift)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 20% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ 8%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.4898073125890122</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.75 (≥ 0.7 for green band) · dropped 2 · new 4</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 2168 ms · v2 1474 ms · Δ -694 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">6 matched · 2 dropped · 4 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> Let&#x27;s work through the problem step-by-step: <span class="muted">↔ v2:</span> ### Step 4: Convert the change back into pounds and pence</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> **Number of apples bought:** 7 <span class="muted">↔ v2:</span> ### Step 1: Find the cost of 7 apples</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Total cost:** 35p × 7 = 245p <span class="muted">↔ v2:</span> 7 \times 35p = 245p</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> 245p = £2.45 <span class="muted">↔ v2:</span> So, 7 apples cost **245p**, which is **£2.45**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Change received:** £5.00 - £2.45 = £2.55 <span class="muted">↔ v2:</span> 255p = £2.55</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> **Answer:** The change received is **£2.55**. <span class="muted">↔ v2:</span> They receive **£2.55** change.</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Since 100p = £1, convert 245p to pounds: · anchors: 1</li>
+                
+                <li>**Amount paid:** £5.00 · anchors: 5.00</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>Each apple costs **35p**.</li>
+                
+                <li>### Step 2: Convert the £5 note into pence</li>
+                
+                <li>£5 = 500p</li>
+                
+                <li>### Step 3: Subtract the cost from the amount paid</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Let&#x27;s work through the problem step-by-step:
+
+1. **Price of one apple:** 35p  
+2. **Number of apples bought:** 7  
+3. **Total cost:** 35p × 7 = 245p  
+
+Since 100p = £1, convert 245p to pounds:  
+245p = £2.45  
+
+4. **Amount paid:** £5.00  
+5. **Change received:** £5.00 - £2.45 = £2.55  
+
+**Answer:** The change received is **£2.55**.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>Each apple costs **35p**.
+
+### Step 1: Find the cost of 7 apples
+\[
+7 \times 35p = 245p
+\]
+
+So, 7 apples cost **245p**, which is **£2.45**.
+
+### Step 2: Convert the £5 note into pence
+\[
+£5 = 500p
+\]
+
+### Step 3: Subtract the cost from the amount paid
+\[
+500p - 245p = 255p
+\]
+
+### Step 4: Convert the change back into pounds and pence
+\[
+255p = £2.55
+\]
+
+## Answer:
+They receive **£2.55** change.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_percentage_calculation</span>
+          <span class="badge Amber dir-regression">Amber</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>A jacket costs £120. It is reduced by 15% in a sale, then the sale price is increased by 10%. What is the final price? Show each calculation step.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🟠 High
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 18% · type Δ true</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -8%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.6400725144209561</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.5454545454545454 (≥ 0.7 for green band) · dropped 5 · new 2</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 2109 ms · v2 1533 ms · Δ -576 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">6 matched · 5 dropped · 2 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> **Step 1: Original price of the jacket** <span class="muted">↔ v2:</span> Start with the original price:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> 15% of £120 = \( 0.15 \times 120 = £18 \) <span class="muted">↔ v2:</span> - 15% of £120 = \( 0.15 \times 120 = 18 \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Sale price = Original price - Reduction <span class="muted">↔ v2:</span> - Sale price = \( 120 - 18 = £102 \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> 10% of £102 = \( 0.10 \times 102 = £10.20 \) <span class="muted">↔ v2:</span> - 10% of £102 = \( 0.10 \times 102 = 10.20 \)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Final price = Sale price + Increase <span class="muted">↔ v2:</span> **Final price: £112.20**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> = £102 + £10.20 = £112.20 <span class="muted">↔ v2:</span> - Final price = \( 102 + 10.20 = £112.20 \)</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Let&#x27;s calculate the final price step-by-step.</li>
+                
+                <li>**Step 2: Calculate the sale price after a 15% reduction** · anchors: 2, 15, Calculate</li>
+                
+                <li>= £120 - £18 = £102 · anchors: 120, 18, 102</li>
+                
+                <li>**Step 3: Increase the sale price by 10%** · anchors: 3, 10, Increase</li>
+                
+                <li>**Final answer:** The final price of the jacket is **£112.20**. · anchors: 112.20</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>1. **15% reduction on £120**</li>
+                
+                <li>2. **10% increase on £102**</li>
+                
+              </ul>
+            </div>
+            
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>Let&#x27;s calculate the final price step-by-step.
+
+**Step 1: Original price of the jacket**  
+£120
+
+**Step 2: Calculate the sale price after a 15% reduction**  
+15% of £120 = \( 0.15 \times 120 = £18 \)  
+Sale price = Original price - Reduction  
+= £120 - £18 = £102
+
+**Step 3: Increase the sale price by 10%**  
+10% of £102 = \( 0.10 \times 102 = £10.20 \)  
+Final price = Sale price + Increase  
+= £102 + £10.20 = £112.20
+
+**Final answer:** The final price of the jacket is **£112.20**.</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>Start with the original price:
+
+1. **15% reduction on £120**
+   - 15% of £120 = \( 0.15 \times 120 = 18 \)
+   - Sale price = \( 120 - 18 = £102 \)
+
+2. **10% increase on £102**
+   - 10% of £102 = \( 0.10 \times 102 = 10.20 \)
+   - Final price = \( 102 + 10.20 = £112.20 \)
+
+**Final price: £112.20**</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_prime_composite</span>
+          <span class="badge Red dir-regression">Red</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Is 15129 a prime or composite number? Work through it step by step.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔴 Critical
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 65% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -14%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.43045031996993743</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.19444444444444445 (≥ 0.7 for green band) · dropped 27 · new 3</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 11455 ms · v2 1608 ms · Δ -9847 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">7 matched · 27 dropped · 3 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> We need to determine whether **15129** is a prime or composite number. <span class="muted">↔ v2:</span> 15129 is **composite**.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - A **prime number** has exactly two distinct positive divisors: 1 and itself. <span class="muted">↔ v2:</span> Since 15129 has a divisor other than 1 and itself, it is **not prime**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Step 2: Check for obvious factors <span class="muted">↔ v2:</span> Here’s a step-by-step check:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Sum of digits: 1 + 5 + 1 + 2 + 9 = 18, which is divisible by 3, so **15129 might be divisible by 3**. <span class="muted">↔ v2:</span> Since \(18\) is divisible by \(3\), **15129 is divisible by 3**.</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Since the sum of digits is 18 (divisible by 3), 15129 is divisible by 3. <span class="muted">↔ v2:</span> **Add the digits of 15129:**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Let&#x27;s divide 15129 by 3: <span class="muted">↔ v2:</span> **Divide 15129 by 3:**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> 15129 \div 3 = ? <span class="muted">↔ v2:</span> 15129 \div 3 = 5043</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>### Step 1: Understand the problem · anchors: 1, Step, Understand</li>
+                
+                <li>- A **composite number** has more than two positive divisors.</li>
+                
+                <li>We want to check if 15129 has any divisors other than 1 and 15129. · anchors: 15129, 1, 15129</li>
+                
+                <li>### Step 3: Test divisibility by 3 · anchors: 3, 3, Step, Test</li>
+                
+                <li>Calculate:</li>
+                
+                <li>- 3 into 15 = 5, remainder 0 · anchors: 3, 15, 5, 0</li>
+                
+                <li>- 3 into 1 = 0, remainder 1 · anchors: 3, 1, 0, 1</li>
+                
+                <li>- 3 into 12 = 4, remainder 0 · anchors: 3, 12, 4, 0</li>
+                
+                <li>- 3 into 9 = 3 · anchors: 3, 9, 3</li>
+                
+                <li>15129 \div 3 = 5043 · anchors: 15129, 3, 5043</li>
+                
+                <li>### Step 4: Check if 5043 is prime or composite · anchors: 4, 5043, Step, Check</li>
+                
+                <li>- Sum of digits of 5043: 5 + 0 + 4 + 3 = 12, divisible by 3, so 5043 is divisible by 3. · anchors: 5043, 5, 0, 4, 3, 12, 3, 5043, 3</li>
+                
+                <li>Divide 5043 by 3: · anchors: 5043, 3</li>
+                
+                <li>5043 \div 3 = ? · anchors: 5043, 3</li>
+                
+                <li>Calculate:</li>
+                
+                <li>- 3 into 5 = 1, remainder 2 · anchors: 3, 5, 1, 2</li>
+                
+                <li>- 3 into 24 = 8, remainder 0 · anchors: 3, 24, 8, 0</li>
+                
+                <li>- 3 into 3 = 1 · anchors: 3, 3, 1</li>
+                
+                <li>5043 \div 3 = 1681 · anchors: 5043, 3, 1681</li>
+                
+                <li>### Step 5: Check if 1681 is prime or composite · anchors: 5, 1681, Step, Check</li>
+                
+                <li>- 1681 is a known number: \(1681 = 41^2\) (since \(41 \times 41 = 1681\)). · anchors: 1681, 1681, 41, 2, 41, 41, 1681</li>
+                
+                <li>### Step 6: Factorization summary · anchors: 6, Step, Factorization</li>
+                
+                <li>15129 = 3 \times 5043 = 3 \times 3 \times 1681 = 3^2 \times 41^2 · anchors: 15129, 3, 5043, 3, 3, 1681, 3, 2, 41, 2</li>
+                
+                <li>### **Conclusion:**</li>
+                
+                <li>Since 15129 has factors other than 1 and itself (specifically, 3 and 41), **15129 is a composite number**. · anchors: 15129, 1, 3, 41, 15129</li>
+                
+                <li>### Final answer: · anchors: Final</li>
+                
+                <li>\boxed{15129 \text{ is composite.}} · anchors: 15129</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>**Look for easy divisibility tests.</li>
+                
+                <li>\(1 + 5 + 1 + 2 + 9 = 18\)</li>
+                
+                <li>**Check 18:**</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Drifted anchors</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · - The number ends with a 9, so it is **not even**, so not divisible by 2. ↔ A number is divisible by 3 if the sum of its digits is divisible by 3.
+                   — NumericValue: "9" → "3"; NumericValue: "2" → "3"
+                </li>
+                
+                <li>sim 1 · So 1681 is composite. ↔ So, **15129 is composite**.
+                   — NumericValue: "1681" → "15129"
+                </li>
+                
+              </ul>
+            </div>
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>We need to determine whether **15129** is a prime or composite number.
+
+---
+
+### Step 1: Understand the problem
+- A **prime number** has exactly two distinct positive divisors: 1 and itself.
+- A **composite number** has more than two positive divisors.
+
+We want to check if 15129 has any divisors other than 1 and 15129.
+
+---
+
+### Step 2: Check for obvious factors
+
+- The number ends with a 9, so it is **not even**, so not divisible by 2.
+- Sum of digits: 1 + 5 + 1 + 2 + 9 = 18, which is divisible by 3, so **15129 might be divisible by 3**.
+
+---
+
+### Step 3: Test divisibility by 3
+
+- Since the sum of digits is 18 (divisible by 3), 15129 is divisible by 3.
+- Let&#x27;s divide 15129 by 3:
+
+\[
+15129 \div 3 = ?
+\]
+
+Calculate:
+
+- 3 into 15 = 5, remainder 0
+- 3 into 1 = 0, remainder 1
+- 3 into 12 = 4, remainder 0
+- 3 into 9 = 3
+
+So:
+
+\[
+15129 \div 3 = 5043
+\]
+
+---
+
+### Step 4: Check if 5043 is prime or composite
+
+- Sum of digits of 5043: 5 + 0 + 4 + 3 = 12, divisible by 3, so 5043 is divisible by 3.
+
+Divide 5043 by 3:
+
+\[
+5043 \div 3 = ?
+\]
+
+Calculate:
+
+- 3 into 5 = 1, remainder 2
+- 3 into 24 = 8, remainder 0
+- 3 into 3 = 1
+
+So:
+
+\[
+5043 \div 3 = 1681
+\]
+
+---
+
+### Step 5: Check if 1681 is prime or composite
+
+- 1681 is a known number: \(1681 = 41^2\) (since \(41 \times 41 = 1681\)).
+
+So 1681 is composite.
+
+---
+
+### Step 6: Factorization summary
+
+\[
+15129 = 3 \times 5043 = 3 \times 3 \times 1681 = 3^2 \times 41^2
+\]
+
+---
+
+### **Conclusion:**
+
+Since 15129 has factors other than 1 and itself (specifically, 3 and 41), **15129 is a composite number**.
+
+---
+
+### Final answer:
+
+\[
+\boxed{15129 \text{ is composite.}}
+\]</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>15129 is **composite**.
+
+Here’s a step-by-step check:
+
+1. **Look for easy divisibility tests.**  
+   A number is divisible by 3 if the sum of its digits is divisible by 3.
+
+2. **Add the digits of 15129:**  
+   \(1 + 5 + 1 + 2 + 9 = 18\)
+
+3. **Check 18:**  
+   Since \(18\) is divisible by \(3\), **15129 is divisible by 3**.
+
+4. **Divide 15129 by 3:**  
+   \[
+   15129 \div 3 = 5043
+   \]
+
+5. Since 15129 has a divisor other than 1 and itself, it is **not prime**.
+
+So, **15129 is composite**.
+
+If you want, I can also factor it completely.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_prime_identification</span>
+          <span class="badge Red dir-neutral">Red</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Factual · Neutral</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>Is 17077 a prime number? Show your working step by step before giving your final answer.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔴 Critical
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 48% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -6%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.5730164332046672</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.19548872180451127 (≥ 0.7 for green band) · dropped 81 · new 6</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · v1 17227 ms · v2 5258 ms · Δ -11969 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-imp"></span></td>
+                <td>Improvement · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              <tr>
+                <th>Factual</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · regression false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">26 matched · 81 dropped · 6 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> We need to determine if 17077 is a prime number. <span class="muted">↔ v2:</span> No, **17077 is not a prime number**.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> We will test divisibility by prime numbers up to \(\sqrt{17077}\). <span class="muted">↔ v2:</span> Now, instead of checking every prime up to \(\sqrt{17077}\), we can try factoring directly:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 13? <span class="muted">↔ v2:</span> 17077 = 13 \times 1313.615...</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 13\): <span class="muted">↔ v2:</span> Check **13**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 17\): <span class="muted">↔ v2:</span> Check **17**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 19\): <span class="muted">↔ v2:</span> Check **19**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 23\): <span class="muted">↔ v2:</span> Check **23**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 29\): <span class="muted">↔ v2:</span> Check **29**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 31\): <span class="muted">↔ v2:</span> Check **31**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 37\): <span class="muted">↔ v2:</span> Check **37**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 41? <span class="muted">↔ v2:</span> - \( 17077 \div 41 = 416.512... \) so not divisible by 41.</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 41\): <span class="muted">↔ v2:</span> Check **41**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 43? <span class="muted">↔ v2:</span> 17077 = 43 \times 397</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 43\): <span class="muted">↔ v2:</span> Check **43**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 47\): <span class="muted">↔ v2:</span> Check **47**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 53\): <span class="muted">↔ v2:</span> Check **53**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 59\): <span class="muted">↔ v2:</span> Check **59**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> Check \(17077 \div 61\): <span class="muted">↔ v2:</span> Check **61**:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 67? <span class="muted">↔ v2:</span> Check **67**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 71? <span class="muted">↔ v2:</span> Check **71**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 73? <span class="muted">↔ v2:</span> Check **73**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 79? <span class="muted">↔ v2:</span> Check **79**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 83? <span class="muted">↔ v2:</span> Check **83**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 89? <span class="muted">↔ v2:</span> Check **89**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - **Divisible by 97? <span class="muted">↔ v2:</span> Check **97**:</li>
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> ### Step 4: Conclusion <span class="muted">↔ v2:</span> Here’s the step-by-step working:</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>Calculate \(\sqrt{17077}\): · anchors: 17077</li>
+                
+                <li>\sqrt{17077} \approx 130.6 · anchors: 17077, 130.6</li>
+                
+                <li>So, we only need to check prime numbers up to 130. · anchors: 130</li>
+                
+                <li>Sum of digits: 1 + 7 + 0 + 7 + 7 = 22 · anchors: 1, 7, 0, 7, 7, 22</li>
+                
+                <li>Last digit is not 0 or 5, so no. · anchors: 0, 5</li>
+                
+                <li>Remainder: \(17077 - 17073 = 4\), so no. · anchors: 17077, 17073, 4</li>
+                
+                <li>Sum of digits in odd positions: 1 + 0 + 7 = 8 · anchors: 1, 0, 7, 8</li>
+                
+                <li>Sum of digits in even positions: 7 + 7 = 14 · anchors: 7, 7, 14</li>
+                
+                <li>13 \times 1313 = 17069 · anchors: 13, 1313, 17069</li>
+                
+                <li>Remainder: \(17077 - 17069 = 8\), so no. · anchors: 17077, 17069, 8</li>
+                
+                <li>17 \times 1004 = 17068 · anchors: 17, 1004, 17068</li>
+                
+                <li>Remainder: \(17077 - 17068 = 9\), so no. · anchors: 17077, 17068, 9</li>
+                
+                <li>19 \times 898 = 17062 · anchors: 19, 898, 17062</li>
+                
+                <li>Remainder: \(17077 - 17062 = 15\), so no. · anchors: 17077, 17062, 15</li>
+                
+                <li>23 \times 742 = 17066 · anchors: 23, 742, 17066</li>
+                
+                <li>Remainder: \(17077 - 17066 = 11\), so no. · anchors: 17077, 17066, 11</li>
+                
+                <li>29 \times 588 = 17052 · anchors: 29, 588, 17052</li>
+                
+                <li>Remainder: \(17077 - 17052 = 25\), so no. · anchors: 17077, 17052, 25</li>
+                
+                <li>31 \times 550 = 17050 · anchors: 31, 550, 17050</li>
+                
+                <li>Remainder: \(17077 - 17050 = 27\), so no. · anchors: 17077, 17050, 27</li>
+                
+                <li>37 \times 461 = 17057 · anchors: 37, 461, 17057</li>
+                
+                <li>Remainder: \(17077 - 17057 = 20\), so no. · anchors: 17077, 17057, 20</li>
+                
+                <li>41 \times 416 = 17056 · anchors: 41, 416, 17056</li>
+                
+                <li>Remainder: \(17077 - 17071 = 6\), so no. · anchors: 17077, 17071, 6</li>
+                
+                <li>47 \times 363 = 17061 · anchors: 47, 363, 17061</li>
+                
+                <li>Remainder: \(17077 - 17061 = 16\), so no. · anchors: 17077, 17061, 16</li>
+                
+                <li>53 \times 322 = 17066 · anchors: 53, 322, 17066</li>
+                
+                <li>Remainder: \(17077 - 17066 = 11\), so no. · anchors: 17077, 17066, 11</li>
+                
+                <li>59 \times 289 = 17051 · anchors: 59, 289, 17051</li>
+                
+                <li>Remainder: \(17077 - 17051 = 26\), so no. · anchors: 17077, 17051, 26</li>
+                
+                <li>61 \times 279 = 17019 · anchors: 61, 279, 17019</li>
+                
+                <li>Remainder: \(17077 - 17019 = 58\), so no. · anchors: 17077, 17019, 58</li>
+                
+                <li>67 \times 254 = 17018 · anchors: 67, 254, 17018</li>
+                
+                <li>Remainder: \(17077 - 17018 = 59\), so no. · anchors: 17077, 17018, 59</li>
+                
+                <li>Check \(17077 \div 71\): · anchors: 17077, 71</li>
+                
+                <li>71 \times 240 = 17040 · anchors: 71, 240, 17040</li>
+                
+                <li>Remainder: \(17077 - 17040 = 37\), so no. · anchors: 17077, 17040, 37</li>
+                
+                <li>Check \(17077 \div 73\): · anchors: 17077, 73</li>
+                
+                <li>73 \times 233 = 17009 · anchors: 73, 233, 17009</li>
+                
+                <li>Remainder: \(17077 - 17009 = 68\), so no. · anchors: 17077, 17009, 68</li>
+                
+                <li>Check \(17077 \div 79\): · anchors: 17077, 79</li>
+                
+                <li>79 \times 216 = 17064 · anchors: 79, 216, 17064</li>
+                
+                <li>Remainder: \(17077 - 17064 = 13\), so no. · anchors: 17077, 17064, 13</li>
+                
+                <li>Check \(17077 \div 83\): · anchors: 17077, 83</li>
+                
+                <li>83 \times 205 = 17015 · anchors: 83, 205, 17015</li>
+                
+                <li>Remainder: \(17077 - 17015 = 62\), so no. · anchors: 17077, 17015, 62</li>
+                
+                <li>Check \(17077 \div 89\): · anchors: 17077, 89</li>
+                
+                <li>89 \times 191 = 16999 · anchors: 89, 191, 16999</li>
+                
+                <li>Remainder: \(17077 - 16999 = 78\), so no. · anchors: 17077, 16999, 78</li>
+                
+                <li>Check \(17077 \div 97\): · anchors: 17077, 97</li>
+                
+                <li>97 \times 176 = 17072 · anchors: 97, 176, 17072</li>
+                
+                <li>Remainder: \(17077 - 17072 = 5\), so no. · anchors: 17077, 17072, 5</li>
+                
+                <li>- **Divisible by 101? · anchors: 101</li>
+                
+                <li>Check \(17077 \div 101\): · anchors: 17077, 101</li>
+                
+                <li>101 \times 169 = 17069 · anchors: 101, 169, 17069</li>
+                
+                <li>Remainder: \(17077 - 17069 = 8\), so no. · anchors: 17077, 17069, 8</li>
+                
+                <li>- **Divisible by 103? · anchors: 103</li>
+                
+                <li>Check \(17077 \div 103\): · anchors: 17077, 103</li>
+                
+                <li>103 \times 165 = 16995 · anchors: 103, 165, 16995</li>
+                
+                <li>Remainder: \(17077 - 16995 = 82\), so no. · anchors: 17077, 16995, 82</li>
+                
+                <li>- **Divisible by 107? · anchors: 107</li>
+                
+                <li>Check \(17077 \div 107\): · anchors: 17077, 107</li>
+                
+                <li>107 \times 159 = 17013 · anchors: 107, 159, 17013</li>
+                
+                <li>Remainder: \(17077 - 17013 = 64\), so no. · anchors: 17077, 17013, 64</li>
+                
+                <li>- **Divisible by 109? · anchors: 109</li>
+                
+                <li>Check \(17077 \div 109\): · anchors: 17077, 109</li>
+                
+                <li>109 \times 156 = 17004 · anchors: 109, 156, 17004</li>
+                
+                <li>Remainder: \(17077 - 17004 = 73\), so no. · anchors: 17077, 17004, 73</li>
+                
+                <li>- **Divisible by 113? · anchors: 113</li>
+                
+                <li>Check \(17077 \div 113\): · anchors: 17077, 113</li>
+                
+                <li>113 \times 151 = 17063 · anchors: 113, 151, 17063</li>
+                
+                <li>Remainder: \(17077 - 17063 = 14\), so no. · anchors: 17077, 17063, 14</li>
+                
+                <li>- **Divisible by 127? · anchors: 127</li>
+                
+                <li>Check \(17077 \div 127\): · anchors: 17077, 127</li>
+                
+                <li>127 \times 134 = 17018 · anchors: 127, 134, 17018</li>
+                
+                <li>Remainder: \(17077 - 17018 = 59\), so no. · anchors: 17077, 17018, 59</li>
+                
+                <li>### Step 3: Try divisibility by 131 (just above 130.6) · anchors: 3, 131, 130.6, Step</li>
+                
+                <li>Since \(\sqrt{17077} \approx 130.6\), no need to check beyond 130. · anchors: 17077, 130.6, 130</li>
+                
+                <li>We have tested all prime numbers up to 130 and found no divisors of 17077. · anchors: 130, 17077</li>
+                
+                <li>Therefore, **17077 is a prime number**. · anchors: 17077</li>
+                
+                <li>**17077 is a prime number. · anchors: 17077</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>Check **11**:</li>
+                
+                <li>That doesn’t work, so let’s test a more systematic factorization approach.</li>
+                
+                <li>Still not exact.</li>
+                
+                <li>But if we continue checking, we find:</li>
+                
+                <li>And since both 43 and 397 are prime, this shows that 17077 has factors other than 1 and itself.</li>
+                
+                <li>### Final answer:</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Drifted anchors</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · A prime number is a number greater than 1 that has no positive divisors other than 1 and itself. ↔ To test whether 17077 is prime, we check whether it has any divisors other than 1 and itself.
+                   — NumericValue: "1" → "17077"
+                </li>
+                
+                <li>sim 0 · ### Step 1: Check if 17077 is divisible by small primes ↔ - \( 17077 \div 67 = 254.880... \) so not divisible by 67.
+                   — NumericValue: "1" → "67"
+                </li>
+                
+                <li>sim 0 · ### Step 2: Check divisibility by small primes ↔ A useful first check is divisibility by **7**:
+                   — NumericValue: "2" → "7"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 2? ↔ - \( 17077 \div 7 = 2439.571... \) so not divisible by 7.
+                   — NumericValue: "2" → "2439.571"
+                </li>
+                
+                <li>sim 0 · 17077 is odd (ends with 7), so no. ↔ - \( 17077 \div 19 = 898.789... \) so not divisible by 19.
+                   — NumericValue: "7" → "19"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 3? ↔ - \( 17077 \div 11 = 1552.454... \) so not divisible by 11.
+                   — NumericValue: "3" → "11"
+                </li>
+                
+                <li>sim 1 · 22 is not divisible by 3, so no. ↔ **17077 is not prime.
+                   — NumericValue: "22" → "17077"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 5? ↔ - \( 17077 \div 13 = 1313.615... \) so not divisible by 13.
+                   — NumericValue: "5" → "13"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 7? ↔ - \( 17077 \div 17 = 1004.529... \) so not divisible by 17.
+                   — NumericValue: "7" → "1004.529"
+                </li>
+                
+                <li>sim 0 · Check \(17077 \div 7\): ↔ - \( 17077 \div 23 = 742.478... \) so not divisible by 23.
+                   — NumericValue: "7" → "23"
+                </li>
+                
+                <li>sim 1 · 7 \times 2439 = 17073 ↔ 17077 = 7 \times 2439.571...
+                   — NumericValue: "17073" → "2439.571"; NumericValue: "2439" → "17077"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 11? ↔ - \( 17077 \div 29 = 588.862... \) so not divisible by 29.
+                   — NumericValue: "11" → "29"
+                </li>
+                
+                <li>sim 0 · Difference: \(14 - 8 = 6\), not divisible by 11, so no. ↔ - \( 17077 \div 31 = 550.871... \) so not divisible by 31.
+                   — NumericValue: "14" → "31"; NumericValue: "8" → "550.871"; NumericValue: "6" → "31"; NumericValue: "11" → "17077"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 17? ↔ - \( 17077 \div 37 = 461.54... \) so not divisible by 37.
+                   — NumericValue: "17" → "37"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 19? ↔ - \( 17077 \div 43 = 397.139... \) so not divisible by 43.
+                   — NumericValue: "19" → "43"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 23? ↔ - \( 17077 \div 47 = 363.340... \) so not divisible by 47.
+                   — NumericValue: "23" → "47"
+                </li>
+                
+                <li>sim 1 · - **Divisible by 29? ↔ - \( 17077 \div 59 = 289.441... \) so not divisible by 59.
+                   — NumericValue: "29" → "59"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 31? ↔ - \( 17077 \div 53 = 322.207... \) so not divisible by 53.
+                   — NumericValue: "31" → "53"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 37? ↔ - \( 17077 \div 61 = 279.951... \) so not divisible by 61.
+                   — NumericValue: "37" → "61"
+                </li>
+                
+                <li>sim 1 · Remainder: \(17077 - 17056 = 21\), so no. ↔ - \( 17077 \div 73 = 233.932... \) so not divisible by 73.
+                   — NumericValue: "17056" → "233.932"; NumericValue: "21" → "73"
+                </li>
+                
+                <li>sim 1 · 43 \times 397 = 17071 ↔ It is composite, because \(17077 = 43 \times 397\).
+                   — NumericValue: "17071" → "17077"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 47? ↔ - \( 17077 \div 71 = 240.521... \) so not divisible by 71.
+                   — NumericValue: "47" → "71"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 53? ↔ - \( 17077 \div 79 = 216.164... \) so not divisible by 79.
+                   — NumericValue: "53" → "79"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 59? ↔ - \( 17077 \div 83 = 205.747... \) so not divisible by 83.
+                   — NumericValue: "59" → "83"
+                </li>
+                
+                <li>sim 0 · - **Divisible by 61? ↔ - \( 17077 \div 89 = 191.876... \) so not divisible by 89.
+                   — NumericValue: "61" → "89"
+                </li>
+                
+                <li>sim 1 · Check \(17077 \div 67\): ↔ - \( 17077 \div 97 = 176.051... \) so not divisible by 97.
+                   — NumericValue: "67" → "176.051"
+                </li>
+                
+              </ul>
+            </div>
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>We need to determine if 17077 is a prime number. A prime number is a number greater than 1 that has no positive divisors other than 1 and itself.
+
+### Step 1: Check if 17077 is divisible by small primes
+
+We will test divisibility by prime numbers up to \(\sqrt{17077}\).
+
+Calculate \(\sqrt{17077}\):
+
+\[
+\sqrt{17077} \approx 130.6
+\]
+
+So, we only need to check prime numbers up to 130.
+
+### Step 2: Check divisibility by small primes
+
+- **Divisible by 2?**  
+17077 is odd (ends with 7), so no.
+
+- **Divisible by 3?**  
+Sum of digits: 1 + 7 + 0 + 7 + 7 = 22  
+22 is not divisible by 3, so no.
+
+- **Divisible by 5?**  
+Last digit is not 0 or 5, so no.
+
+- **Divisible by 7?**  
+Check \(17077 \div 7\):
+
+\[
+7 \times 2439 = 17073
+\]
+
+Remainder: \(17077 - 17073 = 4\), so no.
+
+- **Divisible by 11?**  
+Sum of digits in odd positions: 1 + 0 + 7 = 8  
+Sum of digits in even positions: 7 + 7 = 14  
+Difference: \(14 - 8 = 6\), not divisible by 11, so no.
+
+- **Divisible by 13?**  
+Check \(17077 \div 13\):
+
+\[
+13 \times 1313 = 17069
+\]
+
+Remainder: \(17077 - 17069 = 8\), so no.
+
+- **Divisible by 17?**  
+Check \(17077 \div 17\):
+
+\[
+17 \times 1004 = 17068
+\]
+
+Remainder: \(17077 - 17068 = 9\), so no.
+
+- **Divisible by 19?**  
+Check \(17077 \div 19\):
+
+\[
+19 \times 898 = 17062
+\]
+
+Remainder: \(17077 - 17062 = 15\), so no.
+
+- **Divisible by 23?**  
+Check \(17077 \div 23\):
+
+\[
+23 \times 742 = 17066
+\]
+
+Remainder: \(17077 - 17066 = 11\), so no.
+
+- **Divisible by 29?**  
+Check \(17077 \div 29\):
+
+\[
+29 \times 588 = 17052
+\]
+
+Remainder: \(17077 - 17052 = 25\), so no.
+
+- **Divisible by 31?**  
+Check \(17077 \div 31\):
+
+\[
+31 \times 550 = 17050
+\]
+
+Remainder: \(17077 - 17050 = 27\), so no.
+
+- **Divisible by 37?**  
+Check \(17077 \div 37\):
+
+\[
+37 \times 461 = 17057
+\]
+
+Remainder: \(17077 - 17057 = 20\), so no.
+
+- **Divisible by 41?**  
+Check \(17077 \div 41\):
+
+\[
+41 \times 416 = 17056
+\]
+
+Remainder: \(17077 - 17056 = 21\), so no.
+
+- **Divisible by 43?**  
+Check \(17077 \div 43\):
+
+\[
+43 \times 397 = 17071
+\]
+
+Remainder: \(17077 - 17071 = 6\), so no.
+
+- **Divisible by 47?**  
+Check \(17077 \div 47\):
+
+\[
+47 \times 363 = 17061
+\]
+
+Remainder: \(17077 - 17061 = 16\), so no.
+
+- **Divisible by 53?**  
+Check \(17077 \div 53\):
+
+\[
+53 \times 322 = 17066
+\]
+
+Remainder: \(17077 - 17066 = 11\), so no.
+
+- **Divisible by 59?**  
+Check \(17077 \div 59\):
+
+\[
+59 \times 289 = 17051
+\]
+
+Remainder: \(17077 - 17051 = 26\), so no.
+
+- **Divisible by 61?**  
+Check \(17077 \div 61\):
+
+\[
+61 \times 279 = 17019
+\]
+
+Remainder: \(17077 - 17019 = 58\), so no.
+
+- **Divisible by 67?**  
+Check \(17077 \div 67\):
+
+\[
+67 \times 254 = 17018
+\]
+
+Remainder: \(17077 - 17018 = 59\), so no.
+
+- **Divisible by 71?**  
+Check \(17077 \div 71\):
+
+\[
+71 \times 240 = 17040
+\]
+
+Remainder: \(17077 - 17040 = 37\), so no.
+
+- **Divisible by 73?**  
+Check \(17077 \div 73\):
+
+\[
+73 \times 233 = 17009
+\]
+
+Remainder: \(17077 - 17009 = 68\), so no.
+
+- **Divisible by 79?**  
+Check \(17077 \div 79\):
+
+\[
+79 \times 216 = 17064
+\]
+
+Remainder: \(17077 - 17064 = 13\), so no.
+
+- **Divisible by 83?**  
+Check \(17077 \div 83\):
+
+\[
+83 \times 205 = 17015
+\]
+
+Remainder: \(17077 - 17015 = 62\), so no.
+
+- **Divisible by 89?**  
+Check \(17077 \div 89\):
+
+\[
+89 \times 191 = 16999
+\]
+
+Remainder: \(17077 - 16999 = 78\), so no.
+
+- **Divisible by 97?**  
+Check \(17077 \div 97\):
+
+\[
+97 \times 176 = 17072
+\]
+
+Remainder: \(17077 - 17072 = 5\), so no.
+
+- **Divisible by 101?**  
+Check \(17077 \div 101\):
+
+\[
+101 \times 169 = 17069
+\]
+
+Remainder: \(17077 - 17069 = 8\), so no.
+
+- **Divisible by 103?**  
+Check \(17077 \div 103\):
+
+\[
+103 \times 165 = 16995
+\]
+
+Remainder: \(17077 - 16995 = 82\), so no.
+
+- **Divisible by 107?**  
+Check \(17077 \div 107\):
+
+\[
+107 \times 159 = 17013
+\]
+
+Remainder: \(17077 - 17013 = 64\), so no.
+
+- **Divisible by 109?**  
+Check \(17077 \div 109\):
+
+\[
+109 \times 156 = 17004
+\]
+
+Remainder: \(17077 - 17004 = 73\), so no.
+
+- **Divisible by 113?**  
+Check \(17077 \div 113\):
+
+\[
+113 \times 151 = 17063
+\]
+
+Remainder: \(17077 - 17063 = 14\), so no.
+
+- **Divisible by 127?**  
+Check \(17077 \div 127\):
+
+\[
+127 \times 134 = 17018
+\]
+
+Remainder: \(17077 - 17018 = 59\), so no.
+
+### Step 3: Try divisibility by 131 (just above 130.6)
+
+Since \(\sqrt{17077} \approx 130.6\), no need to check beyond 130.
+
+### Step 4: Conclusion
+
+We have tested all prime numbers up to 130 and found no divisors of 17077. Therefore, **17077 is a prime number**.
+
+---
+
+### **Final answer:**
+
+**17077 is a prime number.**</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>No, **17077 is not a prime number**.
+
+Here’s the step-by-step working:
+
+1. To test whether 17077 is prime, we check whether it has any divisors other than 1 and itself.
+2. A useful first check is divisibility by **7**:
+   - \( 17077 \div 7 = 2439.571... \) so not divisible by 7.
+3. Check **11**:
+   - \( 17077 \div 11 = 1552.454... \) so not divisible by 11.
+4. Check **13**:
+   - \( 17077 \div 13 = 1313.615... \) so not divisible by 13.
+5. Check **17**:
+   - \( 17077 \div 17 = 1004.529... \) so not divisible by 17.
+6. Check **19**:
+   - \( 17077 \div 19 = 898.789... \) so not divisible by 19.
+7. Check **23**:
+   - \( 17077 \div 23 = 742.478... \) so not divisible by 23.
+8. Check **29**:
+   - \( 17077 \div 29 = 588.862... \) so not divisible by 29.
+9. Check **31**:
+   - \( 17077 \div 31 = 550.871... \) so not divisible by 31.
+10. Check **37**:
+   - \( 17077 \div 37 = 461.54... \) so not divisible by 37.
+11. Check **41**:
+   - \( 17077 \div 41 = 416.512... \) so not divisible by 41.
+12. Check **43**:
+   - \( 17077 \div 43 = 397.139... \) so not divisible by 43.
+13. Check **47**:
+   - \( 17077 \div 47 = 363.340... \) so not divisible by 47.
+14. Check **53**:
+   - \( 17077 \div 53 = 322.207... \) so not divisible by 53.
+15. Check **59**:
+   - \( 17077 \div 59 = 289.441... \) so not divisible by 59.
+16. Check **61**:
+   - \( 17077 \div 61 = 279.951... \) so not divisible by 61.
+17. Check **67**:
+   - \( 17077 \div 67 = 254.880... \) so not divisible by 67.
+18. Check **71**:
+   - \( 17077 \div 71 = 240.521... \) so not divisible by 71.
+19. Check **73**:
+   - \( 17077 \div 73 = 233.932... \) so not divisible by 73.
+20. Check **79**:
+   - \( 17077 \div 79 = 216.164... \) so not divisible by 79.
+21. Check **83**:
+   - \( 17077 \div 83 = 205.747... \) so not divisible by 83.
+22. Check **89**:
+   - \( 17077 \div 89 = 191.876... \) so not divisible by 89.
+23. Check **97**:
+   - \( 17077 \div 97 = 176.051... \) so not divisible by 97.
+
+Now, instead of checking every prime up to \(\sqrt{17077}\), we can try factoring directly:
+
+\[
+17077 = 7 \times 2439.571...
+\]
+
+That doesn’t work, so let’s test a more systematic factorization approach.  
+Notice:
+
+\[
+17077 = 13 \times 1313.615...
+\]
+
+Still not exact. But if we continue checking, we find:
+
+\[
+17077 = 43 \times 397
+\]
+
+And since both 43 and 397 are prime, this shows that 17077 has factors other than 1 and itself.
+
+### Final answer:
+**17077 is not prime. It is composite, because \(17077 = 43 \times 397\).**</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+      <details class="probe">
+        <summary>
+          <span class="probe-title">reasoning_show_dont_just_answer</span>
+          <span class="badge Red dir-regression">Red</span>
+          
+          <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 0 · v2 0</span>
+          
+          <span class="probe-meta">Instruction · Regression</span>
+        </summary>
+        <div style="padding:0.75rem 1rem 1.25rem">
+          <p class="muted" style="margin:0 0 0.35rem">Prompt</p>
+          <pre>What is the square root of 1764? Do not just give the answer. Show how you would work it out or verify it.</pre>
+
+          <h3 class="snap">Dimension snapshot</h3>
+          <table class="dimbreak">
+            <tbody>
+              <tr>
+                <th>Severity</th>
+                <td colspan="3">
+                  🔴 Critical
+                  
+                </td>
+              </tr>
+              <tr>
+                <th>Drift category</th>
+                <td colspan="3">
+                  ⛔ Critical regression
+                  
+                  <span class="muted" style="margin-left:0.5rem">(CriticalRegression)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Morphology</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · Δ tokens ≈ 3% · type Δ false</td>
+              </tr>
+              <tr>
+                <th>Tone</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · formality Δ -0%</td>
+              </tr>
+              <tr>
+                <th>Semantic</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · sim 0.6248396549966779</td>
+              </tr>
+              <tr>
+                <th>Claim</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · preservation 0.5555555555555556 (≥ 0.7 for green band) · dropped 1 · new 4</td>
+              </tr>
+              <tr>
+                <th>Latency</th>
+                <td class="risk"><span class="badge Amber">Amber</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · v1 2109 ms · v2 3425 ms · Δ 1316 ms</td>
+              </tr>
+              
+              <tr>
+                <th>Consistency</th>
+                <td class="risk"><span class="badge Red">Red</span></td>
+                <td class="dir"><span class="dir-arrow-reg"></span></td>
+                <td>Regression · runs 3/3 · var 0 / 0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Refusal</th>
+                <td class="risk"><span class="badge Green">Green</span></td>
+                <td class="dir"><span class="dir-arrow-neu"></span></td>
+                <td>Neutral · new false · lifted false</td>
+              </tr>
+              
+              
+              
+            </tbody>
+          </table>
+
+          <details class="claim-diff">
+            <summary>Claim diff<span class="pill">5 matched · 1 dropped · 4 new</span></summary>
+            
+            <div class="claim-block">
+              <h4>Matched claims</h4>
+              <ul class="compact">
+                
+                <li>sim 0 · anchors ok true · <span class="muted">v1:</span> - Since \(40^2 = 1600\) and \(50^2 = 2500\), the square root of 1764 should be between 40 and 50. <span class="muted">↔ v2:</span> - \(40^2 = 1600\)</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - \(42^2 = 42 \times 42 = 1764\) <span class="muted">↔ v2:</span> 42 \times 42 = 42 \times (40 + 2) = 42 \times 40 + 42 \times 2 = 1680 + 84 = 1764</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> ### Verification: <span class="muted">↔ v2:</span> **Answer: 42**</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - Multiply 42 by itself: \(42 \times 42 = 1764\) <span class="muted">↔ v2:</span> Multiply 42 by itself:</li>
+                
+                <li>sim 1 · anchors ok true · <span class="muted">v1:</span> - This confirms that \(\sqrt{1764} = 42\). <span class="muted">↔ v2:</span> \sqrt{1764} = 42</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Dropped (v1 → missing in v2)</h4>
+              <ul class="compact">
+                
+                <li>### Step 2: Try some numbers between 40 and 50 · anchors: 2, 40, 50, Step</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>New in v2</h4>
+              <ul class="compact">
+                
+                <li>### Method 1: Recognize a perfect square</li>
+                
+                <li>You can check nearby squares:</li>
+                
+                <li>- \(41^2 = 1681\)</li>
+                
+                <li>### Method 2: Verify by multiplication</li>
+                
+              </ul>
+            </div>
+            
+            
+            <div class="claim-block">
+              <h4>Drifted anchors</h4>
+              <ul class="compact">
+                
+                <li>sim 1 · To find the square root of 1764, we want to find a number which, when multiplied by itself, equals 1764. ↔ The square root of **1764** is **42**.
+                   — NumericValue: "1764" → "42"
+                </li>
+                
+                <li>sim 1 · ### Step 1: Estimate the square root ↔ Since \(42^2 = 1764\), the square root is:
+                   — NumericValue: "1" → "2"
+                </li>
+                
+                <li>sim 1 · Since \(42 \times 42 = 1764\), the square root of 1764 is **42**. ↔ - \(42^2 = 1764\)
+                   — NumericValue: "42" → "2"
+                </li>
+                
+              </ul>
+            </div>
+            
+            
+          </details>
+
+          <div class="grid" style="margin-top:1rem">
+            <div>
+              <h3 class="snap">v1 response</h3>
+              <pre>To find the square root of 1764, we want to find a number which, when multiplied by itself, equals 1764.
+
+### Step 1: Estimate the square root
+- Since \(40^2 = 1600\) and \(50^2 = 2500\), the square root of 1764 should be between 40 and 50.
+
+### Step 2: Try some numbers between 40 and 50
+- \(42^2 = 42 \times 42 = 1764\)
+
+Since \(42 \times 42 = 1764\), the square root of 1764 is **42**.
+
+### Verification:
+- Multiply 42 by itself: \(42 \times 42 = 1764\)
+- This confirms that \(\sqrt{1764} = 42\).</pre>
+            </div>
+            <div>
+              <h3 class="snap">v2 response</h3>
+              <pre>The square root of **1764** is **42**.
+
+Here’s how to work it out and verify it:
+
+### Method 1: Recognize a perfect square
+You can check nearby squares:
+
+- \(40^2 = 1600\)
+- \(41^2 = 1681\)
+- \(42^2 = 1764\)
+
+Since \(42^2 = 1764\), the square root is:
+
+\[
+\sqrt{1764} = 42
+\]
+
+### Method 2: Verify by multiplication
+Multiply 42 by itself:
+
+\[
+42 \times 42 = 42 \times (40 + 2) = 42 \times 40 + 42 \times 2 = 1680 + 84 = 1764
+\]
+
+So the result checks out.
+
+**Answer: 42**</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Upgrade path</h2>
+      <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
+      <p class="mono" style="font-size:0.82rem;color:var(--muted)">
+        Blocking 4
+        · Verify 3
+        · Neutral 3
+        · Validated 0
+      </p>
+
+      
+      
+      
+        
+      <h3 class="snap">Critical regressions</h3>
+      <ul class="upgrade-list"><li><strong>reasoning_causal_explanation</strong> — Critical &#x2F; Red &#x2F; Regression &#x2F; CriticalRegression</li><li><strong>reasoning_prime_composite</strong> — Critical &#x2F; Red &#x2F; Regression &#x2F; CriticalRegression</li><li><strong>reasoning_prime_identification</strong> — Critical &#x2F; Red &#x2F; Neutral &#x2F; CriticalRegression</li><li><strong>reasoning_show_dont_just_answer</strong> — Critical &#x2F; Red &#x2F; Regression &#x2F; CriticalRegression</li></ul>
+        
+        
+      
+      
+      <h3 class="snap">Improvements to verify</h3>
+      <ul class="upgrade-list"><li><strong>reasoning_analogy_explanation</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li><li><strong>reasoning_hypothesis_testing</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li><li><strong>reasoning_percentage_calculation</strong> — High &#x2F; Amber &#x2F; Regression &#x2F; CriticalRegression — warrants attention before switching</li></ul>
+      
+      
+      <h3 class="snap">Neutral changes</h3>
+      <h4 class="snap" style="margin-top:0.75rem">Compression drift — model is more concise</h4>
+      <ul class="upgrade-list"><li><strong>reasoning_conditional_logic</strong> — Low &#x2F; Amber &#x2F; Regression &#x2F; ContentCompression</li></ul>
+      <h4 class="snap" style="margin-top:0.75rem">Structural drift — same content, different organisation</h4>
+      <ul class="upgrade-list"><li><strong>reasoning_logical_deduction</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li><li><strong>reasoning_multi_step_arithmetic</strong> — Informational &#x2F; Amber &#x2F; Regression &#x2F; StructuralDrift</li></ul>
+      <h4 class="snap" style="margin-top:0.75rem">Fidelity drift — different style, equivalent substance</h4>
+      <ul class="upgrade-list"></ul>
+      
+        
+      
+        
+      
+        
+      
+      
+
+      <h3 class="snap">Validated prompt patches</h3>
+      
+      <p class="upgrade-empty-note">No automated patches generated — run with <code>--mutate</code> to attempt prompt repairs.</p>
+      
+    </section>
+
+    <section class="panel">
+      <h2>Latency impact</h2>
+      <p class="muted" style="margin-top:0">Observational only — latency does not affect overall risk, probe direction, or upgrade path routing.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average baseline latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">11216 ms</p>
+        </div>
+        <div>
+          <p style="color:var(--muted);margin:0 0 0.35rem;font-size:0.85rem">Average target latency</p>
+          <p class="mono" style="margin:0;font-size:1.1rem">3348 ms</p>
+        </div>
+      </div>
+      <p style="margin:1rem 0 0.5rem">
+        Delta: <span class="mono">-7868 ms</span>
+        (<span class="mono">-70.1%</span>)
+        · Direction: <span class="badge Improvement">Improvement</span>
+      </p>
+      <p style="margin:0;color:var(--fg)">v2 responded 70% faster on average across 10 probes</p>
+    </section>
+
+    
+
+    <section class="panel">
+      <h2>Upgrade recommendation</h2>
+      
+      <p>Overall risk requires remediation: resolve critical regressions and policy changes (or adjust prompts) before upgrading. Fidelity, structural, and compression drift may be acceptable without blocking rollout.</p>
+      
+    </section>
+  </main>
+
+  <div id="arsenic-toast" class="toast" role="status">Copied to clipboard</div>
+  <script>
+    function arsenicCopy(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var t = document.getElementById('arsenic-toast');
+          if (t) { t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600); }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
