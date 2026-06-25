@@ -26,7 +26,8 @@ until a customer complained.
 | gpt-4o-mini → gpt-4.1-mini | Code generation | 10 | ✅ 10/10 green |
 | gpt-4o-mini → gpt-4.1-mini | JSON schema | 10 | ⚠️ 2 probes warrant review |
 | gpt-4o-mini → gpt-4.1-mini | Sycophancy | 10 | ⚠️ 1 probe warrants review |
-| gpt-4o-mini → gpt-4.1-mini | Standard suite | 18 | ⚠️ 3 probes warrant review |
+| gpt-4o-mini → gpt-4.1-mini | RAG drift | 14 | 🔴 2 critical regressions |
+| gpt-4o-mini → gpt-4.1-mini | Extreme Edge | 12 | 🔴 1 critical regressions |
 | llama3.1:8b → llama3.2:3b | Standard suite | 18 | 🔴 1 critical regression |
 
 **The code generation upgrade is safe. The reasoning upgrade is not.**
