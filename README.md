@@ -10,7 +10,7 @@ Three weeks later the support bot sounds different. Responses are shorter. A leg
 disclaimer stopped appearing. The JSON shape changed on one endpoint. Nobody noticed
 until a customer complained.
 
-**Arsenic catches this before you deploy.**
+**Arsenic tells you whether the upgrade is actually safe to deploy.**
 
 Arsenic distinguishes **blocking behavioural regressions** (factual errors, schema breaks, instruction failures) from **presentation drift** (formatting, verbosity, markdown structure) and **telemetry drift** (latency, consistency). A model upgrade can look scary on raw dimension counts while still being safe to ship — the report tells you which is which.
 
@@ -20,7 +20,7 @@ Arsenic distinguishes **blocking behavioural regressions** (factual errors, sche
 
 ---
 
-## What Arsenic found on real model upgrades
+## What Arsenic found on real-world model upgrade results
 
 | Comparison | Probe pack | Probes | Result |
 |------------|------------|--------|--------|
