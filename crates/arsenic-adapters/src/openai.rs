@@ -10,10 +10,7 @@ const DEFAULT_MAX_TOKENS: usize = 2048;
 /// `max_completion_tokens` instead. gpt-4.x and gpt-4o still accept `max_tokens`.
 fn uses_max_completion_tokens(model_id: &str) -> bool {
     let id = model_id.to_ascii_lowercase();
-    id.starts_with("gpt-5")
-        || id.starts_with("o1")
-        || id.starts_with("o3")
-        || id.starts_with("o4")
+    id.starts_with("gpt-5") || id.starts_with("o1") || id.starts_with("o3") || id.starts_with("o4")
 }
 
 fn completion_limit_field(model_id: &str, limit: usize) -> (&'static str, usize) {
@@ -87,21 +84,13 @@ impl OpenAIAdapter {
 #[async_trait]
 impl ModelAdapter for OpenAIAdapter {
     async fn complete(&self, probe: &Probe) -> anyhow::Result<ModelResponse> {
-        let url = format!(
-            "{}/chat/completions",
-            self.endpoint.trim_end_matches('/')
-        );
+        let url = format!("{}/chat/completions", self.endpoint.trim_end_matches('/'));
         let mut messages = Vec::new();
         if let Some(sys) = &probe.system_prompt {
             messages.push(json!({"role":"system","content":sys}));
         }
         messages.push(json!({"role":"user","content":probe.prompt}));
-        let body = build_chat_body(
-            &self.model_id,
-            &messages,
-            self.temperature,
-            self.max_tokens,
-        );
+        let body = build_chat_body(&self.model_id, &messages, self.temperature, self.max_tokens);
         let start = Instant::now();
         let (status, raw) = self.post_chat_completion(&url, &body).await?;
 

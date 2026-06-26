@@ -3,9 +3,7 @@
 use std::collections::HashSet;
 
 use crate::claim::is_spurious_anchor_value;
-use crate::types::{
-    ClaimDiff, MorphologyDiff, MutationStrategy, Probe, RefusalDiff, ToneDiff,
-};
+use crate::types::{ClaimDiff, MorphologyDiff, MutationStrategy, Probe, RefusalDiff, ToneDiff};
 
 /// Build ordered mutation strategies from drift characterisation.
 pub fn propose_strategies(
@@ -144,9 +142,10 @@ pub fn apply_mutations(probe: &Probe, strategies: &[MutationStrategy]) -> String
 mod tests {
     use super::*;
     use crate::types::{
-        AnchorType, Claim, ClaimAnchor, ClaimDrift, DriftDirection, ExpectedTonePreference,
-        ExpectedVerbosity, MorphologyDelta, MorphologyMetrics, ProbeCategory, ProbeSource,
-        ResponseType, RiskLevel, ToneDelta, ToneMetrics,
+        AnchorType, Claim, ClaimAnchor, ClaimAnchorPolicy, ClaimDrift, DriftDirection,
+        ExpectedTonePreference, ExpectedVerbosity, MorphologyDelta, MorphologyMetrics,
+        PresentationDriftPolicy, ProbeCategory, ProbeSource, ResponseType, RiskLevel, ToneDelta,
+        ToneMetrics,
     };
     use uuid::Uuid;
 
@@ -220,14 +219,9 @@ mod tests {
         ClaimDiff {
             risk: RiskLevel::Green,
             direction: DriftDirection::Neutral,
-            v1_claims: vec![],
-            v2_claims: vec![],
-            matched_pairs: vec![],
-            dropped_claims: vec![],
-            new_claims: vec![],
-            drifted_claims: vec![],
             preservation_score: 1.0,
             preservation_threshold: 0.7,
+            ..Default::default()
         }
     }
 
@@ -262,6 +256,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         }
     }
 
@@ -343,7 +342,9 @@ mod tests {
             &claim,
             &[],
         );
-        assert!(s.iter().any(|x| matches!(x, MutationStrategy::AddPrecisionInstruction)));
+        assert!(s
+            .iter()
+            .any(|x| matches!(x, MutationStrategy::AddPrecisionInstruction)));
     }
 
     #[test]
@@ -440,7 +441,9 @@ mod tests {
             &empty_claim(),
             &[],
         );
-        assert!(s.iter().any(|x| matches!(x, MutationStrategy::SoftenPhrasing)));
+        assert!(s
+            .iter()
+            .any(|x| matches!(x, MutationStrategy::SoftenPhrasing)));
         assert!(s
             .iter()
             .any(|x| matches!(x, MutationStrategy::AddEducationalContext)));

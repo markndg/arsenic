@@ -11,6 +11,7 @@
 - Green / Amber / Red: {{ summary.probes_green }} / {{ summary.probes_amber }} / {{ summary.probes_red }}
 - Drift valence (probes): {{ summary.probe_regressions }} regression(s), {{ summary.probe_improvements }} improvement(s), {{ summary.probe_neutral }} neutral
 - Safe to upgrade: **{{ summary.safe_to_upgrade }}**
+- Blocking regressions: **{{ summary.blocking_regressions }}** · Review items: **{{ summary.review_items }}** · Presentation drift: **{{ summary.presentation_drift }}** · Telemetry drift: **{{ summary.telemetry_drift }}**
 - Manual review: {{ summary.requires_manual_review }} · Auto-remediation candidates: {{ summary.auto_remediation_candidates }}
 
 ## Probes

@@ -95,7 +95,12 @@ async fn complete_with_retry(
     error_response(probe.id, label, adapter, &last_err)
 }
 
-fn error_response(probe_id: Uuid, label: &str, adapter: &dyn ModelAdapter, err: &str) -> ModelResponse {
+fn error_response(
+    probe_id: Uuid,
+    label: &str,
+    adapter: &dyn ModelAdapter,
+    err: &str,
+) -> ModelResponse {
     ModelResponse {
         probe_id,
         model_label: label.to_string(),
@@ -112,7 +117,7 @@ fn error_response(probe_id: Uuid, label: &str, adapter: &dyn ModelAdapter, err: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{ProbeCategory, ProbeSource};
+    use crate::types::{ClaimAnchorPolicy, PresentationDriftPolicy, ProbeCategory, ProbeSource};
     use async_trait::async_trait;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -170,6 +175,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         }
     }
 
@@ -199,14 +209,21 @@ mod tests {
         let probe = mk_probe();
         let r = complete_with_retry(&adapter, &probe, "v2", 3, 0).await;
         assert!(matches!(r.finish_reason, FinishReason::Error));
-        assert_eq!(r.model_id, "flaky-model", "error must record adapter model id");
+        assert_eq!(
+            r.model_id, "flaky-model",
+            "error must record adapter model id"
+        );
         assert_eq!(r.model_label, "v2");
         assert!(r.content.starts_with("ERROR:"), "got: {}", r.content);
         assert!(
             r.raw.get("error").is_some(),
             "synthetic error must include the cause in `raw.error`"
         );
-        assert_eq!(calls.load(Ordering::SeqCst), 3, "attempts must be exhausted");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            3,
+            "attempts must be exhausted"
+        );
     }
 
     #[tokio::test]

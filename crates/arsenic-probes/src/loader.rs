@@ -3,8 +3,8 @@ use std::path::Path;
 
 use anyhow::Context;
 use arsenic_core::{
-    CustomAssertion, ExpectedTonePreference, ExpectedVerbosity, Probe, ProbeCategory, ProbeInstruction,
-    ProbeSource, RefusalExpectation,
+    CustomAssertion, ExpectedTonePreference, ExpectedVerbosity, Probe, ProbeCategory,
+    ProbeInstruction, ProbeSource, RefusalExpectation,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -42,6 +42,16 @@ struct TomlProbe {
     mutation_hint: Option<String>,
     #[serde(default)]
     custom_assertions: Vec<CustomAssertion>,
+    #[serde(default)]
+    format_sensitive: bool,
+    #[serde(default)]
+    structure_sensitive: bool,
+    #[serde(default)]
+    claim_anchor_policy: arsenic_core::ClaimAnchorPolicy,
+    #[serde(default)]
+    presentation_drift: arsenic_core::PresentationDriftPolicy,
+    #[serde(default)]
+    latency_slo_ms: Option<u64>,
 }
 
 impl ProbeLoader {
@@ -91,8 +101,8 @@ impl ProbeLoader {
 
 fn load_file(path: &Path, source: ProbeSource) -> anyhow::Result<Vec<Probe>> {
     let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
-    let parsed: ProbeFile = toml::from_str(&text)
-        .with_context(|| format!("parse probe TOML {}", path.display()))?;
+    let parsed: ProbeFile =
+        toml::from_str(&text).with_context(|| format!("parse probe TOML {}", path.display()))?;
     let mut out = Vec::new();
     for p in parsed.probes {
         out.push(toml_to_probe(p, source.clone(), path)?);
@@ -118,6 +128,11 @@ fn toml_to_probe(p: TomlProbe, source: ProbeSource, path: &Path) -> anyhow::Resu
         refusal_expectation: p.refusal_expectation,
         mutation_hint: p.mutation_hint,
         custom_assertions: p.custom_assertions,
+        format_sensitive: p.format_sensitive,
+        structure_sensitive: p.structure_sensitive,
+        claim_anchor_policy: p.claim_anchor_policy,
+        presentation_drift: p.presentation_drift,
+        latency_slo_ms: p.latency_slo_ms,
         source,
     })
 }
@@ -260,7 +275,10 @@ category = "Factual"
         );
         let err = ProbeLoader::load_user_corpus(&dir).unwrap_err();
         let msg = format!("{err:?}").to_lowercase();
-        assert!(msg.contains("prompt") || msg.contains("missing"), "got: {msg}");
+        assert!(
+            msg.contains("prompt") || msg.contains("missing"),
+            "got: {msg}"
+        );
     }
 
     #[test]
@@ -269,7 +287,9 @@ category = "Factual"
         let p = write_toml(&dir, "single.toml", HAPPY_PATH_TOML);
         let probes = ProbeLoader::load_user_corpus(&p).unwrap();
         assert_eq!(probes.len(), 2);
-        assert!(probes.iter().all(|p| matches!(p.source, ProbeSource::UserDefined)));
+        assert!(probes
+            .iter()
+            .all(|p| matches!(p.source, ProbeSource::UserDefined)));
     }
 
     #[test]

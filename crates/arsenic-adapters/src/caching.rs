@@ -198,7 +198,9 @@ impl ModelAdapter for CachingAdapter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use arsenic_core::types::{ProbeCategory, ProbeSource};
+    use arsenic_core::types::{
+        ClaimAnchorPolicy, PresentationDriftPolicy, ProbeCategory, ProbeSource,
+    };
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use uuid::Uuid;
@@ -229,6 +231,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         }
     }
 
@@ -288,7 +295,12 @@ mod tests {
             calls: Arc::clone(&calls),
             fail: false,
         });
-        let wrap = CachingAdapter::new(Some(inner), Arc::clone(&cache), CacheMode::WriteOnly, identity());
+        let wrap = CachingAdapter::new(
+            Some(inner),
+            Arc::clone(&cache),
+            CacheMode::WriteOnly,
+            identity(),
+        );
         let p = mk_probe("p", "hi");
 
         let r = wrap.complete(&p).await.unwrap();
@@ -336,8 +348,7 @@ mod tests {
 
         // Inner adapter explicitly None; any live call would panic with the
         // helpful error in complete_live.
-        let wrap =
-            CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
+        let wrap = CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
         let r = wrap.complete(&p).await.unwrap();
         assert_eq!(r.content, "cached");
     }
@@ -346,8 +357,7 @@ mod tests {
     async fn read_only_misses_are_an_error() {
         let root = tmp_root("ro-miss");
         let cache = Arc::new(BaselineCache::new(root.join("b")));
-        let wrap =
-            CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
+        let wrap = CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
         let p = mk_probe("p", "uncached");
         let err = wrap.complete(&p).await;
         assert!(err.is_err());
@@ -382,8 +392,7 @@ mod tests {
             };
             cache.append_run(&key, &r, &p).unwrap();
         }
-        let wrap =
-            CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
+        let wrap = CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
         for i in 0..3 {
             let r = wrap.complete(&p).await.unwrap();
             assert_eq!(r.content, format!("run-{i}"));
@@ -398,8 +407,7 @@ mod tests {
     async fn read_only_failed_reads_do_not_advance_counter() {
         let root = tmp_root("ro-retry");
         let cache = Arc::new(BaselineCache::new(root.join("b")));
-        let wrap =
-            CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
+        let wrap = CachingAdapter::new(None, Arc::clone(&cache), CacheMode::ReadOnly, identity());
         let p = mk_probe("p", "miss");
         // Three failed reads in a row (e.g. retry loop) must not bump the
         // counter past 0.

@@ -7,7 +7,7 @@ use arsenic_core::DriftReport;
 use serde_json::{json, Value};
 use tera::{Context as TeraContext, Tera};
 
-pub use reconcile_report::{render_reconcile_html, render_reconcile_json, reconcile_json_value};
+pub use reconcile_report::{reconcile_json_value, render_reconcile_html, render_reconcile_json};
 
 pub struct ReportRenderer;
 
@@ -17,6 +17,7 @@ pub struct ReportRenderer;
 /// External scripts often expect the short names; Rust and the HTML templates use `probe_*`.
 pub fn drift_report_json_value(report: &DriftReport) -> anyhow::Result<Value> {
     let mut report = report.clone();
+    report.rebuild_rollups();
     report.sync_valence_from_probe_results();
     let mut v = serde_json::to_value(&report).context("serialize drift report")?;
     if let Some(summary) = v.get_mut("summary") {
@@ -53,7 +54,9 @@ impl ReportRenderer {
     }
 
     pub fn render_json(report: &DriftReport) -> anyhow::Result<String> {
-        Ok(serde_json::to_string_pretty(&drift_report_json_value(report)?)?)
+        Ok(serde_json::to_string_pretty(&drift_report_json_value(
+            report,
+        )?)?)
     }
 
     pub fn render_markdown(report: &DriftReport) -> anyhow::Result<String> {
@@ -69,15 +72,20 @@ impl ReportRenderer {
     /// Minimal stdout summary without Tera.
     pub fn render_summary_line(report: &DriftReport) -> String {
         let mut report = report.clone();
+        report.rebuild_rollups();
         report.sync_valence_from_probe_results();
         format!(
-            "run={} overall={:?} probes={} green={} amber={} red={} regressions={} improvements={} neutral={} safe_to_upgrade={}",
+            "run={} overall={:?} probes={} green={} amber={} red={} blocking={} review={} presentation={} telemetry={} regressions={} improvements={} neutral={} safe_to_upgrade={}",
             report.run_id,
             report.overall_risk,
             report.summary.total_probes,
             report.summary.probes_green,
             report.summary.probes_amber,
             report.summary.probes_red,
+            report.summary.blocking_regressions,
+            report.summary.review_items,
+            report.summary.presentation_drift,
+            report.summary.telemetry_drift,
             report.summary.probe_regressions,
             report.summary.probe_improvements,
             report.summary.probe_neutral,
@@ -107,8 +115,8 @@ mod tests {
 
     #[test]
     fn mirror_summary_valence_aliases_fills_short_keys() {
-        let report: DriftReport =
-            serde_json::from_str(FIXTURE_REPORT).expect("parse fixtures/report_openai_upgrade.json");
+        let report: DriftReport = serde_json::from_str(FIXTURE_REPORT)
+            .expect("parse fixtures/report_openai_upgrade.json");
         let v = drift_report_json_value(&report).expect("export");
         let s = v.get("summary").expect("summary");
         assert_eq!(s.get("probe_regressions"), s.get("regressions"));
@@ -117,18 +125,58 @@ mod tests {
     }
 
     #[test]
-    fn red_probes_panel_empty_shows_banner_only() {
+    fn legacy_json_export_is_additive() {
+        let report: DriftReport = serde_json::from_str(FIXTURE_REPORT)
+            .expect("parse fixtures/report_openai_upgrade.json");
+        let v = drift_report_json_value(&report).expect("export");
+
+        let summary = v.get("summary").expect("summary");
+        assert!(summary.get("probes_red").is_some());
+        assert!(summary.get("blocking_regressions").is_some());
+        assert!(summary.get("review_items").is_some());
+        assert!(summary.get("presentation_drift").is_some());
+        assert!(summary.get("telemetry_drift").is_some());
+        assert_eq!(summary.get("regressions"), summary.get("probe_regressions"));
+
+        let probes = v
+            .get("probe_results")
+            .and_then(|p| p.as_array())
+            .expect("probes");
+        assert!(!probes.is_empty());
+        assert!(probes[0].get("drift_impact").is_some());
+        assert!(probes[0].get("overall_risk").is_some());
+    }
+
+    #[test]
+    fn legacy_fixture_renders_executive_impact_summary() {
+        let report: DriftReport = serde_json::from_str(FIXTURE_REPORT)
+            .expect("parse fixtures/report_openai_upgrade.json");
+        let html = ReportRenderer::render_html(&report).expect("render HTML");
+        assert!(html.contains("Blocking regressions:"));
+        assert!(html.contains("Review items:"));
+        assert!(html.contains("Presentation drift:"));
+        assert!(html.contains("Telemetry drift:"));
+    }
+
+    #[test]
+    fn blocking_panel_empty_shows_banner_only() {
         use arsenic_core::RiskLevel;
 
-        let mut report: DriftReport =
-            serde_json::from_str(FIXTURE_REPORT).expect("parse fixtures/report_openai_upgrade.json");
+        let mut report: DriftReport = serde_json::from_str(FIXTURE_REPORT)
+            .expect("parse fixtures/report_openai_upgrade.json");
+        report.rebuild_rollups();
         for pr in &mut report.probe_results {
             pr.overall_risk = RiskLevel::Green;
+            pr.drift_impact = arsenic_core::DriftImpact::Informational;
         }
         report.summary.probes_red = 0;
+        report.summary.blocking_regressions = 0;
+        report.summary.safe_to_upgrade = true;
 
         let html = ReportRenderer::render_html(&report).expect("render HTML");
-        let start = html.find("<h2>Red probes</h2>").expect("red probes section");
+        let start = html
+            .find("<h2>Blocking regressions</h2>")
+            .expect("blocking regressions section");
         let end = html[start..]
             .find("<h2>All probe results</h2>")
             .map(|i| start + i)
@@ -136,7 +184,6 @@ mod tests {
         let section = &html[start..end];
 
         assert!(section.contains("No blocking regressions detected."));
-        assert!(!section.contains("<h3 class=\"snap\">Blocking regressions</h3>"));
-        assert!(!section.contains("<h3 class=\"snap\">Improvements to verify</h3>"));
+        assert!(!section.contains("badge Red"));
     }
 }

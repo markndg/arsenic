@@ -4,9 +4,11 @@ pub mod adapter;
 pub mod cache;
 pub mod category_infer;
 pub mod claim;
+pub mod code_equivalence;
 pub mod comparison;
 pub mod embedding;
 pub mod error;
+pub mod impact;
 pub mod morphology;
 pub mod mutation;
 pub mod reconcile;
@@ -22,17 +24,23 @@ pub use cache::{
     corpus_fingerprint, BaselineCache, BaselineManifest, BaselineModel, BaselineProbeEntry,
     CacheKey, CachedResponse, CachedRun, VerifyReport, CACHE_SCHEMA_VERSION,
 };
-pub use claim::{ClaimExtractor, ClaimMatcher};
+pub use category_infer::infer_probe_category;
+pub use code_equivalence::{
+    compare_code_equivalence, extract_code_body, is_code_context, is_code_probe,
+    looks_like_code_content, non_code_prose, prompt_requires_code_only, CodeEquivalence,
+};
 pub use comparison::{
     compute_latency_summary, compute_migration_profile, compute_probe_risk, dimension_severity,
     ComparisonEngine, RiskThresholds,
 };
 pub use embedding::{embed_batch_hash, hash_embed, weighted_sentence_similarity};
 pub use error::ArsenicError;
+pub use impact::{assess_probe_impact, dimension_impact_label, ProbeImpactAssessment};
 pub use morphology::MorphologyAnalyser;
-pub use category_infer::infer_probe_category;
 pub use mutation::{apply_mutations, propose_strategies};
-pub use reconcile::{ReconcileAttempt, ReconcileDimension, ReconcileResult, ReconcileSignal, SignalDetail};
+pub use reconcile::{
+    ReconcileAttempt, ReconcileDimension, ReconcileResult, ReconcileSignal, SignalDetail,
+};
 pub use reconcile_engine::{
     build_reconcile_probe, expand_strategies_for_attempts, extract_coverage_topics, rank_signals,
     run_reconcile, signals_to_strategies, synthetic_model_response, DEFAULT_MAX_STRATEGIES,

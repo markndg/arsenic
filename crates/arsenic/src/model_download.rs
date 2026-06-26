@@ -20,7 +20,10 @@ pub fn resolve_hf_repo(model: &str) -> String {
 }
 
 /// Returns `(relative_path, sha256_hex)` for each file written.
-pub async fn download_hf_model_files(model: &str, dest_dir: &Path) -> anyhow::Result<Vec<(String, String)>> {
+pub async fn download_hf_model_files(
+    model: &str,
+    dest_dir: &Path,
+) -> anyhow::Result<Vec<(String, String)>> {
     fs::create_dir_all(dest_dir)
         .await
         .with_context(|| format!("mkdir {}", dest_dir.display()))?;
@@ -75,7 +78,9 @@ async fn download_one(
     if resp.status() == StatusCode::NOT_FOUND {
         anyhow::bail!("404");
     }
-    let resp = resp.error_for_status().with_context(|| format!("GET {url}"))?;
+    let resp = resp
+        .error_for_status()
+        .with_context(|| format!("GET {url}"))?;
 
     let pb = ProgressBar::new_spinner();
     pb.set_style(

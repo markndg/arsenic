@@ -267,8 +267,8 @@ impl BaselineCache {
 
     pub fn read_manifest(&self) -> Result<BaselineManifest> {
         let path = self.manifest_path();
-        let text = std::fs::read_to_string(&path)
-            .with_context(|| format!("read {}", path.display()))?;
+        let text =
+            std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
         serde_json::from_str(&text).context("parse baseline manifest")
     }
 
@@ -320,7 +320,9 @@ impl BaselineCache {
         } else {
             "00"
         };
-        self.probes_dir().join(shard).join(format!("{key_hash}.json"))
+        self.probes_dir()
+            .join(shard)
+            .join(format!("{key_hash}.json"))
     }
 
     pub fn read_one(&self, key_hash: &str) -> Result<Option<CachedResponse>> {
@@ -328,8 +330,8 @@ impl BaselineCache {
         if !path.exists() {
             return Ok(None);
         }
-        let text = std::fs::read_to_string(&path)
-            .with_context(|| format!("read {}", path.display()))?;
+        let text =
+            std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
         let parsed: CachedResponse =
             serde_json::from_str(&text).context("parse cached response")?;
         Ok(Some(parsed))
@@ -466,7 +468,13 @@ impl VerifyReport {
 pub fn corpus_fingerprint(probes: &[Probe]) -> String {
     let mut entries: Vec<(&str, &str, Option<&str>)> = probes
         .iter()
-        .map(|p| (p.name.as_str(), p.prompt.as_str(), p.system_prompt.as_deref()))
+        .map(|p| {
+            (
+                p.name.as_str(),
+                p.prompt.as_str(),
+                p.system_prompt.as_deref(),
+            )
+        })
         .collect();
     entries.sort_by(|a, b| a.0.cmp(b.0));
 
@@ -491,7 +499,10 @@ fn arsenic_adapter_version_string() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{FinishReason, ProbeCategory, ProbeSource, RefusalExpectation};
+    use crate::types::{
+        ClaimAnchorPolicy, FinishReason, PresentationDriftPolicy, ProbeCategory, ProbeSource,
+        RefusalExpectation,
+    };
     use uuid::Uuid;
 
     fn tmp_root(label: &str) -> PathBuf {
@@ -520,6 +531,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         }
     }
 
@@ -697,7 +713,9 @@ mod tests {
         let p = mk_probe("test", "Same prompt.");
         let k = key_for(&p);
         for i in 0..3 {
-            cache.append_run(&k, &mk_resp(p.id, &format!("run {i}")), &p).unwrap();
+            cache
+                .append_run(&k, &mk_resp(p.id, &format!("run {i}")), &p)
+                .unwrap();
         }
         let read = cache.read_one(&k.hash()).unwrap().expect("present");
         assert_eq!(read.runs.len(), 3);

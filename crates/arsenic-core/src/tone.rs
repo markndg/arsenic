@@ -18,10 +18,7 @@ static CONTRACTION_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 static PASSIVE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"(?i)\b(am|is|are|was|were|been|being)\s+(\w+ed|\w+en)\b",
-    )
-    .expect("valid regex")
+    Regex::new(r"(?i)\b(am|is|are|was|were|been|being)\s+(\w+ed|\w+en)\b").expect("valid regex")
 });
 
 pub struct ToneAnalyser;
@@ -40,10 +37,7 @@ impl ToneAnalyser {
         if sentences.is_empty() {
             return 0.0;
         }
-        let passive = sentences
-            .iter()
-            .filter(|s| PASSIVE_RE.is_match(s))
-            .count();
+        let passive = sentences.iter().filter(|s| PASSIVE_RE.is_match(s)).count();
         passive as f64 / sentences.len() as f64
     }
 

@@ -75,7 +75,9 @@ mod tests {
     #[test]
     fn disabled_analyser_returns_one_without_tokenising() {
         let a = SemanticAnalyser::new(false);
-        let sim = a.cosine_similarity("anything", "completely different").unwrap();
+        let sim = a
+            .cosine_similarity("anything", "completely different")
+            .unwrap();
         assert_eq!(sim, 1.0);
         assert!(!a.is_enabled());
     }

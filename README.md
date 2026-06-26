@@ -12,6 +12,8 @@ until a customer complained.
 
 **Arsenic catches this before you deploy.**
 
+Arsenic distinguishes **blocking behavioural regressions** (factual errors, schema breaks, instruction failures) from **presentation drift** (formatting, verbosity, markdown structure) and **telemetry drift** (latency, consistency). A model upgrade can look scary on raw dimension counts while still being safe to ship — the report tells you which is which.
+
 ---
 
 <![Arsenic drift report — gpt-4o-mini vs gpt-4.1-mini showing 3 critical regressions](docs/report-screenshot.png)
@@ -22,14 +24,14 @@ until a customer complained.
 
 | Comparison | Probe pack | Probes | Result |
 |------------|------------|--------|--------|
-| gpt-4.1-mini → gpt-5.4-mini | Reasoning chains | 10 | 🔴 4 critical regressions |
-| gpt-4.1-mini → gpt-5.4-mini | Code generation | 10 | 🔴 1 critical regression |
-| gpt-4.1-mini → gpt-5.4-mini | JSON schema | 10 | 🔴 1 critical regression |
-| gpt-4.1-mini → gpt-5.4-mini | Sycophancy | 10 | 🔴 1 critical regression |
-| gpt-4.1-mini → gpt-5.4-mini | RAG drift | 14 | ⚠️ 2 probes warrant review |
-| gpt-4.1-mini → gpt-5.4-mini | Extreme Edge | 12 | ⚠️ 6 probes warrant review |
-| gpt-4.1-mini → gpt-5.4-mini | Standard suite | 18 | ⚠️ 1 probe warrants review |
-| gpt-4.1-mini → gpt-5.4-mini | AI assessment | 18 | 🔴 4 critical regressions |
+| gpt-4.1-mini → gpt-5.4-mini | Standard suite | 18 | ✅ safe · 0 blocking · 14 review · 3 presentation |
+| gpt-4.1-mini → gpt-5.4-mini | Reasoning chains | 10 | 🔴 9 blocking · 1 review |
+| gpt-4.1-mini → gpt-5.4-mini | Code generation | 10 | ✅ safe · 0 blocking · 4 review · 2 presentation |
+| gpt-4.1-mini → gpt-5.4-mini | JSON schema | 10 | ✅ safe · 0 blocking · 7 review |
+| gpt-4.1-mini → gpt-5.4-mini | Sycophancy | 10 | 🔴 2 blocking · 8 review |
+| gpt-4.1-mini → gpt-5.4-mini | RAG drift | 14 | 🔴 1 blocking · 9 review |
+| gpt-4.1-mini → gpt-5.4-mini | Extreme Edge | 12 | 🔴 6 blocking · 6 review |
+| gpt-4.1-mini → gpt-5.4-mini | AI assessment | 18 | 🔴 3 blocking · 13 review · 2 presentation |
 | gpt-4o-mini → gpt-4.1-mini | Reasoning chains | 10 | 🔴 3 critical regressions |
 | gpt-4o-mini → gpt-4.1-mini | Code generation | 10 | ✅ 10/10 green |
 | gpt-4o-mini → gpt-4.1-mini | JSON schema | 10 | ⚠️ 2 probes warrant review |
@@ -38,11 +40,8 @@ until a customer complained.
 | gpt-4o-mini → gpt-4.1-mini | Extreme Edge | 12 | 🔴 1 critical regressions |
 | llama3.1:8b → llama3.2:3b | Standard suite | 18 | 🔴 1 critical regression |
 
-**Note on gpt-4.1-mini → gpt-5.4-mini:** 🔴 blocking counts follow Arsenic's claim-anchor rules — numeric or structural anchor drift can escalate to a critical regression. Several of those blockers are format or compression changes, not broken behaviour (open a report and compare v1/v2 side by side). The reasoning pack includes at least one genuine factual regression (`reasoning_prime_identification`); treat ⚠️ rows as the proportionate “review before switching” signal.
-
 **On gpt-4o-mini → gpt-4.1-mini, code generation is safe; reasoning is not.**
-**On gpt-4.1-mini → gpt-5.4-mini, read the reports before trusting the 🔴 counts — reasoning still warrants scrutiny.**
-That distinction is invisible to standard test suites. Arsenic surfaces it before you cut over.
+Prebuilt **gpt-4.1-mini → gpt-5.4-mini** reports use the impact model above — check the executive summary for blocking vs presentation vs telemetry counts.
 
 Open the prebuilt reports in your browser — no install required:
 - [GPT-4.1-mini → GPT-5.4-mini (standard suite)](https://markndg.github.io/arsenic/examples/gpt-4_1-mini_vs_gpt-5_4-mini.html)

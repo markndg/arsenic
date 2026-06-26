@@ -388,14 +388,16 @@
       </div>
       <p style="margin:1rem 0 0;font-size:0.9rem">
         Safe to upgrade: <strong>{{ summary.safe_to_upgrade }}</strong>
-        · Manual review items: <strong>{{ summary.requires_manual_review }}</strong>
+        · Blocking regressions: <strong>{{ summary.blocking_regressions }}</strong>
+        · Review items: <strong>{{ summary.review_items | default(value=0) }}</strong>
+        · Presentation drift: <strong>{{ summary.presentation_drift | default(value=0) }}</strong>
+        · Telemetry drift: <strong>{{ summary.telemetry_drift | default(value=0) }}</strong>
       </p>
       <p style="margin:0.75rem 0 0;font-size:0.88rem;color:var(--muted)">
-        Critical regressions: <strong>{{ summary.drift_critical_regressions | default(value=summary.drift_behavioural_regressions) }}</strong>
-        · Policy drift: <strong>{{ summary.drift_policy }}</strong>
-        · Fidelity drift: <strong>{{ summary.drift_fidelity }}</strong>
+        Content compression: <strong>{{ summary.drift_content_compression }}</strong>
         · Structural drift: <strong>{{ summary.drift_structural }}</strong>
-        · Content compression: <strong>{{ summary.drift_content_compression }}</strong>
+        · Fidelity drift: <strong>{{ summary.drift_fidelity }}</strong>
+        · Policy drift: <strong>{{ summary.drift_policy }}</strong>
       </p>
     </section>
 
@@ -419,7 +421,7 @@
       <p class="mig-verdict">
         Safe to upgrade: <strong>{{ migration_profile.safe_to_upgrade }}</strong>
         {% if not migration_profile.safe_to_upgrade %}
-        — resolve critical regressions and policy changes in the upgrade path below
+        — resolve blocking regressions and policy changes in the upgrade path below
         {% endif %}
       </p>
     </section>
@@ -439,67 +441,67 @@
         <tbody>
           <tr>
             <td><strong>Morphology</strong></td>
-            <td><span class="badge {{ dimension_summaries.morphology.worst_risk }}">{{ dimension_summaries.morphology.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.morphology.worst_risk }}">{{ dimension_summaries.morphology.worst_risk }}</span>{% if dimension_summaries.morphology.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.morphology.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.morphology.probes_affected > 0 %}<span class="dim-flow" title="Regression / Improvement / Neutral among affected"><span class="d-down">↓{{ dimension_summaries.morphology.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.morphology.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.morphology.drift_neutral }}</span>{% if dimension_summaries.morphology.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.morphology.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.morphology.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Tone</strong></td>
-            <td><span class="badge {{ dimension_summaries.tone.worst_risk }}">{{ dimension_summaries.tone.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.tone.worst_risk }}">{{ dimension_summaries.tone.worst_risk }}</span>{% if dimension_summaries.tone.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.tone.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.tone.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.tone.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.tone.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.tone.drift_neutral }}</span>{% if dimension_summaries.tone.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.tone.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.tone.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Factual</strong></td>
-            <td><span class="badge {{ dimension_summaries.factual.worst_risk }}">{{ dimension_summaries.factual.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.factual.worst_risk }}">{{ dimension_summaries.factual.worst_risk }}</span>{% if dimension_summaries.factual.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.factual.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.factual.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.factual.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.factual.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.factual.drift_neutral }}</span>{% if dimension_summaries.factual.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.factual.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.factual.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Schema</strong></td>
-            <td><span class="badge {{ dimension_summaries.schema.worst_risk }}">{{ dimension_summaries.schema.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.schema.worst_risk }}">{{ dimension_summaries.schema.worst_risk }}</span>{% if dimension_summaries.schema.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.schema.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.schema.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.schema.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.schema.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.schema.drift_neutral }}</span>{% if dimension_summaries.schema.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.schema.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.schema.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Instruction</strong></td>
-            <td><span class="badge {{ dimension_summaries.instruction.worst_risk }}">{{ dimension_summaries.instruction.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.instruction.worst_risk }}">{{ dimension_summaries.instruction.worst_risk }}</span>{% if dimension_summaries.instruction.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.instruction.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.instruction.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.instruction.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.instruction.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.instruction.drift_neutral }}</span>{% if dimension_summaries.instruction.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.instruction.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.instruction.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Refusal</strong></td>
-            <td><span class="badge {{ dimension_summaries.refusal.worst_risk }}">{{ dimension_summaries.refusal.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.refusal.worst_risk }}">{{ dimension_summaries.refusal.worst_risk }}</span>{% if dimension_summaries.refusal.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.refusal.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.refusal.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.refusal.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.refusal.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.refusal.drift_neutral }}</span>{% if dimension_summaries.refusal.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.refusal.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.refusal.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Semantic</strong></td>
-            <td><span class="badge {{ dimension_summaries.semantic.worst_risk }}">{{ dimension_summaries.semantic.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.semantic.worst_risk }}">{{ dimension_summaries.semantic.worst_risk }}</span>{% if dimension_summaries.semantic.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.semantic.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.semantic.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.semantic.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.semantic.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.semantic.drift_neutral }}</span>{% if dimension_summaries.semantic.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.semantic.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.semantic.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Claim</strong></td>
-            <td><span class="badge {{ dimension_summaries.claim.worst_risk }}">{{ dimension_summaries.claim.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.claim.worst_risk }}">{{ dimension_summaries.claim.worst_risk }}</span>{% if dimension_summaries.claim.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.claim.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.claim.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.claim.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.claim.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.claim.drift_neutral }}</span>{% if dimension_summaries.claim.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.claim.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.claim.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Latency</strong></td>
-            <td><span class="badge {{ dimension_summaries.latency.worst_risk }}">{{ dimension_summaries.latency.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.latency.worst_risk }}">{{ dimension_summaries.latency.worst_risk }}</span>{% if dimension_summaries.latency.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.latency.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.latency.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.latency.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.latency.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.latency.drift_neutral }}</span>{% if dimension_summaries.latency.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.latency.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.latency.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Consistency</strong></td>
-            <td><span class="badge {{ dimension_summaries.consistency.worst_risk }}">{{ dimension_summaries.consistency.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.consistency.worst_risk }}">{{ dimension_summaries.consistency.worst_risk }}</span>{% if dimension_summaries.consistency.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.consistency.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.consistency.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.consistency.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.consistency.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.consistency.drift_neutral }}</span>{% if dimension_summaries.consistency.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.consistency.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.consistency.probes_affected }}</td>
           </tr>
           <tr>
             <td><strong>Custom assertions</strong></td>
-            <td><span class="badge {{ dimension_summaries.custom_assertions.worst_risk }}">{{ dimension_summaries.custom_assertions.worst_risk }}</span></td>
+            <td><span class="badge {{ dimension_summaries.custom_assertions.worst_risk }}">{{ dimension_summaries.custom_assertions.worst_risk }}</span>{% if dimension_summaries.custom_assertions.impact_label %}<br/><span class="muted" style="font-size:0.78rem">{{ dimension_summaries.custom_assertions.impact_label }}</span>{% endif %}</td>
             <td>{% if dimension_summaries.custom_assertions.probes_affected > 0 %}<span class="dim-flow"><span class="d-down">↓{{ dimension_summaries.custom_assertions.drift_regressions }}</span><span class="d-up">↑{{ dimension_summaries.custom_assertions.drift_improvements }}</span><span class="d-mid">→{{ dimension_summaries.custom_assertions.drift_neutral }}</span>{% if dimension_summaries.custom_assertions.drift_not_applicable > 0 %}<span class="muted" style="font-size:0.75rem"> n/a {{ dimension_summaries.custom_assertions.drift_not_applicable }}</span>{% endif %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
             <td class="num">{{ dimension_summaries.custom_assertions.probes_affected }}</td>
           </tr>
@@ -508,30 +510,18 @@
     </section>
 
     <section class="panel">
-      <h2>Red probes</h2>
-      {% if summary.probes_red == 0 %}
+      <h2>Blocking regressions</h2>
+      {% set blocking_count = summary.blocking_regressions | default(value=summary.probes_red) %}
+      {% if blocking_count == 0 %}
       <p class="upgrade-safe-banner">No blocking regressions detected.</p>
       {% else %}
-      <p class="muted" style="margin-top:0">Blocking regressions need remediation before rollout. Red with improvement or neutral valence still needs human verification.</p>
-
-      {% set red_blocking_count = 0 %}
-      {% set red_verify_count = 0 %}
+      <p class="muted" style="margin-top:0">True behavioural regressions (factual, schema, instruction, refusal, material claim loss) that should be resolved before rollout.</p>
       {% for pr in probe_results %}
-        {% if pr.overall_risk == "Red" and pr.overall_direction == "Regression" %}
-          {% set_global red_blocking_count = red_blocking_count + 1 %}
-        {% elif pr.overall_risk == "Red" %}
-          {% set_global red_verify_count = red_verify_count + 1 %}
-        {% endif %}
-      {% endfor %}
-
-      {% if red_blocking_count > 0 %}
-      <h3 class="snap">Blocking regressions</h3>
-      {% for pr in probe_results %}
-        {% if pr.overall_risk == "Red" and pr.overall_direction == "Regression" %}
+        {% if pr.drift_impact == "Blocking" %}
         <details class="probe" open>
           <summary>
             <span class="probe-title">{{ pr.probe.name }}</span>
-            <span class="badge Red dir-{{ pr.overall_direction | lower }}">Red</span>
+            <span class="badge Red dir-{{ pr.overall_direction | lower }}">Blocking</span>
             <span class="probe-meta">{{ pr.probe.category }}</span>
           </summary>
           <div style="padding:0.75rem 1rem 1rem">
@@ -546,30 +536,6 @@
         {% endif %}
       {% endfor %}
       {% endif %}
-
-      {% if red_verify_count > 0 %}
-      <h3 class="snap">Improvements to verify</h3>
-      {% for pr in probe_results %}
-        {% if pr.overall_risk == "Red" and pr.overall_direction != "Regression" %}
-        <details class="probe">
-          <summary>
-            <span class="probe-title">{{ pr.probe.name }}</span>
-            <span class="badge Red dir-{{ pr.overall_direction | lower }}">Red</span>
-            <span class="probe-meta">{{ pr.overall_direction }} · {{ pr.probe.category }}</span>
-          </summary>
-          <div style="padding:0.75rem 1rem 1rem">
-            <p class="muted" style="margin:0 0 0.5rem">{{ pr.probe.tags | join(separator=", ") }}</p>
-            {% if pr.notes %}<ul class="compact">{% for n in pr.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
-            <div class="grid">
-              <div><h3 class="snap">v1</h3><pre>{{ pr.v1_content }}</pre></div>
-              <div><h3 class="snap">v2</h3><pre>{{ pr.v2_content }}</pre></div>
-            </div>
-          </div>
-        </details>
-        {% endif %}
-      {% endfor %}
-      {% endif %}
-      {% endif %}
     </section>
 
     <section class="panel">
@@ -580,7 +546,7 @@
       <details class="probe">
         <summary>
           <span class="probe-title">{{ pr.probe.name }}</span>
-          <span class="badge {{ pr.overall_risk }} dir-{{ pr.overall_direction | lower }}">{{ pr.overall_risk }}</span>
+          <span class="badge {{ pr.overall_risk }} dir-{{ pr.overall_direction | lower }}">{{ pr.drift_impact | default(value=pr.overall_risk) }}</span>
           {% if pr.dimensions.consistency %}
           <span class="var-pill" title="Mean embedding distance across repeated runs (lower = more consistent)">σ v1 {{ pr.dimensions.consistency.v1_variance | round }} · v2 {{ pr.dimensions.consistency.v2_variance | round }}</span>
           {% endif %}
@@ -763,7 +729,9 @@
       <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
       <p class="mono" style="font-size:0.82rem;color:var(--muted)">
         Blocking {{ upgrade_path.blocking_regressions | length }}
-        · Verify {{ upgrade_path.improvements_to_verify | length }}
+        · Review {{ upgrade_path.improvements_to_verify | length }}
+        · Presentation {{ upgrade_path.presentation_drift | default(value=[]) | length }}
+        · Telemetry {{ upgrade_path.telemetry_drift | default(value=[]) | length }}
         · Neutral {{ upgrade_path.neutral_changes | length }}
         · Validated {{ upgrade_path.certified_prompts | length }}
       </p>
@@ -771,20 +739,26 @@
       {% set critical_blockers = upgrade_path.critical_regressions | default(value=upgrade_path.behavioural_regressions) %}
       {% set blocking = upgrade_path.blocking_regressions | default(value=critical_blockers) %}
       {% if blocking | length > 0 %}
-        {% if critical_blockers | length > 0 %}
-      <h3 class="snap">Critical regressions</h3>
-      <ul class="upgrade-list">{% for u in critical_blockers %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
-        {% endif %}
+      <h3 class="snap">Blocking regressions</h3>
+      <ul class="upgrade-list">{% for u in blocking %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
         {% if upgrade_path.policy_changes | length > 0 %}
-      <h3 class="snap">Policy changes</h3>
+      <h3 class="snap">Policy changes (review)</h3>
       <ul class="upgrade-list">{% for u in upgrade_path.policy_changes %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
         {% endif %}
       {% else %}
       <p class="upgrade-safe-banner">No blocking regressions detected.</p>
       {% endif %}
       {% if upgrade_path.improvements_to_verify | length > 0 %}
-      <h3 class="snap">Improvements to verify</h3>
+      <h3 class="snap">Review items</h3>
       <ul class="upgrade-list">{% for u in upgrade_path.improvements_to_verify %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if upgrade_path.presentation_drift | default(value=[]) | length > 0 %}
+      <h3 class="snap">Presentation drift</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.presentation_drift %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if upgrade_path.telemetry_drift | default(value=[]) | length > 0 %}
+      <h3 class="snap">Telemetry drift</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.telemetry_drift %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
       {% endif %}
       {% if upgrade_path.neutral_changes %}
       <h3 class="snap">Neutral changes</h3>

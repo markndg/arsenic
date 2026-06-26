@@ -29,6 +29,38 @@ pub struct Probe {
     /// v2: user-defined checks (corpus probes).
     #[serde(default)]
     pub custom_assertions: Vec<CustomAssertion>,
+    /// When true, morphology/structure changes can block rollout (task-critical format).
+    #[serde(default)]
+    pub format_sensitive: bool,
+    #[serde(default)]
+    pub structure_sensitive: bool,
+    /// How strictly dropped/mismatched claim anchors escalate to blocking.
+    #[serde(default)]
+    pub claim_anchor_policy: ClaimAnchorPolicy,
+    /// How presentation/format drift (markdown, bullets, verbosity) is classified.
+    #[serde(default)]
+    pub presentation_drift: PresentationDriftPolicy,
+    /// Optional per-probe latency SLO; breach can escalate beyond telemetry.
+    #[serde(default)]
+    pub latency_slo_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ClaimAnchorPolicy {
+    Strict,
+    #[default]
+    Balanced,
+    Lenient,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum PresentationDriftPolicy {
+    Ignore,
+    #[default]
+    Review,
+    Blocking,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -251,6 +283,18 @@ pub struct ReportSummary {
     pub drift_structural: usize,
     #[serde(default)]
     pub drift_content_compression: usize,
+    /// Probes with blocking behavioural regressions (factual/schema/instruction/refusal/material claims).
+    #[serde(default)]
+    pub blocking_regressions: usize,
+    /// Probes warranting human review before cutover.
+    #[serde(default)]
+    pub review_items: usize,
+    /// Probes with format/verbosity/structure drift only.
+    #[serde(default)]
+    pub presentation_drift: usize,
+    /// Probes where latency/consistency changed observably.
+    #[serde(default)]
+    pub telemetry_drift: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,8 +312,38 @@ pub struct ProbeResult {
     /// Severity-weighted drift level (drives overall risk and category).
     #[serde(default)]
     pub drift_severity: DriftSeverity,
+    /// User-facing rollout impact — blocking vs review vs presentation vs telemetry.
+    #[serde(default)]
+    pub drift_impact: DriftImpact,
     pub dimensions: ProbeDimensions,
     pub notes: Vec<String>,
+}
+
+/// Rollout impact classification alongside dimension-level [`RiskLevel`].
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, PartialOrd, Ord)]
+#[serde(rename_all = "PascalCase")]
+pub enum DriftImpact {
+    #[default]
+    Informational,
+    Telemetry,
+    Presentation,
+    Review,
+    Blocking,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub enum CodeEquivalenceLevel {
+    Exact,
+    EquivalentFormatting,
+    Different,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodeEquivalenceDiff {
+    pub equivalence: CodeEquivalenceLevel,
+    /// True when code-equivalence rules apply to this probe pair.
+    pub applies: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -287,6 +361,8 @@ pub struct ProbeDimensions {
     pub latency: LatencyDiff,
     pub consistency: Option<ConsistencyDiff>,
     pub custom_assertions: Option<CustomAssertionDiff>,
+    #[serde(default)]
+    pub code_equivalence: Option<CodeEquivalenceDiff>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -331,9 +407,15 @@ pub enum DriftCategory {
 }
 
 impl DriftCategory {
-    /// Only Red + CriticalRegression blocks rollout (see [`DriftSeverity::Critical`]).
+    /// Legacy helper — prefer [`DriftImpact::Blocking`] on [`ProbeResult`].
     pub fn is_blocking(self, risk: &RiskLevel) -> bool {
         matches!(self, DriftCategory::CriticalRegression) && matches!(risk, RiskLevel::Red)
+    }
+}
+
+impl DriftImpact {
+    pub fn is_blocking(self) -> bool {
+        matches!(self, DriftImpact::Blocking)
     }
 }
 
@@ -528,10 +610,23 @@ pub struct ClaimDiff {
     /// Red-band preservation cutoff used for this probe (from [`ProbeCategory::preservation_threshold`]).
     #[serde(default = "default_preservation_threshold")]
     pub preservation_threshold: f64,
+    /// Preservation counting only materially important claims (excludes scaffolding/format).
+    #[serde(default = "default_material_preservation")]
+    pub material_preservation_score: f64,
+    /// True when a matched numeric/date/unit anchor materially changed between v1 and v2.
+    #[serde(default)]
+    pub has_material_anchor_drift: bool,
+    /// Dropped claims classified as materially important for this probe.
+    #[serde(default)]
+    pub material_dropped_claims: Vec<Claim>,
 }
 
 fn default_preservation_threshold() -> f64 {
     0.70
+}
+
+fn default_material_preservation() -> f64 {
+    1.0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -556,12 +651,38 @@ pub enum AnchorType {
     KeyTerm,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "PascalCase")]
+pub enum ClaimMatchKind {
+    #[default]
+    Semantic,
+    AnchorOnly,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub enum ClaimMateriality {
+    Material,
+    Scaffolding,
+    Formatting,
+    ExpansionOnly,
+    UnsupportedMatch,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClassifiedClaim {
+    pub claim: Claim,
+    pub materiality: ClaimMateriality,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimMatch {
     pub v1_claim: Claim,
     pub v2_claim: Claim,
     pub similarity: f64,
     pub anchor_agreement: bool,
+    #[serde(default)]
+    pub match_kind: ClaimMatchKind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -611,6 +732,12 @@ pub struct UpgradePathReport {
     pub blocking_regressions: Vec<UpgradePathItem>,
     pub improvements_to_verify: Vec<UpgradePathItem>,
     pub neutral_changes: Vec<UpgradePathItem>,
+    /// Non-blocking format/verbosity/structure changes.
+    #[serde(default)]
+    pub presentation_drift: Vec<UpgradePathItem>,
+    /// Latency/consistency observational changes.
+    #[serde(default)]
+    pub telemetry_drift: Vec<UpgradePathItem>,
     pub certified_prompts: Vec<CertifiedPromptDiff>,
     pub remediation: RemediationCounts,
 }
@@ -625,6 +752,8 @@ pub struct UpgradePathItem {
     pub drift_category: DriftCategory,
     pub summary: String,
     pub certified_mutation: Option<String>,
+    #[serde(default)]
+    pub drift_impact: DriftImpact,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -663,19 +792,31 @@ pub struct MutationResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MutationStrategy {
-    AddLengthConstraint { max_words: usize },
-    AddDetailInstruction { min_words: usize },
+    AddLengthConstraint {
+        max_words: usize,
+    },
+    AddDetailInstruction {
+        min_words: usize,
+    },
     AddDirectnessInstruction,
     AddFormalityInstruction,
     AddConfidenceInstruction,
     SoftenPhrasing,
     AddEducationalContext,
-    AddClaimInstruction { required_values: Vec<String> },
+    AddClaimInstruction {
+        required_values: Vec<String>,
+    },
     /// Long-form drift: require coverage of baseline section topics (not specific values).
-    AddTopicCoverageInstruction { topics: Vec<String> },
+    AddTopicCoverageInstruction {
+        topics: Vec<String>,
+    },
     AddPrecisionInstruction,
-    ReinforceInstruction { instruction_text: String },
-    Custom { hint: String },
+    ReinforceInstruction {
+        instruction_text: String,
+    },
+    Custom {
+        hint: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -711,6 +852,9 @@ pub struct DimensionSummary {
     pub drift_neutral: usize,
     #[serde(default)]
     pub drift_not_applicable: usize,
+    /// Non-blocking drift label for report dimension rows (e.g. "presentation drift, non-blocking").
+    #[serde(default)]
+    pub impact_label: String,
 }
 
 impl Default for DimensionSummary {
@@ -723,6 +867,7 @@ impl Default for DimensionSummary {
             drift_improvements: 0,
             drift_neutral: 0,
             drift_not_applicable: 0,
+            impact_label: String::new(),
         }
     }
 }
@@ -740,6 +885,9 @@ impl Default for ClaimDiff {
             drifted_claims: Vec::new(),
             preservation_score: 1.0,
             preservation_threshold: ProbeCategory::Semantic.preservation_threshold(),
+            material_preservation_score: 1.0,
+            has_material_anchor_drift: false,
+            material_dropped_claims: Vec::new(),
         }
     }
 }

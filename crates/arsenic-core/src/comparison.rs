@@ -3,7 +3,11 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use crate::claim::{ClaimExtractor, ClaimMatcher};
+use crate::code_equivalence::{
+    build_code_equivalence_diff, extract_code_body, non_code_prose, prompt_requires_code_only,
+};
 use crate::embedding::weighted_sentence_similarity;
+use crate::impact::assess_probe_impact;
 use crate::morphology::MorphologyAnalyser;
 use crate::refusal::RefusalDetector;
 use crate::semantic::SemanticAnalyser;
@@ -183,29 +187,36 @@ impl ComparisonEngine {
             notes.push(format!("v2 probe error: {}", pair.v2.content));
         }
 
-        if normalize_whitespace(&pair.v1.content) == normalize_whitespace(&pair.v2.content) {
-            let dimensions = self.dimensions_for_identical_responses(&pair);
-            let (overall_risk, drift_category, drift_severity) =
-                compute_probe_risk(&pair.probe, &dimensions);
-            let overall_direction = probe_overall_direction(&dimensions, &overall_risk);
+        if responses_equivalent_for_compare(&pair.v1.content, &pair.v2.content) {
+            let mut dimensions = self.dimensions_for_identical_responses(&pair);
+            dimensions.code_equivalence =
+                build_code_equivalence_diff(&pair.probe, &pair.v1.content, &pair.v2.content);
+            soften_dimensions_for_code_formatting(&pair.probe, &mut dimensions);
+            let assessment = assess_probe_impact(&pair.probe, &dimensions);
+            let overall_direction = probe_overall_direction(&dimensions, &assessment.overall_risk);
             return Ok(ProbeResult {
                 probe: pair.probe,
                 v1_content: pair.v1.content,
                 v2_content: pair.v2.content,
-                overall_risk,
+                overall_risk: assessment.overall_risk,
                 overall_direction,
-                drift_category,
-                drift_severity,
+                drift_category: assessment.drift_category,
+                drift_severity: assessment.drift_severity,
+                drift_impact: assessment.drift_impact,
                 dimensions,
                 notes,
             });
         }
 
+        let code_equivalence =
+            build_code_equivalence_diff(&pair.probe, &pair.v1.content, &pair.v2.content);
         let morphology = self.compare_morphology(&pair);
         let tone = self.compare_tone(&pair);
         let factual = self.compare_factual(&pair);
         let schema = self.compare_schema(&pair);
-        let instruction = self.compare_instruction(&pair);
+        let instruction = self
+            .compare_instruction(&pair)
+            .or_else(|| compare_implicit_code_instruction(&pair));
         let refusal = self.compare_refusal(&pair);
         let claim = self.compare_claim(&pair)?;
         let semantic = self.compare_semantic(&pair, &claim)?;
@@ -213,7 +224,7 @@ impl ComparisonEngine {
         let consistency = self.compare_consistency(&pair);
         let custom_assertions = self.compare_custom(&pair);
 
-        let dimensions = ProbeDimensions {
+        let mut dimensions = ProbeDimensions {
             morphology,
             tone,
             factual,
@@ -225,18 +236,20 @@ impl ComparisonEngine {
             latency,
             consistency,
             custom_assertions,
+            code_equivalence,
         };
-        let (overall_risk, drift_category, drift_severity) =
-            compute_probe_risk(&pair.probe, &dimensions);
-        let overall_direction = probe_overall_direction(&dimensions, &overall_risk);
+        soften_dimensions_for_code_formatting(&pair.probe, &mut dimensions);
+        let assessment = assess_probe_impact(&pair.probe, &dimensions);
+        let overall_direction = probe_overall_direction(&dimensions, &assessment.overall_risk);
         Ok(ProbeResult {
             probe: pair.probe,
             v1_content: pair.v1.content.clone(),
             v2_content: pair.v2.content.clone(),
-            overall_risk,
+            overall_risk: assessment.overall_risk,
             overall_direction,
-            drift_category,
-            drift_severity,
+            drift_category: assessment.drift_category,
+            drift_severity: assessment.drift_severity,
+            drift_impact: assessment.drift_impact,
             dimensions,
             notes,
         })
@@ -245,10 +258,11 @@ impl ComparisonEngine {
     fn compare_claim(&self, pair: &ResponsePair) -> anyhow::Result<ClaimDiff> {
         // Claims are extracted from assistant message text only (`ModelResponse.content`), never
         // from `raw` JSON or adapter endpoint strings.
-        let c1 = ClaimExtractor::extract(&pair.v1.content);
-        let c2 = ClaimExtractor::extract(&pair.v2.content);
-        self.claim_matcher
-            .match_claims(c1, c2, pair.probe.category)
+        let v1 = extract_code_body(&pair.v1.content);
+        let v2 = extract_code_body(&pair.v2.content);
+        let c1 = ClaimExtractor::extract(&v1);
+        let c2 = ClaimExtractor::extract(&v2);
+        self.claim_matcher.match_claims(c1, c2, &pair.probe)
     }
 
     fn compare_morphology(&self, pair: &ResponsePair) -> MorphologyDiff {
@@ -351,7 +365,9 @@ impl ComparisonEngine {
                 direction: DriftDirection::NotApplicable,
                 cosine_similarity: None,
                 semantic_scoring_disabled: true,
-                disabled_reason: Some("semantic scoring disabled (--no-semantic or engine off)".into()),
+                disabled_reason: Some(
+                    "semantic scoring disabled (--no-semantic or engine off)".into(),
+                ),
                 flagged_for_review: false,
                 similarity_threshold: self.semantic_threshold,
             }
@@ -397,6 +413,7 @@ impl ComparisonEngine {
             latency: self.compare_latency(pair),
             consistency: self.compare_consistency(pair),
             custom_assertions: None,
+            code_equivalence: None,
         }
     }
 
@@ -495,8 +512,10 @@ impl ComparisonEngine {
             v1_results.push(run_instruction_check(ins, &pair.v1.content));
             v2_results.push(run_instruction_check(ins, &pair.v2.content));
         }
-        let v1_pass = v1_results.iter().filter(|r| r.passed).count() as f64 / v1_results.len() as f64;
-        let v2_pass = v2_results.iter().filter(|r| r.passed).count() as f64 / v2_results.len() as f64;
+        let v1_pass =
+            v1_results.iter().filter(|r| r.passed).count() as f64 / v1_results.len() as f64;
+        let v2_pass =
+            v2_results.iter().filter(|r| r.passed).count() as f64 / v2_results.len() as f64;
         let mut regressions = Vec::new();
         for (a, b) in v1_results.iter().zip(v2_results.iter()) {
             if a.passed && !b.passed {
@@ -551,19 +570,28 @@ impl ComparisonEngine {
         }
     }
 
-    fn compare_semantic(&self, pair: &ResponsePair, claim: &ClaimDiff) -> anyhow::Result<SemanticDiff> {
+    fn compare_semantic(
+        &self,
+        pair: &ResponsePair,
+        claim: &ClaimDiff,
+    ) -> anyhow::Result<SemanticDiff> {
         if !self.semantic_analyser.is_enabled() {
             return Ok(SemanticDiff {
                 risk: RiskLevel::Green,
                 direction: DriftDirection::NotApplicable,
                 cosine_similarity: None,
                 semantic_scoring_disabled: true,
-                disabled_reason: Some("semantic scoring disabled (--no-semantic or engine off)".into()),
+                disabled_reason: Some(
+                    "semantic scoring disabled (--no-semantic or engine off)".into(),
+                ),
                 flagged_for_review: false,
                 similarity_threshold: self.semantic_threshold,
             });
         }
-        let sim = weighted_sentence_similarity(&pair.v1.content, &pair.v2.content);
+        let sim = weighted_sentence_similarity(
+            &extract_code_body(&pair.v1.content),
+            &extract_code_body(&pair.v2.content),
+        );
         let t = &self.risk_thresholds;
         let flagged = sim < self.semantic_threshold;
         // Hash / token similarity: rephrased long answers often score below the red cutoff — cap at
@@ -610,8 +638,14 @@ impl ComparisonEngine {
         if v1_series.len() <= 1 && v2_series.len() <= 1 {
             return None;
         }
-        let v1_var = run_variance(&v1_series, self.risk_thresholds.consistency_variance_threshold);
-        let v2_var = run_variance(&v2_series, self.risk_thresholds.consistency_variance_threshold);
+        let v1_var = run_variance(
+            &v1_series,
+            self.risk_thresholds.consistency_variance_threshold,
+        );
+        let v2_var = run_variance(
+            &v2_series,
+            self.risk_thresholds.consistency_variance_threshold,
+        );
         let t = self.risk_thresholds.consistency_variance_threshold;
         let v1_consistent = v1_var <= t;
         let v2_consistent = v2_var <= t;
@@ -661,8 +695,10 @@ impl ComparisonEngine {
             v1_results.push(run_instruction_check(&ins, &pair.v1.content));
             v2_results.push(run_instruction_check(&ins, &pair.v2.content));
         }
-        let v1_pass = v1_results.iter().filter(|r| r.passed).count() as f64 / v1_results.len() as f64;
-        let v2_pass = v2_results.iter().filter(|r| r.passed).count() as f64 / v2_results.len() as f64;
+        let v1_pass =
+            v1_results.iter().filter(|r| r.passed).count() as f64 / v1_results.len() as f64;
+        let v2_pass =
+            v2_results.iter().filter(|r| r.passed).count() as f64 / v2_results.len() as f64;
         let mut regressions = Vec::new();
         for (a, b) in v1_results.iter().zip(v2_results.iter()) {
             if a.passed && !b.passed {
@@ -695,7 +731,7 @@ impl ComparisonEngine {
     }
 
     pub fn compute_probe_risk(&self, probe: &Probe, dimensions: &ProbeDimensions) -> RiskLevel {
-        compute_probe_risk(probe, dimensions).0
+        assess_probe_impact(probe, dimensions).overall_risk
     }
 
     pub fn compute_overall_risk(&self, results: &[ProbeResult]) -> RiskLevel {
@@ -706,7 +742,7 @@ impl ComparisonEngine {
         worst
     }
 
-    fn build_summary(
+    pub fn build_summary(
         &self,
         results: &[ProbeResult],
         _overall: &RiskLevel,
@@ -716,16 +752,38 @@ impl ComparisonEngine {
         let mut green = 0usize;
         let mut amber = 0usize;
         let mut red = 0usize;
+        let mut blocking = 0usize;
+        let mut review = 0usize;
+        let mut presentation = 0usize;
+        let mut telemetry = 0usize;
         for pr in results {
-            match pr.overall_risk {
-                RiskLevel::Green => green += 1,
-                RiskLevel::Amber => amber += 1,
-                RiskLevel::Red => red += 1,
+            match pr.drift_impact {
+                DriftImpact::Blocking => {
+                    red += 1;
+                    blocking += 1;
+                }
+                DriftImpact::Review => {
+                    amber += 1;
+                    review += 1;
+                }
+                DriftImpact::Presentation => {
+                    amber += 1;
+                    presentation += 1;
+                }
+                DriftImpact::Telemetry => {
+                    green += 1;
+                    telemetry += 1;
+                }
+                DriftImpact::Informational => match pr.overall_risk {
+                    RiskLevel::Green => green += 1,
+                    RiskLevel::Amber => amber += 1,
+                    RiskLevel::Red => amber += 1,
+                },
             }
         }
         let drift_counts = count_drift_categories(results);
-        let safe = !has_critical_blocking(results);
-        let manual = amber + red;
+        let safe = blocking == 0;
+        let manual = blocking + review;
         ReportSummary {
             total_probes: total,
             probes_green: green,
@@ -737,27 +795,49 @@ impl ComparisonEngine {
             probe_regressions: valence.probe_regressions,
             probe_improvements: valence.probe_improvements,
             probe_neutral: valence.probe_neutral,
-            drift_critical_regressions: drift_counts.critical_regressions,
+            drift_critical_regressions: blocking,
             drift_policy: drift_counts.policy,
             drift_fidelity: drift_counts.fidelity,
             drift_structural: drift_counts.structural,
             drift_content_compression: drift_counts.content_compression,
+            blocking_regressions: blocking,
+            review_items: review,
+            presentation_drift: presentation,
+            telemetry_drift: telemetry,
         }
     }
 
     pub fn compute_dimension_summaries(&self, results: &[ProbeResult]) -> DimensionSummaries {
         DimensionSummaries {
-            morphology: dim_summary_core(results, |d| Some((&d.morphology.risk, d.morphology.direction))),
-            tone: dim_summary_core(results, |d| Some((&d.tone.risk, d.tone.direction))),
-            factual: dim_summary_core(results, |d| d.factual.as_ref().map(|f| (&f.risk, f.direction))),
-            schema: dim_summary_core(results, |d| d.schema.as_ref().map(|s| (&s.risk, s.direction))),
-            instruction: dim_summary_core(results, |d| d.instruction.as_ref().map(|i| (&i.risk, i.direction))),
-            refusal: dim_summary_core(results, |d| Some((&d.refusal.risk, d.refusal.direction))),
-            semantic: dim_summary_core(results, |d| Some((&d.semantic.risk, d.semantic.direction))),
-            claim: dim_summary_core(results, |d| Some((&d.claim.risk, d.claim.direction))),
-            latency: dim_summary_core(results, |d| Some((&d.latency.risk, d.latency.direction))),
-            consistency: dim_summary_core(results, |d| d.consistency.as_ref().map(|c| (&c.risk, c.direction))),
-            custom_assertions: dim_summary_core(results, |d| {
+            morphology: dim_summary_core("morphology", results, |d| {
+                Some((&d.morphology.risk, d.morphology.direction))
+            }),
+            tone: dim_summary_core("tone", results, |d| Some((&d.tone.risk, d.tone.direction))),
+            factual: dim_summary_core("factual", results, |d| {
+                d.factual.as_ref().map(|f| (&f.risk, f.direction))
+            }),
+            schema: dim_summary_core("schema", results, |d| {
+                d.schema.as_ref().map(|s| (&s.risk, s.direction))
+            }),
+            instruction: dim_summary_core("instruction", results, |d| {
+                d.instruction.as_ref().map(|i| (&i.risk, i.direction))
+            }),
+            refusal: dim_summary_core("refusal", results, |d| {
+                Some((&d.refusal.risk, d.refusal.direction))
+            }),
+            semantic: dim_summary_core("semantic", results, |d| {
+                Some((&d.semantic.risk, d.semantic.direction))
+            }),
+            claim: dim_summary_core("claim", results, |d| {
+                Some((&d.claim.risk, d.claim.direction))
+            }),
+            latency: dim_summary_core("latency", results, |d| {
+                Some((&d.latency.risk, d.latency.direction))
+            }),
+            consistency: dim_summary_core("consistency", results, |d| {
+                d.consistency.as_ref().map(|c| (&c.risk, c.direction))
+            }),
+            custom_assertions: dim_summary_core("custom_assertions", results, |d| {
                 d.custom_assertions.as_ref().map(|c| (&c.risk, c.direction))
             }),
         }
@@ -767,10 +847,7 @@ impl ComparisonEngine {
 /// Worst (max) risk among dimension levels — used only in unit tests for legacy rollup checks.
 #[cfg(test)]
 fn max_risk_level(levels: impl IntoIterator<Item = RiskLevel>) -> RiskLevel {
-    levels
-        .into_iter()
-        .max()
-        .unwrap_or(RiskLevel::Green)
+    levels.into_iter().max().unwrap_or(RiskLevel::Green)
 }
 
 /// Per-dimension risks for legacy max-rollup tests. Latency is excluded (observational only).
@@ -871,7 +948,10 @@ pub fn compute_migration_profile(
     const STRUCTURAL_DRIFT_SHARE: f64 = 0.40;
 
     let speed_change = if latency.delta_pct < -SPEED_THRESHOLD_PCT {
-        Some(format!("{}% faster", latency.delta_pct.abs().round() as i64))
+        Some(format!(
+            "{}% faster",
+            latency.delta_pct.abs().round() as i64
+        ))
     } else if latency.delta_pct > SPEED_THRESHOLD_PCT {
         Some(format!("{}% slower", latency.delta_pct.round() as i64))
     } else {
@@ -924,13 +1004,12 @@ pub fn compute_migration_profile(
             )
         })
         .count();
-    let reliability_change = if n > 0
-        && (structural_compression as f64 / n as f64) > STRUCTURAL_DRIFT_SHARE
-    {
-        Some("less structurally consistent".into())
-    } else {
-        None
-    };
+    let reliability_change =
+        if n > 0 && (structural_compression as f64 / n as f64) > STRUCTURAL_DRIFT_SHARE {
+            Some("less structurally consistent".into())
+        } else {
+            None
+        };
 
     let headline = compose_migration_headline(
         results,
@@ -952,17 +1031,11 @@ pub fn compute_migration_profile(
 }
 
 fn critical_blocking_count(results: &[ProbeResult]) -> usize {
-    results
-        .iter()
-        .filter(|p| is_blocking_probe(p))
-        .count()
+    results.iter().filter(|p| is_blocking_probe(p)).count()
 }
 
 fn attention_count(results: &[ProbeResult]) -> usize {
-    results
-        .iter()
-        .filter(|p| needs_attention_probe(p))
-        .count()
+    results.iter().filter(|p| needs_attention_probe(p)).count()
 }
 
 fn compression_count(results: &[ProbeResult]) -> usize {
@@ -998,26 +1071,24 @@ fn compose_migration_headline(
 
     if critical > 0 {
         return format!(
-            "v2 introduces {critical} critical regression{} — upgrade not recommended without prompt fixes",
+            "v2 introduces {critical} blocking regression{} — upgrade not recommended without prompt fixes",
             if critical == 1 { "" } else { "s" }
         );
     }
 
     if attention > 0 {
         return format!(
-            "v2 is safe to upgrade — {attention} probe{} warrant review before switching",
+            "v2 is safe to upgrade — {attention} review item{} before switching",
             if attention == 1 { "" } else { "s" }
         );
     }
 
     if compression > 0 {
-        let only_compression = results
-            .iter()
-            .all(|p| {
-                p.drift_category == DriftCategory::ContentCompression
-                    || p.drift_category == DriftCategory::NoSignificantDrift
-                    || matches!(p.overall_risk, RiskLevel::Green)
-            });
+        let only_compression = results.iter().all(|p| {
+            p.drift_category == DriftCategory::ContentCompression
+                || p.drift_category == DriftCategory::NoSignificantDrift
+                || matches!(p.overall_risk, RiskLevel::Green)
+        });
         if only_compression {
             return format!(
                 "v2 is more concise across {compression} probe{} — review compression before upgrading",
@@ -1294,7 +1365,9 @@ fn probe_overall_direction(d: &ProbeDimensions, overall_risk: &RiskLevel) -> Dri
     } else if imp && !reg {
         DriftDirection::Improvement
     } else if reg && imp {
-        if matches!(d.claim.direction, DriftDirection::Improvement) && !substantive_regression_direction(d) {
+        if matches!(d.claim.direction, DriftDirection::Improvement)
+            && !substantive_regression_direction(d)
+        {
             DriftDirection::Improvement
         } else {
             DriftDirection::Neutral
@@ -1382,6 +1455,34 @@ fn valence_counts(results: &[ProbeResult]) -> ValenceSummary {
 }
 
 impl DriftReport {
+    /// Recomputes per-probe impact, summary, upgrade path, and migration profile from stored dimensions.
+    ///
+    /// Use when rendering legacy JSON saved before the impact model, or after manual edits.
+    pub fn rebuild_rollups(&mut self) {
+        for pr in &mut self.probe_results {
+            pr.dimensions.code_equivalence =
+                build_code_equivalence_diff(&pr.probe, &pr.v1_content, &pr.v2_content);
+            soften_dimensions_for_code_formatting(&pr.probe, &mut pr.dimensions);
+            let a = assess_probe_impact(&pr.probe, &pr.dimensions);
+            pr.overall_risk = a.overall_risk;
+            pr.drift_category = a.drift_category;
+            pr.drift_severity = a.drift_severity;
+            pr.drift_impact = a.drift_impact;
+        }
+        self.sync_valence_from_probe_results();
+        let engine = ComparisonEngine::new(false, 0.85, RiskThresholds::default());
+        self.overall_risk = engine.compute_overall_risk(&self.probe_results);
+        self.summary = engine.build_summary(
+            &self.probe_results,
+            &self.overall_risk,
+            &self.valence_summary,
+        );
+        self.upgrade_path = build_upgrade_path(&self.probe_results, &self.mutation_results);
+        self.migration_profile =
+            compute_migration_profile(&self.probe_results, &self.latency_summary);
+        self.dimension_summaries = engine.compute_dimension_summaries(&self.probe_results);
+    }
+
     /// Recomputes valence counts from `probe_results` and copies probe-level buckets into `summary`.
     ///
     /// Use after loading older JSON or before rendering so executive stats match per-probe directions.
@@ -1423,18 +1524,12 @@ fn count_drift_categories(results: &[ProbeResult]) -> DriftCategoryCounts {
     counts
 }
 
-fn has_critical_blocking(results: &[ProbeResult]) -> bool {
-    critical_blocking_count(results) > 0
-}
-
 fn is_blocking_probe(pr: &ProbeResult) -> bool {
-    pr.drift_category
-        .is_blocking(&pr.overall_risk)
+    pr.drift_impact.is_blocking()
 }
 
 fn needs_attention_probe(pr: &ProbeResult) -> bool {
-    matches!(pr.drift_category, DriftCategory::CriticalRegression)
-        && matches!(pr.overall_risk, RiskLevel::Amber)
+    pr.drift_impact == DriftImpact::Review
 }
 
 /// Signed token change as a percentage of v1 length (negative = v2 shorter).
@@ -1509,26 +1604,18 @@ pub fn dimension_severity(probe: &Probe, dims: &ProbeDimensions) -> DriftSeverit
     DriftSeverity::Informational
 }
 
-/// Severity-weighted probe risk and drift category (replaces max dimension risk rollup).
+/// Severity-weighted probe risk and drift category (legacy helper; prefer [`assess_probe_impact`]).
 pub fn compute_probe_risk(
     probe: &Probe,
     dims: &ProbeDimensions,
-) -> (RiskLevel, DriftCategory, DriftSeverity) {
-    let severity = dimension_severity(probe, dims);
-    let (risk, category) = match severity {
-        DriftSeverity::Critical => (RiskLevel::Red, DriftCategory::CriticalRegression),
-        DriftSeverity::High => (RiskLevel::Amber, DriftCategory::CriticalRegression),
-        DriftSeverity::Medium => (RiskLevel::Amber, DriftCategory::FidelityDrift),
-        DriftSeverity::Low => (RiskLevel::Amber, DriftCategory::ContentCompression),
-        DriftSeverity::Informational => {
-            if signed_token_delta_pct(dims).abs() > 10.0 || dims.claim.preservation_score < 0.90 {
-                (RiskLevel::Amber, DriftCategory::StructuralDrift)
-            } else {
-                (RiskLevel::Green, DriftCategory::NoSignificantDrift)
-            }
-        }
-    };
-    (risk, category, severity)
+) -> (RiskLevel, DriftCategory, DriftSeverity, DriftImpact) {
+    let a = assess_probe_impact(probe, dims);
+    (
+        a.overall_risk,
+        a.drift_category,
+        a.drift_severity,
+        a.drift_impact,
+    )
 }
 
 fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> UpgradePathReport {
@@ -1536,6 +1623,9 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
     let mut blocking = Vec::new();
     let mut verify = Vec::new();
     let mut neutral = Vec::new();
+    let mut presentation = Vec::new();
+    let mut telemetry = Vec::new();
+    let mut policy = Vec::new();
     let mut certified = Vec::new();
     for pr in results {
         let certified_mutation = mutations
@@ -1553,23 +1643,43 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
                 pr.drift_severity, pr.overall_risk, pr.overall_direction, pr.drift_category
             ),
             certified_mutation,
+            drift_impact: pr.drift_impact,
         };
-        if is_blocking_probe(pr) {
-            blocking.push(item.clone());
-            critical.push(item);
-        } else if needs_attention_probe(pr) {
-            let mut attention_item = item;
-            attention_item.summary = format!(
-                "{} — warrants attention before switching",
-                attention_item.summary
-            );
-            verify.push(attention_item);
-        } else if matches!(pr.overall_risk, RiskLevel::Red | RiskLevel::Amber)
-            && matches!(pr.overall_direction, DriftDirection::Improvement)
-        {
-            verify.push(item);
-        } else if matches!(pr.overall_risk, RiskLevel::Red | RiskLevel::Amber) {
-            neutral.push(item);
+        match pr.drift_impact {
+            DriftImpact::Blocking => {
+                blocking.push(item.clone());
+                critical.push(item);
+            }
+            DriftImpact::Review => {
+                if pr.drift_category == DriftCategory::PolicyDrift {
+                    let mut p = item.clone();
+                    p.summary = format!("{} — review before switching", p.summary);
+                    policy.push(p);
+                }
+                let mut attention_item = item;
+                attention_item.summary =
+                    format!("{} — review before switching", attention_item.summary);
+                verify.push(attention_item);
+            }
+            DriftImpact::Presentation => {
+                let mut p = item;
+                p.summary = format!("{} — presentation drift", p.summary);
+                presentation.push(p);
+            }
+            DriftImpact::Telemetry => {
+                let mut t = item;
+                t.summary = format!("{} — telemetry drift", t.summary);
+                telemetry.push(t);
+            }
+            DriftImpact::Informational => {
+                if matches!(pr.overall_risk, RiskLevel::Red | RiskLevel::Amber)
+                    && matches!(pr.overall_direction, DriftDirection::Improvement)
+                {
+                    verify.push(item);
+                } else if matches!(pr.overall_risk, RiskLevel::Red | RiskLevel::Amber) {
+                    neutral.push(item);
+                }
+            }
         }
     }
     for m in mutations {
@@ -1586,21 +1696,26 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
     }
     let remediation = RemediationCounts {
         prompt_changes_suggested: mutations.len(),
-        manual_review: mutations.iter().filter(|m| m.requires_manual_review).count(),
+        manual_review: mutations
+            .iter()
+            .filter(|m| m.requires_manual_review)
+            .count(),
         auto_certified: mutations.iter().filter(|m| m.validated).count(),
     };
     UpgradePathReport {
         critical_regressions: critical,
-        policy_changes: Vec::new(),
+        policy_changes: policy,
         blocking_regressions: blocking,
         improvements_to_verify: verify,
         neutral_changes: neutral,
+        presentation_drift: presentation,
+        telemetry_drift: telemetry,
         certified_prompts: certified,
         remediation,
     }
 }
 
-fn dim_summary_core<Rd>(results: &[ProbeResult], mut get: Rd) -> DimensionSummary
+fn dim_summary_core<Rd>(dimension: &str, results: &[ProbeResult], mut get: Rd) -> DimensionSummary
 where
     Rd: FnMut(&ProbeDimensions) -> Option<(&RiskLevel, DriftDirection)>,
 {
@@ -1628,6 +1743,7 @@ where
             }
         }
     }
+    let impact_label = crate::dimension_impact_label(dimension, &worst).to_string();
     DimensionSummary {
         probes_affected: affected,
         worst_risk: worst,
@@ -1636,6 +1752,7 @@ where
         drift_improvements,
         drift_neutral,
         drift_not_applicable,
+        impact_label,
     }
 }
 
@@ -1697,6 +1814,103 @@ fn extract_snippet(content: &str, _known: &str) -> String {
 
 fn word_count(s: &str) -> usize {
     s.split_whitespace().count()
+}
+
+fn responses_equivalent_for_compare(v1: &str, v2: &str) -> bool {
+    normalize_whitespace(v1) == normalize_whitespace(v2) || v1.trim() == v2.trim()
+}
+
+fn soften_dimensions_for_code_formatting(probe: &Probe, dims: &mut ProbeDimensions) {
+    let Some(ce) = &dims.code_equivalence else {
+        return;
+    };
+    if !ce.applies {
+        return;
+    }
+    if !matches!(
+        ce.equivalence,
+        CodeEquivalenceLevel::Exact | CodeEquivalenceLevel::EquivalentFormatting
+    ) {
+        return;
+    }
+    if crate::code_equivalence::formatting_blocks(probe) {
+        return;
+    }
+
+    let fence_only_structure =
+        dims.morphology.v1.has_code_blocks != dims.morphology.v2.has_code_blocks;
+    if fence_only_structure {
+        dims.morphology.delta.structure_changed = false;
+        dims.morphology.delta.response_type_changed = false;
+    }
+    if fence_only_structure || dims.morphology.delta.token_delta_pct < 0.10 {
+        dims.morphology.risk = RiskLevel::Green;
+        dims.morphology.direction = DriftDirection::Neutral;
+    }
+
+    dims.semantic.risk = RiskLevel::Green;
+    dims.semantic.flagged_for_review = false;
+    dims.semantic.direction = DriftDirection::Neutral;
+
+    if dims.claim.preservation_score >= dims.claim.preservation_threshold {
+        dims.claim.risk = RiskLevel::Green;
+        dims.claim.direction = DriftDirection::Neutral;
+    }
+}
+
+fn compare_implicit_code_instruction(pair: &ResponsePair) -> Option<InstructionDiff> {
+    if !prompt_requires_code_only(&pair.probe.prompt) {
+        return None;
+    }
+    let v1_prose = non_code_prose(&pair.v1.content);
+    let v2_prose = non_code_prose(&pair.v2.content);
+    let v1_words = word_count(&v1_prose);
+    let v2_words = word_count(&v2_prose);
+    let mut regressions = Vec::new();
+    if v1_words <= 2 && v2_words > 2 {
+        regressions.push("added explanation beyond requested code".into());
+    }
+    let v1_ok = v1_words <= 2;
+    let v2_ok = v2_words <= 2;
+    let risk = if !regressions.is_empty() {
+        RiskLevel::Red
+    } else if !v2_ok && v1_ok {
+        RiskLevel::Amber
+    } else {
+        RiskLevel::Green
+    };
+    let direction = if !v2_ok && v1_ok {
+        DriftDirection::Regression
+    } else if v2_ok && !v1_ok {
+        DriftDirection::Improvement
+    } else {
+        DriftDirection::Neutral
+    };
+    Some(InstructionDiff {
+        risk,
+        direction,
+        v1_results: vec![InstructionCheckResult {
+            instruction: "code-only output".into(),
+            passed: v1_ok,
+            detail: if v1_ok {
+                "ok".into()
+            } else {
+                "extra prose".into()
+            },
+        }],
+        v2_results: vec![InstructionCheckResult {
+            instruction: "code-only output".into(),
+            passed: v2_ok,
+            detail: if v2_ok {
+                "ok".into()
+            } else {
+                "extra prose".into()
+            },
+        }],
+        v1_pass_rate: if v1_ok { 1.0 } else { 0.0 },
+        v2_pass_rate: if v2_ok { 1.0 } else { 0.0 },
+        regressions,
+    })
 }
 
 fn run_instruction_check(ins: &ProbeInstruction, content: &str) -> InstructionCheckResult {
@@ -1803,14 +2017,21 @@ fn check_output_format(content: &str, fmt: &OutputFormat) -> bool {
         OutputFormat::Markdown => content.contains('#') || content.contains("**"),
         OutputFormat::PlainText => !content.contains("```") && !content.contains('|'),
         OutputFormat::BulletList => {
-            content.lines().filter(|l| l.trim_start().starts_with("- ") || l.trim_start().starts_with("* ")).count() >= 2
+            content
+                .lines()
+                .filter(|l| l.trim_start().starts_with("- ") || l.trim_start().starts_with("* "))
+                .count()
+                >= 2
         }
-        OutputFormat::NumberedList => {
-            content.lines().any(|l| {
-                let t = l.trim_start();
-                t.len() > 2 && t.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) && t.contains('.')
-            })
-        }
+        OutputFormat::NumberedList => content.lines().any(|l| {
+            let t = l.trim_start();
+            t.len() > 2
+                && t.chars()
+                    .next()
+                    .map(|c| c.is_ascii_digit())
+                    .unwrap_or(false)
+                && t.contains('.')
+        }),
     }
 }
 
@@ -1854,7 +2075,10 @@ fn validate_json_schema(
     (schema_ok, missing, extra, types)
 }
 
-fn field_types_ok(obj: &serde_json::Map<String, serde_json::Value>, schema: &serde_json::Value) -> bool {
+fn field_types_ok(
+    obj: &serde_json::Map<String, serde_json::Value>,
+    schema: &serde_json::Value,
+) -> bool {
     let Some(props) = schema.get("properties").and_then(|p| p.as_object()) else {
         return true;
     };
@@ -2047,6 +2271,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         };
         let mk = |v1_ms, v2_ms| ProbeResult {
             probe: probe.clone(),
@@ -2056,6 +2285,7 @@ mod tests {
             overall_direction: DriftDirection::Neutral,
             drift_category: DriftCategory::NoSignificantDrift,
             drift_severity: DriftSeverity::Informational,
+            drift_impact: DriftImpact::Informational,
             dimensions: ProbeDimensions {
                 latency: LatencyDiff {
                     risk: RiskLevel::Green,
@@ -2102,6 +2332,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         };
         let v1_ms = 7012_u64;
         let v2_ms = v1_ms - 4261;
@@ -2113,6 +2348,7 @@ mod tests {
             overall_direction: DriftDirection::Neutral,
             drift_category: DriftCategory::NoSignificantDrift,
             drift_severity: DriftSeverity::Informational,
+            drift_impact: DriftImpact::Informational,
             dimensions: ProbeDimensions {
                 latency: LatencyDiff {
                     risk: RiskLevel::Green,
@@ -2159,8 +2395,14 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         };
-        let (overall_risk, drift_category, drift_severity) = compute_probe_risk(&probe, &dimensions);
+        let (overall_risk, drift_category, drift_severity, drift_impact) =
+            compute_probe_risk(&probe, &dimensions);
         ProbeResult {
             probe,
             v1_content: String::new(),
@@ -2169,6 +2411,7 @@ mod tests {
             overall_direction: DriftDirection::Regression,
             drift_category,
             drift_severity,
+            drift_impact,
             dimensions,
             notes: vec![],
         }
@@ -2190,11 +2433,13 @@ mod tests {
         dims.morphology.delta.token_delta_pct = 0.45;
         dims.claim.preservation_score = 0.45;
         dims.claim.preservation_threshold = 0.50;
+        dims.claim.material_preservation_score = 0.45;
         dims.claim.drifted_claims.clear();
         let pr = test_probe_from_dims(ProbeCategory::Semantic, dims);
-        assert_eq!(pr.drift_severity, DriftSeverity::Low);
-        assert_eq!(pr.drift_category, DriftCategory::ContentCompression);
-        assert!(matches!(pr.overall_risk, RiskLevel::Amber));
+        assert!(matches!(
+            pr.drift_impact,
+            DriftImpact::Presentation | DriftImpact::Review
+        ));
         assert!(!is_blocking_probe(&pr));
     }
 
@@ -2238,7 +2483,10 @@ mod tests {
             v1_claim: Claim {
                 text: "rate is 4.5%".into(),
                 information_density: 1.0,
-                anchors: vec![],
+                anchors: vec![ClaimAnchor {
+                    anchor_type: AnchorType::NumericValue,
+                    value: "4.5%".into(),
+                }],
             },
             v2_claim: Claim {
                 text: "rate varies".into(),
@@ -2252,8 +2500,9 @@ mod tests {
                 v2_value: "varies".into(),
             }],
         });
+        dims.claim.has_material_anchor_drift = true;
         let pr = test_probe_from_dims(ProbeCategory::Semantic, dims);
-        assert_eq!(pr.drift_severity, DriftSeverity::Critical);
+        assert_eq!(pr.drift_impact, DriftImpact::Blocking);
         assert!(is_blocking_probe(&pr));
     }
 
@@ -2270,8 +2519,8 @@ mod tests {
         dims.refusal.new_refusal = true;
         dims.refusal.direction = DriftDirection::Regression;
         let pr = test_probe_from_dims(ProbeCategory::Refusal, dims);
-        assert_eq!(pr.drift_severity, DriftSeverity::High);
-        assert_eq!(pr.drift_category, DriftCategory::CriticalRegression);
+        assert_eq!(pr.drift_impact, DriftImpact::Review);
+        assert_eq!(pr.drift_category, DriftCategory::PolicyDrift);
         assert!(matches!(pr.overall_risk, RiskLevel::Amber));
         assert!(!is_blocking_probe(&pr));
         assert!(needs_attention_probe(&pr));
@@ -2289,11 +2538,11 @@ mod tests {
         );
         dims.claim.preservation_score = 0.30;
         dims.claim.preservation_threshold = 0.50;
+        dims.claim.material_preservation_score = 0.30;
         dims.claim.drifted_claims.clear();
         let pr = test_probe_from_dims(ProbeCategory::Semantic, dims);
-        assert_eq!(pr.drift_severity, DriftSeverity::Low);
-        assert_eq!(pr.drift_category, DriftCategory::ContentCompression);
         assert!(!is_blocking_probe(&pr));
+        assert_ne!(pr.drift_impact, DriftImpact::Blocking);
     }
 
     #[test]
@@ -2315,6 +2564,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         };
         let mut dims = test_probe_dimensions(
             RiskLevel::Green,
@@ -2334,6 +2588,7 @@ mod tests {
             overall_direction: DriftDirection::Neutral,
             drift_category: DriftCategory::NoSignificantDrift,
             drift_severity: DriftSeverity::Informational,
+            drift_impact: DriftImpact::Informational,
             dimensions: dims,
             notes: vec![],
         };
@@ -2375,7 +2630,7 @@ mod tests {
         let latency = compute_latency_summary(std::slice::from_ref(&pr));
         let profile = compute_migration_profile(&[pr], &latency);
         assert!(!profile.safe_to_upgrade);
-        assert!(profile.headline.contains("critical regression"));
+        assert!(profile.headline.contains("blocking regression"));
         assert!(profile.headline.contains("not recommended"));
     }
 
@@ -2416,7 +2671,10 @@ mod tests {
             v1_claim: Claim {
                 text: "rate 4.5%".into(),
                 information_density: 1.0,
-                anchors: vec![],
+                anchors: vec![ClaimAnchor {
+                    anchor_type: AnchorType::NumericValue,
+                    value: "4.5%".into(),
+                }],
             },
             v2_claim: Claim {
                 text: "rate varies".into(),
@@ -2430,11 +2688,12 @@ mod tests {
                 v2_value: "varies".into(),
             }],
         });
+        content_dims.claim.has_material_anchor_drift = true;
         let content = test_probe_from_dims(ProbeCategory::Semantic, content_dims);
 
         let latency = compute_latency_summary(&[instr.clone(), content.clone()]);
         let profile = compute_migration_profile(&[instr, content], &latency);
-        assert!(profile.headline.contains("critical regression"));
+        assert!(profile.headline.contains("blocking regression"));
         assert!(profile.headline.contains("not recommended"));
     }
 
@@ -2454,7 +2713,7 @@ mod tests {
         let latency = compute_latency_summary(std::slice::from_ref(&pr));
         let profile = compute_migration_profile(&[pr], &latency);
         assert!(profile.safe_to_upgrade);
-        assert!(profile.headline.contains("warrant review"));
+        assert!(profile.headline.contains("review item"));
     }
 
     #[test]
@@ -2518,11 +2777,98 @@ mod tests {
         dims.morphology.delta.token_delta = -50;
         dims.morphology.delta.token_delta_pct = 0.50;
         let pr = test_probe_from_dims(ProbeCategory::Semantic, dims);
-        assert_eq!(pr.drift_category, DriftCategory::ContentCompression);
-        assert_eq!(pr.drift_severity, DriftSeverity::Low);
+        assert!(!is_blocking_probe(&pr));
         let path = build_upgrade_path(&[pr], &[]);
         assert!(path.blocking_regressions.is_empty());
-        assert_eq!(path.neutral_changes.len(), 1);
+        assert!(
+            !path.presentation_drift.is_empty() || !path.improvements_to_verify.is_empty(),
+            "compression should surface as non-blocking drift"
+        );
+    }
+
+    #[test]
+    fn safe_to_upgrade_false_only_when_blocking() {
+        let engine = ComparisonEngine::new(false, 0.85, RiskThresholds::default());
+        let valence = ValenceSummary::default();
+
+        let mut morph_dims = test_probe_dimensions(
+            RiskLevel::Red,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+        );
+        morph_dims.morphology.direction = DriftDirection::Regression;
+        let morph_pr = test_probe_from_dims(ProbeCategory::Semantic, morph_dims);
+        assert_ne!(morph_pr.drift_impact, DriftImpact::Blocking);
+
+        let morph_summary = engine.build_summary(&[morph_pr], &RiskLevel::Amber, &valence);
+        assert!(morph_summary.safe_to_upgrade);
+        assert_eq!(morph_summary.blocking_regressions, 0);
+
+        let mut factual_dims = test_probe_dimensions(
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+            RiskLevel::Green,
+        );
+        factual_dims.factual = Some(FactualDiff {
+            risk: RiskLevel::Red,
+            direction: DriftDirection::Regression,
+            v1_correct: true,
+            v2_correct: false,
+            v1_answer_extract: "42".into(),
+            v2_answer_extract: "41".into(),
+            regression: true,
+            improvement: false,
+        });
+        let factual_pr = test_probe_from_dims(ProbeCategory::Factual, factual_dims);
+        assert_eq!(factual_pr.drift_impact, DriftImpact::Blocking);
+
+        let factual_summary = engine.build_summary(&[factual_pr], &RiskLevel::Red, &valence);
+        assert!(!factual_summary.safe_to_upgrade);
+        assert_eq!(factual_summary.blocking_regressions, 1);
+    }
+
+    #[test]
+    fn legacy_json_without_drift_impact_rebuilds_rollups() {
+        const LEGACY: &str =
+            include_str!("../../arsenic-report/fixtures/report_openai_upgrade.json");
+        assert!(
+            !LEGACY.contains("drift_impact"),
+            "fixture must stay legacy-shaped for this test"
+        );
+
+        let mut report: DriftReport =
+            serde_json::from_str(LEGACY).expect("deserialize legacy JSON");
+        for pr in &report.probe_results {
+            assert_eq!(pr.drift_impact, DriftImpact::Informational);
+        }
+
+        report.rebuild_rollups();
+
+        assert_eq!(
+            report.summary.safe_to_upgrade,
+            report.summary.blocking_regressions == 0
+        );
+        assert_eq!(
+            report.migration_profile.safe_to_upgrade,
+            report.summary.blocking_regressions == 0
+        );
+        assert!(report
+            .probe_results
+            .iter()
+            .any(|pr| pr.drift_impact != DriftImpact::Informational));
+        if report.dimension_summaries.morphology.worst_risk != RiskLevel::Green {
+            assert!(report
+                .dimension_summaries
+                .morphology
+                .impact_label
+                .contains("presentation"));
+        }
     }
 
     fn test_probe_dimensions(
@@ -2616,14 +2962,9 @@ mod tests {
             claim: ClaimDiff {
                 risk: claim,
                 direction: DriftDirection::Neutral,
-                v1_claims: vec![],
-                v2_claims: vec![],
-                matched_pairs: vec![],
-                dropped_claims: vec![],
-                new_claims: vec![],
-                drifted_claims: vec![],
                 preservation_score: 1.0,
                 preservation_threshold: 0.5,
+                ..Default::default()
             },
             latency: LatencyDiff {
                 risk: latency,
@@ -2635,6 +2976,7 @@ mod tests {
             },
             consistency: None,
             custom_assertions: None,
+            code_equivalence: None,
         }
     }
 
@@ -2661,6 +3003,11 @@ mod tests {
             refusal_expectation: None,
             mutation_hint: None,
             custom_assertions: vec![],
+            format_sensitive: false,
+            structure_sensitive: false,
+            claim_anchor_policy: ClaimAnchorPolicy::default(),
+            presentation_drift: PresentationDriftPolicy::default(),
+            latency_slo_ms: None,
         };
         let mk = |label: &str, content: &str| ModelResponse {
             probe_id: id,
@@ -2723,5 +3070,75 @@ mod tests {
         let pr = engine.compare_one(pair).expect("compare");
         assert!(matches!(pr.overall_risk, RiskLevel::Green));
         assert!(!is_blocking_probe(&pr));
+    }
+
+    #[test]
+    fn fenced_sql_vs_plain_sql_is_presentation_not_blocking() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let pair = test_response_pair(
+            ProbeCategory::Instruction,
+            None,
+            "```sql\nSELECT users.name, orders.total\nFROM users\nJOIN orders ON users.id = orders.user_id;\n```",
+            "SELECT users.name, orders.total\nFROM users\nJOIN orders ON users.id = orders.user_id;",
+        );
+        let pr = engine.compare_one(pair).expect("compare");
+        assert_eq!(pr.drift_impact, DriftImpact::Presentation);
+        assert!(!is_blocking_probe(&pr));
+        assert!(matches!(
+            pr.overall_risk,
+            RiskLevel::Green | RiskLevel::Amber
+        ));
+    }
+
+    #[test]
+    fn semantic_sql_change_remains_blocking() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let pair = test_response_pair(
+            ProbeCategory::Instruction,
+            None,
+            "SELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id",
+            "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id",
+        );
+        let pr = engine.compare_one(pair).expect("compare");
+        assert!(
+            matches!(pr.drift_impact, DriftImpact::Blocking | DriftImpact::Review),
+            "semantic SQL change must not be treated as presentation-only"
+        );
+        assert_ne!(pr.drift_impact, DriftImpact::Presentation);
+    }
+
+    #[test]
+    fn explanation_after_code_blocks() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let mut pair = test_response_pair(
+            ProbeCategory::Instruction,
+            None,
+            "```python\nprint('Hello')\n```",
+            "```python\nprint('Hello')\n```\n\nHere is the code you asked for.",
+        );
+        pair.probe.prompt =
+            "Return ONLY the function. No explanation before it. No explanation after it.".into();
+        let pr = engine.compare_one(pair).expect("compare");
+        assert_eq!(pr.drift_impact, DriftImpact::Blocking);
+        assert!(pr
+            .dimensions
+            .instruction
+            .as_ref()
+            .is_some_and(|i| !i.regressions.is_empty()));
+    }
+
+    #[test]
+    fn format_sensitive_code_fence_loss_blocks() {
+        let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
+        let mut pair = test_response_pair(
+            ProbeCategory::Instruction,
+            None,
+            "```python\nx = 1\n```",
+            "x = 1",
+        );
+        pair.probe.format_sensitive = true;
+        pair.probe.presentation_drift = PresentationDriftPolicy::Blocking;
+        let pr = engine.compare_one(pair).expect("compare");
+        assert_eq!(pr.drift_impact, DriftImpact::Blocking);
     }
 }

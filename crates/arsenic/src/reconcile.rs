@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use anyhow::{bail, Context};
 use arsenic_adapters::{build_adapter, AdapterSpec};
 use arsenic_core::{
-    build_reconcile_probe, run_reconcile, synthetic_model_response, ComparisonEngine,
-    DEFAULT_MAX_STRATEGIES, ModelInfo, RiskThresholds,
+    build_reconcile_probe, run_reconcile, synthetic_model_response, ComparisonEngine, ModelInfo,
+    RiskThresholds, DEFAULT_MAX_STRATEGIES,
 };
 use arsenic_report::{render_reconcile_html, render_reconcile_json};
 use futures_util::try_join;
@@ -62,7 +62,9 @@ pub fn validate_reconcile_args(args: &ReconcileArgs) -> anyhow::Result<Reconcile
 
     if has_inline {
         if has_file {
-            bail!("Mode 3 (inline): do not combine --v1-response / --v2-response with inline flags");
+            bail!(
+                "Mode 3 (inline): do not combine --v1-response / --v2-response with inline flags"
+            );
         }
         if has_v1_gen || args.v1_endpoint.is_some() || args.v1_key_env.is_some() {
             bail!("Mode 3 (inline): do not set --v1, --v1-endpoint, or --v1-key-env");
@@ -138,11 +140,7 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
                 baseline_adapter.complete(&probe),
                 target_adapter.complete(&probe)
             )?;
-            (
-                model_info(&args.v1_label, &v1_spec),
-                r1,
-                r2,
-            )
+            (model_info(&args.v1_label, &v1_spec), r1, r2)
         }
         ReconcileInputMode::FromFiles => {
             let v1_path = args.v1_response.as_ref().context("--v1-response")?;
@@ -157,18 +155,9 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
                     .context("target model completion for initial response")?
                     .content
             };
-            let v1 = synthetic_model_response(
-                probe_id,
-                &args.v1_label,
-                "supplied",
-                &v1_text,
-            );
-            let v2 = synthetic_model_response(
-                probe_id,
-                &args.v2_label,
-                &v2_spec.model_id,
-                &v2_text,
-            );
+            let v1 = synthetic_model_response(probe_id, &args.v1_label, "supplied", &v1_text);
+            let v2 =
+                synthetic_model_response(probe_id, &args.v2_label, &v2_spec.model_id, &v2_text);
             (
                 ModelInfo {
                     label: args.v1_label.clone(),
@@ -184,12 +173,8 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
             let v1_text = args.v1_response_inline.context("--v1-response-inline")?;
             let v2_text = args.v2_response_inline.context("--v2-response-inline")?;
             let v1 = synthetic_model_response(probe_id, &args.v1_label, "inline", &v1_text);
-            let v2 = synthetic_model_response(
-                probe_id,
-                &args.v2_label,
-                &v2_spec.model_id,
-                &v2_text,
-            );
+            let v2 =
+                synthetic_model_response(probe_id, &args.v2_label, &v2_spec.model_id, &v2_text);
             (
                 ModelInfo {
                     label: args.v1_label.clone(),
@@ -224,10 +209,7 @@ pub async fn run_reconcile_command(args: ReconcileArgs) -> anyhow::Result<()> {
     .await?;
 
     if result.certified {
-        println!(
-            "Validated — validation risk {:?}",
-            result.validation_risk
-        );
+        println!("Validated — validation risk {:?}", result.validation_risk);
     } else {
         println!("Needs attention — automatic reconciliation did not validate");
     }
@@ -277,7 +259,10 @@ fn parse_target_spec(
 fn parse_model_spec(s: &str) -> anyhow::Result<(String, String)> {
     let mut parts = s.splitn(2, ':');
     let a = parts.next().context("empty model spec")?.trim();
-    let m = parts.next().context("model spec must be adapter:model_id")?.trim();
+    let m = parts
+        .next()
+        .context("model spec must be adapter:model_id")?
+        .trim();
     let adapter = match a.to_lowercase().as_str() {
         "ollama" => "openai".to_string(),
         other => other.to_string(),
@@ -322,7 +307,10 @@ mod tests {
         a.v1 = Some("openai:m1".into());
         a.v1_endpoint = Some("http://localhost".into());
         a.v1_key_env = Some("K".into());
-        assert_eq!(validate_reconcile_args(&a).unwrap(), ReconcileInputMode::GenerateBoth);
+        assert_eq!(
+            validate_reconcile_args(&a).unwrap(),
+            ReconcileInputMode::GenerateBoth
+        );
     }
 
     #[test]
@@ -339,7 +327,10 @@ mod tests {
         a.v1_response_inline = Some("a".into());
         assert!(validate_reconcile_args(&a).is_err());
         a.v2_response_inline = Some("b".into());
-        assert_eq!(validate_reconcile_args(&a).unwrap(), ReconcileInputMode::Inline);
+        assert_eq!(
+            validate_reconcile_args(&a).unwrap(),
+            ReconcileInputMode::Inline
+        );
     }
 
     #[test]

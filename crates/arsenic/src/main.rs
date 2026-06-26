@@ -3,9 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Context;
-use arsenic_adapters::{
-    build_adapter, AdapterSpec, BaselineIdentity, CacheMode, CachingAdapter,
-};
+use arsenic_adapters::{build_adapter, AdapterSpec, BaselineIdentity, CacheMode, CachingAdapter};
 use arsenic_core::{
     cache::BaselineCache, ComparisonEngine, DriftReport, ModelAdapter, ModelInfo, ProbeCategory,
     ProbeRunner, RiskThresholds,
@@ -24,7 +22,11 @@ mod mutation_validate;
 mod reconcile;
 
 #[derive(Parser)]
-#[command(name = "arsenic", version, about = "ARSENIC — migration safety and behavioural drift")]
+#[command(
+    name = "arsenic",
+    version,
+    about = "ARSENIC — migration safety and behavioural drift"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -114,9 +116,7 @@ enum Commands {
         sub: ReportCmd,
     },
     /// Validate a user probe corpus directory or file
-    Validate {
-        path: PathBuf,
-    },
+    Validate { path: PathBuf },
     /// Model assets (placeholder for air-gapped download instructions)
     Models {
         #[command(subcommand)]
@@ -473,7 +473,8 @@ async fn main() -> anyhow::Result<()> {
             let suite_str = standard_suite
                 .or_else(|| cfg_opt.as_ref().and_then(|c| c.run.standard_suite.clone()))
                 .unwrap_or_else(|| "full".to_string());
-            let corpus = user_corpus.or_else(|| cfg_opt.as_ref().and_then(|c| c.run.user_corpus.clone()));
+            let corpus =
+                user_corpus.or_else(|| cfg_opt.as_ref().and_then(|c| c.run.user_corpus.clone()));
             let conc = cfg_opt
                 .as_ref()
                 .and_then(|c| c.run.concurrency)
@@ -492,7 +493,9 @@ async fn main() -> anyhow::Result<()> {
                 .max(1);
 
             if user_corpus_only && corpus.is_none() {
-                anyhow::bail!("--user-corpus-only requires --user-corpus (or run.user_corpus in config)");
+                anyhow::bail!(
+                    "--user-corpus-only requires --user-corpus (or run.user_corpus in config)"
+                );
             }
 
             let suite_dir = suite_path.unwrap_or_else(default_suite_path);
@@ -608,7 +611,12 @@ async fn main() -> anyhow::Result<()> {
                 };
                 probes.sort_by(|a, b| a.name.cmp(&b.name));
                 for p in probes {
-                    println!("{} [{}] {:?}", p.name, format!("{:?}", p.category).dimmed(), p.tags);
+                    println!(
+                        "{} [{}] {:?}",
+                        p.name,
+                        format!("{:?}", p.category).dimmed(),
+                        p.tags
+                    );
                 }
             }
             ProbeCmd::Show { name, suite_path } => {
@@ -639,7 +647,8 @@ async fn main() -> anyhow::Result<()> {
                     "json" => ReportRenderer::render_json(&report)?,
                     _ => anyhow::bail!("unknown format {format}"),
                 };
-                std::fs::write(&output, bytes).with_context(|| format!("write {}", output.display()))?;
+                std::fs::write(&output, bytes)
+                    .with_context(|| format!("write {}", output.display()))?;
                 println!("Wrote {}", output.display());
             }
             ReportCmd::Summary {
@@ -875,7 +884,9 @@ fn build_side_adapter(
 
 fn load_report_json(path: &Path) -> anyhow::Result<DriftReport> {
     let text = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
-    serde_json::from_str(&text).context("parse drift JSON")
+    let mut report: DriftReport = serde_json::from_str(&text).context("parse drift JSON")?;
+    report.rebuild_rollups();
+    Ok(report)
 }
 
 fn validate_corpus(path: &Path) -> anyhow::Result<()> {
@@ -950,7 +961,9 @@ fn merge_compare_config(
         .unwrap_or_else(|| semantic_threshold.parse().unwrap_or(0.85));
     let out_html = output_cli.or_else(|| cfg.and_then(|c| c.output.html.clone()));
     let out_json = json_cli.or_else(|| cfg.and_then(|c| c.output.json.clone()));
-    Ok((spec1, spec2, suite_str, corpus, conc, sem_thr, out_html, out_json))
+    Ok((
+        spec1, spec2, suite_str, corpus, conc, sem_thr, out_html, out_json,
+    ))
 }
 
 fn parse_model_cli_or_cfg(
@@ -966,7 +979,8 @@ fn parse_model_cli_or_cfg(
         return Ok(AdapterSpec {
             adapter_type,
             endpoint: endpoint_cli,
-            api_key_env: key_env_cli.context("--v1-key-env / --v2-key-env required with --v1/--v2")?,
+            api_key_env: key_env_cli
+                .context("--v1-key-env / --v2-key-env required with --v1/--v2")?,
             model_id,
             temperature: Some(temperature_cli),
             max_tokens: None,
@@ -988,7 +1002,10 @@ fn parse_model_cli_or_cfg(
 fn parse_model_spec(s: &str) -> anyhow::Result<(String, String)> {
     let mut parts = s.splitn(2, ':');
     let a = parts.next().context("empty model spec")?.trim();
-    let m = parts.next().context("model spec must be adapter:model_id")?.trim();
+    let m = parts
+        .next()
+        .context("model spec must be adapter:model_id")?
+        .trim();
     let adapter = match a.to_lowercase().as_str() {
         "ollama" => "openai".to_string(),
         other => other.to_string(),

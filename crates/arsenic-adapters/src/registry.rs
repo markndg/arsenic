@@ -13,12 +13,17 @@ pub struct AdapterSpec {
     pub timeout_secs: Option<u64>,
 }
 
-pub fn build_adapter(spec: &AdapterSpec) -> anyhow::Result<std::sync::Arc<dyn arsenic_core::ModelAdapter>> {
+pub fn build_adapter(
+    spec: &AdapterSpec,
+) -> anyhow::Result<std::sync::Arc<dyn arsenic_core::ModelAdapter>> {
     match spec.adapter_type.as_str() {
         "openai" | "ollama" => Ok(std::sync::Arc::new(OpenAIAdapter::from_spec(spec)?)),
         "anthropic" => Ok(std::sync::Arc::new(AnthropicAdapter::from_spec(spec)?)),
         "google" => Ok(std::sync::Arc::new(GoogleAdapter::from_spec(spec)?)),
-        _ => Err(anyhow::anyhow!("Unknown adapter type: {}", spec.adapter_type)),
+        _ => Err(anyhow::anyhow!(
+            "Unknown adapter type: {}",
+            spec.adapter_type
+        )),
     }
 }
 

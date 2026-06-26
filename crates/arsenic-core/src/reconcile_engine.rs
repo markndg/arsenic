@@ -14,8 +14,9 @@ use crate::reconcile::{
     ReconcileAttempt, ReconcileDimension, ReconcileResult, ReconcileSignal, SignalDetail,
 };
 use crate::types::{
-    Claim, DriftDirection, FinishReason, ModelInfo, ModelResponse, MutationStrategy, Probe,
-    ProbeCategory, ProbeResult, ProbeSource, ResponsePair, RiskLevel,
+    Claim, ClaimAnchorPolicy, DriftDirection, FinishReason, ModelInfo, ModelResponse,
+    MutationStrategy, PresentationDriftPolicy, Probe, ProbeCategory, ProbeResult, ProbeSource,
+    ResponsePair, RiskLevel,
 };
 
 /// Default validation attempts when `max_strategies` is unset or zero.
@@ -48,6 +49,11 @@ pub fn build_reconcile_probe(prompt: String, system_prompt: Option<String>) -> P
         refusal_expectation: None,
         mutation_hint: None,
         custom_assertions: vec![],
+        format_sensitive: false,
+        structure_sensitive: false,
+        claim_anchor_policy: ClaimAnchorPolicy::default(),
+        presentation_drift: PresentationDriftPolicy::default(),
+        latency_slo_ms: None,
     }
 }
 
@@ -171,11 +177,13 @@ pub fn rank_signals(delta: &ProbeResult) -> Vec<ReconcileSignal> {
     let token_pct = morph.delta.token_delta_pct.abs();
     if token_pct > 5.0 || morph.delta.response_type_changed {
         let v2_shorter = morph.v2.word_count < morph.v1.word_count;
-        let magnitude = (token_pct / 100.0).min(1.0).max(if morph.delta.response_type_changed {
-            0.35
-        } else {
-            0.0
-        });
+        let magnitude = (token_pct / 100.0)
+            .min(1.0)
+            .max(if morph.delta.response_type_changed {
+                0.35
+            } else {
+                0.0
+            });
         if magnitude > 0.0 {
             signals.push(ReconcileSignal {
                 dimension: ReconcileDimension::Morphology,
@@ -233,7 +241,10 @@ pub fn rank_signals(delta: &ProbeResult) -> Vec<ReconcileSignal> {
 }
 
 /// Map ranked signals to mutation strategies in magnitude order (not the fixed compare/mutate sequence).
-pub fn signals_to_strategies(signals: &[ReconcileSignal], delta: &ProbeResult) -> Vec<MutationStrategy> {
+pub fn signals_to_strategies(
+    signals: &[ReconcileSignal],
+    delta: &ProbeResult,
+) -> Vec<MutationStrategy> {
     let mut ordered = signals.to_vec();
     ordered.sort_by(|a, b| {
         b.magnitude
@@ -263,7 +274,9 @@ pub fn signals_to_strategies(signals: &[ReconcileSignal], delta: &ProbeResult) -
                 if !values.is_empty() {
                     push_unique(
                         &mut out,
-                        MutationStrategy::AddClaimInstruction { required_values: values },
+                        MutationStrategy::AddClaimInstruction {
+                            required_values: values,
+                        },
                     );
                 }
             }
@@ -299,8 +312,7 @@ pub fn signals_to_strategies(signals: &[ReconcileSignal], delta: &ProbeResult) -
                 );
             }
             SignalDetail::MorphologyDelta {
-                v2_shorter: true,
-                ..
+                v2_shorter: true, ..
             } => {
                 let min_words = ((morph.v1.word_count as f64) * 0.85).ceil() as usize;
                 push_unique(
@@ -311,8 +323,7 @@ pub fn signals_to_strategies(signals: &[ReconcileSignal], delta: &ProbeResult) -
                 );
             }
             SignalDetail::MorphologyDelta {
-                v2_shorter: false,
-                ..
+                v2_shorter: false, ..
             } => {
                 if morph.v2.word_count > morph.v1.word_count {
                     let max_words = ((morph.v1.word_count as f64) * 1.15).ceil() as usize;
@@ -356,7 +367,9 @@ pub fn signals_to_strategies(signals: &[ReconcileSignal], delta: &ProbeResult) -
                 if !anchors.is_empty() {
                     push_unique(
                         &mut out,
-                        MutationStrategy::AddClaimInstruction { required_values: anchors },
+                        MutationStrategy::AddClaimInstruction {
+                            required_values: anchors,
+                        },
                     );
                 }
             }
@@ -553,7 +566,10 @@ fn is_topic_phrase_word(word: &str, is_first: bool) -> bool {
     if is_topic_verb_word(&w) {
         return false;
     }
-    if w.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '-') && w.len() <= 8 {
+    if w.chars()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '-')
+        && w.len() <= 8
+    {
         return true;
     }
     if is_first && topic_leading_stopword(&w) {
@@ -573,11 +589,7 @@ fn trim_word_punctuation(word: &str) -> String {
 }
 
 fn normalize_topic_label(s: &str) -> String {
-    trim_word_punctuation(
-        s.trim()
-            .trim_end_matches(':')
-            .trim_end_matches(['.', ',']),
-    )
+    trim_word_punctuation(s.trim().trim_end_matches(':').trim_end_matches(['.', ',']))
 }
 
 fn strip_leading_topic_stopwords(s: &str) -> String {
@@ -595,21 +607,85 @@ fn strip_leading_topic_stopwords(s: &str) -> String {
 fn topic_leading_stopword(w: &str) -> bool {
     matches!(
         w.to_lowercase().as_str(),
-        "the" | "a" | "an" | "when" | "if" | "this" | "that" | "they" | "you" | "it" | "as"
-            | "in" | "on" | "for" | "to" | "and" | "or" | "but" | "so" | "because" | "while"
-            | "with" | "without" | "by" | "from" | "at" | "into" | "through"
+        "the"
+            | "a"
+            | "an"
+            | "when"
+            | "if"
+            | "this"
+            | "that"
+            | "they"
+            | "you"
+            | "it"
+            | "as"
+            | "in"
+            | "on"
+            | "for"
+            | "to"
+            | "and"
+            | "or"
+            | "but"
+            | "so"
+            | "because"
+            | "while"
+            | "with"
+            | "without"
+            | "by"
+            | "from"
+            | "at"
+            | "into"
+            | "through"
     )
 }
 
 fn is_topic_verb_word(w: &str) -> bool {
     matches!(
         w.to_lowercase().as_str(),
-        "is" | "are" | "was" | "were" | "be" | "been" | "being" | "am" | "work" | "works"
-            | "working" | "worked" | "should" | "can" | "could" | "will" | "would" | "have"
-            | "has" | "had" | "do" | "does" | "did" | "use" | "uses" | "using" | "used"
-            | "allow" | "allows" | "provide" | "provides" | "make" | "makes" | "help"
-            | "helps" | "need" | "needs" | "include" | "includes" | "mean" | "means"
-            | "similar" | "often" | "also" | "just" | "very"
+        "is" | "are"
+            | "was"
+            | "were"
+            | "be"
+            | "been"
+            | "being"
+            | "am"
+            | "work"
+            | "works"
+            | "working"
+            | "worked"
+            | "should"
+            | "can"
+            | "could"
+            | "will"
+            | "would"
+            | "have"
+            | "has"
+            | "had"
+            | "do"
+            | "does"
+            | "did"
+            | "use"
+            | "uses"
+            | "using"
+            | "used"
+            | "allow"
+            | "allows"
+            | "provide"
+            | "provides"
+            | "make"
+            | "makes"
+            | "help"
+            | "helps"
+            | "need"
+            | "needs"
+            | "include"
+            | "includes"
+            | "mean"
+            | "means"
+            | "similar"
+            | "often"
+            | "also"
+            | "just"
+            | "very"
     )
 }
 
@@ -619,10 +695,37 @@ fn looks_like_sentence_fragment(s: &str) -> bool {
         return true;
     }
     const PHRASE_VERBS: &[&str] = &[
-        " is ", " are ", " was ", " were ", " work ", " works ", " working ", " should ",
-        " can ", " will ", " have ", " has ", " do ", " does ", " use ", " uses ", " allow ",
-        " provides ", " when ", " if ", " that ", " this ", " they ", " you ", " in a ",
-        " in the ", " of the ", " to the ", " for the ", " similar way", " such as",
+        " is ",
+        " are ",
+        " was ",
+        " were ",
+        " work ",
+        " works ",
+        " working ",
+        " should ",
+        " can ",
+        " will ",
+        " have ",
+        " has ",
+        " do ",
+        " does ",
+        " use ",
+        " uses ",
+        " allow ",
+        " provides ",
+        " when ",
+        " if ",
+        " that ",
+        " this ",
+        " they ",
+        " you ",
+        " in a ",
+        " in the ",
+        " of the ",
+        " to the ",
+        " for the ",
+        " similar way",
+        " such as",
     ];
     if PHRASE_VERBS.iter().any(|p| lower.contains(p)) {
         return true;
@@ -631,10 +734,12 @@ fn looks_like_sentence_fragment(s: &str) -> bool {
     if words.len() > 6 {
         return true;
     }
-    if words
-        .last()
-        .is_some_and(|w| matches!(w.to_lowercase().as_str(), "in" | "to" | "for" | "and" | "or" | "a" | "an" | "the"))
-    {
+    if words.last().is_some_and(|w| {
+        matches!(
+            w.to_lowercase().as_str(),
+            "in" | "to" | "for" | "and" | "or" | "a" | "an" | "the"
+        )
+    }) {
         return true;
     }
     words.iter().any(|w| is_topic_verb_word(w))
@@ -681,12 +786,20 @@ fn push_unique(out: &mut Vec<MutationStrategy>, strategy: MutationStrategy) {
 
 fn same_strategy(a: &MutationStrategy, b: &MutationStrategy) -> bool {
     match (a, b) {
-        (MutationStrategy::AddDirectnessInstruction, MutationStrategy::AddDirectnessInstruction)
+        (
+            MutationStrategy::AddDirectnessInstruction,
+            MutationStrategy::AddDirectnessInstruction,
+        )
         | (MutationStrategy::AddPrecisionInstruction, MutationStrategy::AddPrecisionInstruction)
         | (MutationStrategy::AddFormalityInstruction, MutationStrategy::AddFormalityInstruction)
-        | (MutationStrategy::AddConfidenceInstruction, MutationStrategy::AddConfidenceInstruction)
+        | (
+            MutationStrategy::AddConfidenceInstruction,
+            MutationStrategy::AddConfidenceInstruction,
+        )
         | (MutationStrategy::SoftenPhrasing, MutationStrategy::SoftenPhrasing)
-        | (MutationStrategy::AddEducationalContext, MutationStrategy::AddEducationalContext) => true,
+        | (MutationStrategy::AddEducationalContext, MutationStrategy::AddEducationalContext) => {
+            true
+        }
         (
             MutationStrategy::AddLengthConstraint { max_words: m1 },
             MutationStrategy::AddLengthConstraint { max_words: m2 },
@@ -881,30 +994,34 @@ mod tests {
     #[test]
     fn rank_signals_orders_anchor_drift_before_morphology() {
         let mut delta = minimal_probe_result();
-        delta.dimensions.claim.drifted_claims.push(crate::types::ClaimDrift {
-            v1_claim: crate::types::Claim {
-                text: "Rate is 4.5%".into(),
-                information_density: 0.5,
-                anchors: vec![crate::types::ClaimAnchor {
+        delta
+            .dimensions
+            .claim
+            .drifted_claims
+            .push(crate::types::ClaimDrift {
+                v1_claim: crate::types::Claim {
+                    text: "Rate is 4.5%".into(),
+                    information_density: 0.5,
+                    anchors: vec![crate::types::ClaimAnchor {
+                        anchor_type: crate::types::AnchorType::NumericValue,
+                        value: "4.5%".into(),
+                    }],
+                },
+                v2_claim: crate::types::Claim {
+                    text: "Rate is 5%".into(),
+                    information_density: 0.5,
+                    anchors: vec![crate::types::ClaimAnchor {
+                        anchor_type: crate::types::AnchorType::NumericValue,
+                        value: "5%".into(),
+                    }],
+                },
+                similarity: 0.7,
+                drifted_anchors: vec![crate::types::AnchorDrift {
                     anchor_type: crate::types::AnchorType::NumericValue,
-                    value: "4.5%".into(),
+                    v1_value: "4.5%".into(),
+                    v2_value: "5%".into(),
                 }],
-            },
-            v2_claim: crate::types::Claim {
-                text: "Rate is 5%".into(),
-                information_density: 0.5,
-                anchors: vec![crate::types::ClaimAnchor {
-                    anchor_type: crate::types::AnchorType::NumericValue,
-                    value: "5%".into(),
-                }],
-            },
-            similarity: 0.7,
-            drifted_anchors: vec![crate::types::AnchorDrift {
-                anchor_type: crate::types::AnchorType::NumericValue,
-                v1_value: "4.5%".into(),
-                v2_value: "5%".into(),
-            }],
-        });
+            });
         delta.dimensions.morphology.delta.token_delta_pct = 40.0;
         let signals = rank_signals(&delta);
         assert!(!signals.is_empty());
@@ -1029,7 +1146,11 @@ mod tests {
             .iter()
             .filter(|s| matches!(s, MutationStrategy::AddClaimInstruction { .. }))
             .collect();
-        assert_eq!(claim_steps.len(), 1, "duplicate claim chunks must be removed: {expanded:?}");
+        assert_eq!(
+            claim_steps.len(),
+            1,
+            "duplicate claim chunks must be removed: {expanded:?}"
+        );
     }
 
     #[test]
@@ -1167,7 +1288,8 @@ mod tests {
         let probe = build_reconcile_probe(prompt.clone(), None);
         assert!(matches!(probe.category, ProbeCategory::Factual));
 
-        let v1_text = "The US unemployment rate peaked at 4.5% in early 2008 before rising later that year.";
+        let v1_text =
+            "The US unemployment rate peaked at 4.5% in early 2008 before rising later that year.";
         let v2_text = "Unemployment fluctuated during the financial crisis period.";
 
         let v1 = synthetic_model_response(probe.id, "baseline", "baseline-model", v1_text);
@@ -1175,10 +1297,7 @@ mod tests {
 
         let engine = ComparisonEngine::new(true, 0.85, RiskThresholds::default());
         let mut responses = HashMap::new();
-        responses.insert(
-            "specific values:".to_string(),
-            v1_text.to_string(),
-        );
+        responses.insert("specific values:".to_string(), v1_text.to_string());
         let adapter = Arc::new(ScriptedAdapter {
             model_id: "target-model".into(),
             by_prompt_contains: responses,
@@ -1230,6 +1349,7 @@ mod tests {
             overall_direction: DriftDirection::Neutral,
             drift_category: DriftCategory::NoSignificantDrift,
             drift_severity: DriftSeverity::Informational,
+            drift_impact: DriftImpact::Informational,
             dimensions: ProbeDimensions {
                 morphology: MorphologyDiff {
                     risk: RiskLevel::Green,
@@ -1312,14 +1432,9 @@ mod tests {
                 claim: ClaimDiff {
                     risk: RiskLevel::Green,
                     direction: DriftDirection::Neutral,
-                    v1_claims: vec![],
-                    v2_claims: vec![],
-                    matched_pairs: vec![],
-                    dropped_claims: vec![],
-                    new_claims: vec![],
-                    drifted_claims: vec![],
                     preservation_score: 1.0,
                     preservation_threshold: 0.5,
+                    ..Default::default()
                 },
                 latency: LatencyDiff {
                     risk: RiskLevel::Green,
@@ -1331,6 +1446,7 @@ mod tests {
                 },
                 consistency: None,
                 custom_assertions: None,
+                code_equivalence: None,
             },
             notes: vec![],
         }

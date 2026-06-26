@@ -150,10 +150,8 @@ pub async fn run_create(args: CreateArgs) -> anyhow::Result<()> {
 
     let pb = ProgressBar::new((probes.len() * args.consistency_runs.max(1)) as u64);
     pb.set_style(
-        ProgressStyle::with_template(
-            "{bar:40.cyan/blue} {pos}/{len} {msg} (elapsed {elapsed})",
-        )
-        .unwrap(),
+        ProgressStyle::with_template("{bar:40.cyan/blue} {pos}/{len} {msg} (elapsed {elapsed})")
+            .unwrap(),
     );
     pb.set_message("capturing baseline…");
 
@@ -313,7 +311,10 @@ pub fn run_show(name: &str, cache_dir: Option<&PathBuf>) -> anyhow::Result<()> {
     let m = cache.read_manifest()?;
     println!("Baseline: {}", m.name.bold());
     println!("  Location: {}", path.display());
-    println!("  Created: {}", m.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "  Created: {}",
+        m.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+    );
     println!("  arsenic version: {}", m.arsenic_version);
     println!(
         "  Model: {} ({} @ {})",
@@ -415,7 +416,11 @@ pub fn run_freeze(name: &str, cache_dir: Option<&PathBuf>) -> anyhow::Result<()>
         anyhow::bail!("baseline {} not found at {}", name, path.display());
     }
     cache.lock()?;
-    println!("Baseline {} is now {}.", name.bold(), "FROZEN".yellow().bold());
+    println!(
+        "Baseline {} is now {}.",
+        name.bold(),
+        "FROZEN".yellow().bold()
+    );
     Ok(())
 }
 
@@ -483,17 +488,36 @@ pub fn run_diff(a: &str, b: &str, cache_dir: Option<&PathBuf>) -> anyhow::Result
 
     let mut differing = 0usize;
     for name in &common {
-        let entry_a = ma.probes.iter().find(|p| &p.name.as_str() == *name).unwrap();
-        let entry_b = mb.probes.iter().find(|p| &p.name.as_str() == *name).unwrap();
+        let entry_a = ma
+            .probes
+            .iter()
+            .find(|p| &p.name.as_str() == *name)
+            .unwrap();
+        let entry_b = mb
+            .probes
+            .iter()
+            .find(|p| &p.name.as_str() == *name)
+            .unwrap();
         let resp_a = cache_a.read_one(&entry_a.key_hash)?;
         let resp_b = cache_b.read_one(&entry_b.key_hash)?;
-        let first_a = resp_a.as_ref().and_then(|r| r.runs.first()).map(|r| r.content.as_str()).unwrap_or("");
-        let first_b = resp_b.as_ref().and_then(|r| r.runs.first()).map(|r| r.content.as_str()).unwrap_or("");
+        let first_a = resp_a
+            .as_ref()
+            .and_then(|r| r.runs.first())
+            .map(|r| r.content.as_str())
+            .unwrap_or("");
+        let first_b = resp_b
+            .as_ref()
+            .and_then(|r| r.runs.first())
+            .map(|r| r.content.as_str())
+            .unwrap_or("");
         if first_a != first_b {
             differing += 1;
         }
     }
-    println!("  first-run content differs on {differing}/{} probes", common.len());
+    println!(
+        "  first-run content differs on {differing}/{} probes",
+        common.len()
+    );
     Ok(())
 }
 
@@ -520,7 +544,10 @@ pub fn run_timeline(model: Option<&str>, cache_dir: Option<&PathBuf>) -> anyhow:
     }
     rows.sort_by_key(|r| r.0);
     if rows.is_empty() {
-        println!("No baselines match{}.", if model.is_some() { " filter" } else { "" });
+        println!(
+            "No baselines match{}.",
+            if model.is_some() { " filter" } else { "" }
+        );
         return Ok(());
     }
     println!(

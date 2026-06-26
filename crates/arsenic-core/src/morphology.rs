@@ -74,9 +74,7 @@ impl MorphologyAnalyser {
         text.lines().any(|l| {
             let t = l.trim_start();
             t.starts_with('#')
-                || (t.len() < 80
-                    && t.ends_with(':')
-                    && t.split_whitespace().count() <= 8)
+                || (t.len() < 80 && t.ends_with(':') && t.split_whitespace().count() <= 8)
         })
     }
 
@@ -147,7 +145,10 @@ mod tests {
     fn long_vs_short_paragraph_threshold() {
         let short = "One. Two.";
         let m_short = MorphologyAnalyser::analyse(short, 4);
-        assert!(matches!(m_short.response_type, ResponseType::ShortParagraph));
+        assert!(matches!(
+            m_short.response_type,
+            ResponseType::ShortParagraph
+        ));
 
         let long = "One. Two. Three. Four. Five. Six.";
         let m_long = MorphologyAnalyser::analyse(long, 6);
@@ -156,8 +157,12 @@ mod tests {
 
     #[test]
     fn detects_fenced_and_indented_code_blocks() {
-        assert!(MorphologyAnalyser::has_code_blocks("here:\n```rust\nfn x() {}\n```"));
-        assert!(MorphologyAnalyser::has_code_blocks("prose\n    let x = 1;\n"));
+        assert!(MorphologyAnalyser::has_code_blocks(
+            "here:\n```rust\nfn x() {}\n```"
+        ));
+        assert!(MorphologyAnalyser::has_code_blocks(
+            "prose\n    let x = 1;\n"
+        ));
         assert!(!MorphologyAnalyser::has_code_blocks("just prose."));
     }
 
@@ -176,7 +181,9 @@ mod tests {
         assert!(MorphologyAnalyser::has_lists("- one\n- two"));
         assert!(MorphologyAnalyser::has_lists("* one\n* two"));
         assert!(MorphologyAnalyser::has_lists("1. one\n2. two"));
-        assert!(!MorphologyAnalyser::has_lists("just prose with a -dash inside"));
+        assert!(!MorphologyAnalyser::has_lists(
+            "just prose with a -dash inside"
+        ));
     }
 
     #[test]
