@@ -14,9 +14,11 @@ until a customer complained.
 
 Arsenic distinguishes **blocking behavioural regressions** (factual errors, schema breaks, instruction failures) from **presentation drift** (formatting, verbosity, markdown structure) and **telemetry drift** (latency, consistency). A model upgrade can look scary on raw dimension counts while still being safe to ship — the report tells you which is which.
 
+Arsenic also generates a **behavioural fingerprint** for every comparison: an evidence-backed visual map of where the candidate retained baseline behaviour and where it changed. This is a compatibility fingerprint, not a global quality score or model personality profile.
+
 ---
 
-<![Arsenic drift report — gpt-4o-mini vs gpt-4.1-mini showing 3 critical regressions](docs/report-screenshot.png)
+![Arsenic behavioural fingerprint — baseline retention radar from a real gpt-4o-mini → gpt-4.1-mini report](docs/fingerprint-screenshot.png)
 
 ---
 
@@ -47,6 +49,52 @@ Open the prebuilt reports in your browser — no install required:
 - [GPT-4.1-mini → GPT-5.4-mini (standard suite)](https://markndg.github.io/arsenic/examples/gpt-4_1-mini_vs_gpt-5_4-mini.html)
 - [GPT-4o-mini → GPT-4.1-mini](https://markndg.github.io/arsenic/examples/gpt-4o-mini_vs_gpt-4_1-mini.html)
 - [Llama 3.1:8b → Llama 3.2:3b](https://markndg.github.io/arsenic/examples/llama3_1-8b_vs_llama3_2-3b.html)
+- [Behavioural fingerprint demo](docs/fingerprint-demo.html) (re-rendered from the shipped fixture)
+
+---
+
+## Behavioural fingerprint
+
+Every HTML/JSON report includes a **baseline-retention** fingerprint when enough dimensions were evaluated.
+
+| Score | Meaning |
+|------:|---------|
+| **100** | No detected drift from the baseline in that dimension |
+| **0** | Every applicable probe showed drift |
+| Between | Share of applicable probes that stayed baseline-equivalent |
+
+**Important:** a smaller polygon is not “a worse model”. Improvements count as drift (compatibility changed) but are labelled as improvements in the detail panel and table. Latency stays off the radar as telemetry; it appears as an adjacent summary card.
+
+**Axes** (included only when Arsenic has applicable observations): Morphology, Tone, Factual, Schema, Instruction, Refusal, Consistency retention, Claim retention, Semantic retention. Omitted axes are listed outside the polygon with an explicit reason (no applicable probes, disabled, or unavailable).
+
+**Consistency retention** uses multi-run mean pairwise embedding distance when `--consistency-runs` > 1. That “variance” is `mean(1 − cosine)` over L2-normalised non-negative hash-bag embeddings, so it is intrinsically in `[0, 1]`; clamping is a defensive float guard, not a rescale of unbounded statistical variance:
+
+```
+repeatability% = 100 × (1 − clamp(variance, 0, 1))
+retention      = 100 − |candidate_repeatability − baseline_repeatability|
+```
+
+The axis measures similarity to baseline consistency (both increased and decreased consistency count as drift).
+
+**Ordinary dimensions** use Arsenic’s existing materiality rules (same bands that drive Amber/Red in each dimension), not raw numeric inequality and not risk colour as a proxy for unchanged:
+
+```
+unchanged  = applicable && !materially_changed
+changed    = applicable && materially_changed
+retention  = 100 × unchanged / applicable
+```
+
+Direction counts (regressions / improvements / neutral) apply only to materially changed probes. Risk/severity remains a separate deployment signal.
+
+**Consistency retention** keeps an aggregate repeatability similarity score. Per-probe fingerprint drift counts only **band crossing** (`v1_consistent != v2_consistent`): both sides inconsistent with similar variance is absolute telemetry, not compatibility drift. Absolute inconsistency remains in the consistency dimension `probes_affected` count. Near-identical aggregate scores (retention ≥ 95%) appear under telemetry, not as high-impact compatibility drops.
+
+Re-render old JSON (fingerprint is derived if missing):
+
+```bash
+arsenic report render ./report.json --format html --output ./report.html
+```
+
+Open [docs/fingerprint-demo.html](docs/fingerprint-demo.html) for a real-data example. The radar needs at least three valid axes; otherwise the retention table still renders.
 
 ---
 
@@ -282,7 +330,7 @@ arsenic probe list                 List standard probes
 arsenic probe list --category tone Filter by category
 arsenic probe show <name>          Show one probe as JSON
 arsenic probe validate <path>      Validate user corpus TOML
-arsenic report render <json>       Re-render a saved JSON report
+arsenic report render <json>       Re-render a saved JSON report (derives fingerprint if absent)
 arsenic report summary <json>      Print summary to stdout
 ```
 
@@ -291,17 +339,18 @@ arsenic report summary <json>      Print summary to stdout
 ## Built in Rust
 
 Fast. No runtime dependencies. The report is a single self-contained HTML file with no
-external CDN calls after the font load.
+chart CDN — the behavioural fingerprint radar is inline SVG (optional Google Fonts only).
 
 ```
 crates/
-  arsenic-core/       Comparison engine, claim matching, mutation engine
+  arsenic-core/       Comparison engine, claim matching, fingerprint, mutation engine
   arsenic-probes/     TOML probe loader
   arsenic-adapters/   OpenAI-compatible, Anthropic, Google adapters
   arsenic-report/     HTML / JSON report rendering
   arsenic-cli/        arsenic binary
 probe-suite/standard/ Standard probe suite (18 probes, 7 categories)
 examples/             Prebuilt HTML drift reports
+docs/                 Fingerprint demo HTML/JSON + screenshot
 ```
 
 ---
