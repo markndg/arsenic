@@ -355,6 +355,167 @@
 
     ul.upgrade-list { margin: 0.35rem 0; padding-left: 1.15rem; }
     ul.upgrade-list li { margin: 0.35rem 0; }
+
+    /* Behavioural fingerprint */
+    .fp-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.65rem;
+      margin: 0 0 1.25rem;
+    }
+    .fp-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+    }
+    .fp-card .fp-card-lbl {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 0.25rem;
+    }
+    .fp-card .fp-card-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .fp-card .fp-card-val.ok { color: var(--green); }
+    .fp-card .fp-card-val.warn { color: var(--amber); }
+    .fp-card .fp-card-val.bad { color: var(--red); }
+    .fp-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(240px, 0.9fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .fp-layout { grid-template-columns: 1fr; }
+    }
+    .fp-radar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .fp-radar {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      overflow: visible;
+    }
+    .fp-grid { fill: none; stroke: var(--border); stroke-width: 1; }
+    .fp-spoke { stroke: var(--border); stroke-width: 1; }
+    .fp-baseline {
+      fill: rgba(8, 217, 198, 0.06);
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      stroke-dasharray: 5 4;
+      opacity: 0.85;
+    }
+    .fp-candidate {
+      fill: rgba(46, 184, 114, 0.18);
+      stroke: var(--green);
+      stroke-width: 2;
+    }
+    .fp-point {
+      fill: var(--green);
+      stroke: var(--bg-deep);
+      stroke-width: 1.5;
+      cursor: pointer;
+    }
+    .fp-point:focus, .fp-axis-btn:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .fp-axis-btn {
+      fill: var(--fg);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      dominant-baseline: middle;
+      text-anchor: middle;
+    }
+    .fp-axis-btn[data-selected="true"] { fill: var(--accent); }
+    .fp-score-lbl {
+      fill: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+    .fp-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      justify-content: center;
+    }
+    .fp-legend span::before {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 3px;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+    .fp-legend .base::before { background: var(--accent); border-top: 1px dashed var(--accent); }
+    .fp-legend .cand::before { background: var(--green); }
+    .fp-detail {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      min-height: 200px;
+    }
+    .fp-detail h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #c5e4f5; text-transform: none; letter-spacing: 0; }
+    .fp-detail dl { margin: 0.5rem 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.75rem; font-size: 0.88rem; }
+    .fp-detail dt { color: var(--muted); }
+    .fp-detail dd { margin: 0; font-variant-numeric: tabular-nums; }
+    .fp-evidence { margin: 0.75rem 0 0; padding: 0; list-style: none; }
+    .fp-evidence li { margin: 0.35rem 0; }
+    .fp-evidence a {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+    }
+    .fp-evidence a:hover { border-color: var(--accent); }
+    .fp-table { margin-top: 1.25rem; }
+    .fp-changelog { margin-top: 1.25rem; }
+    .fp-changelog ul { margin: 0.35rem 0 0.85rem; padding-left: 1.15rem; }
+    .fp-changelog li { margin: 0.35rem 0; font-size: 0.9rem; }
+    .fp-unavailable {
+      padding: 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .toast { transition: none; }
+    }
+    @media print {
+      body { background: #fff; color: #111; }
+      section.panel { break-inside: avoid; box-shadow: none; border-color: #ccc; }
+      .fp-baseline { fill: none; stroke: #088; }
+      .fp-candidate { fill: rgba(0,120,60,0.12); stroke: #060; }
+      .fp-axis-btn, .fp-score-lbl { fill: #111; }
+      .fp-detail { background: #f7f7f7; }
+      button.copy-btn { display: none; }
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --fp-print-safe: 1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -424,6 +585,229 @@
         — resolve blocking regressions and policy changes in the upgrade path below
         {% endif %}
       </p>
+    </section>
+
+    <section class="panel" id="behavioural-fingerprint" aria-labelledby="fp-heading">
+      <h2 id="fp-heading">Behavioural fingerprint</h2>
+      <p class="muted" style="margin-top:0">
+        Compatibility with the baseline across evaluated behavioural dimensions.
+        <strong>100</strong> means no detected drift. A smaller value means more probes changed;
+        it does not necessarily mean the candidate is worse.
+        Retention answers “how much behaviour remained unchanged?”;
+        risk answers “how consequential were the detected changes?” — they are not derived from each other.
+        Changed probes are those that crossed Arsenic's existing dimension-specific materiality rules.
+        Raw measurable differences below those thresholds do not reduce retention.
+        {% if behaviour_fingerprint.partial %}
+        <span class="muted">· Partial: some preferred dimensions are listed below the radar with why they were omitted.</span>
+        {% endif %}
+      </p>
+
+      <div class="fp-cards" aria-label="Upgrade summary cards">
+        <div class="fp-card">
+          <p class="fp-card-lbl">Upgrade verdict</p>
+          <p class="fp-card-val {% if summary.safe_to_upgrade %}ok{% else %}bad{% endif %}">{% if summary.safe_to_upgrade %}Safe{% else %}Not safe{% endif %}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Blocking regressions</p>
+          <p class="fp-card-val {% if summary.blocking_regressions > 0 %}bad{% else %}ok{% endif %}">{{ summary.blocking_regressions }}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Review items</p>
+          <p class="fp-card-val {% if summary.review_items > 0 %}warn{% else %}ok{% endif %}">{{ summary.review_items | default(value=0) }}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Presentation drift</p>
+          <p class="fp-card-val">{{ summary.presentation_drift | default(value=0) }}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Telemetry changes</p>
+          <p class="fp-card-val">{{ summary.telemetry_drift | default(value=0) }}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Probe count</p>
+          <p class="fp-card-val">{{ summary.total_probes }}</p>
+        </div>
+        <div class="fp-card">
+          <p class="fp-card-lbl">Average latency</p>
+          <p class="fp-card-val" style="font-size:0.92rem">{{ latency_summary.v1_avg_latency_ms }} → {{ latency_summary.v2_avg_latency_ms }} ms</p>
+          <p class="muted" style="margin:0.2rem 0 0;font-size:0.78rem">{{ latency_change_label | default(value="") }}</p>
+        </div>
+      </div>
+
+      {% if behaviour_fingerprint.axes and behaviour_fingerprint.axes | length > 0 %}
+      <div class="fp-layout">
+        <div class="fp-radar-wrap">
+          {% if fingerprint_svg and behaviour_fingerprint.radar_available %}
+          <svg class="fp-radar" role="img" viewBox="0 0 {{ fingerprint_svg.size }} {{ fingerprint_svg.size }}"
+               aria-labelledby="fp-svg-title fp-svg-desc">
+            <title id="fp-svg-title">Behavioural fingerprint radar</title>
+            <desc id="fp-svg-desc">{{ fingerprint_changelog.text_summary | default(value="Baseline retention radar across evaluated dimensions.") }}</desc>
+            {% for poly in fingerprint_svg.grid_polygons %}
+            <polygon class="fp-grid" points="{{ poly }}"></polygon>
+            {% endfor %}
+            {% for sp in fingerprint_svg.spokes %}
+            <line class="fp-spoke" x1="{{ fingerprint_svg.center }}" y1="{{ fingerprint_svg.center }}" x2="{{ sp.spoke_x2 }}" y2="{{ sp.spoke_y2 }}"></line>
+            {% endfor %}
+            <polygon class="fp-baseline" points="{{ fingerprint_svg.baseline_points }}"></polygon>
+            <polygon class="fp-candidate" points="{{ fingerprint_svg.candidate_points }}"></polygon>
+            {% for sp in fingerprint_svg.spokes %}
+            <circle class="fp-point" tabindex="0" role="button"
+                    data-axis="{{ sp.axis_id }}"
+                    cx="{{ sp.point_x }}" cy="{{ sp.point_y }}" r="5"
+                    aria-label="{{ sp.label }} {{ sp.score }} percent retained"></circle>
+            <text class="fp-axis-btn" tabindex="0" role="button"
+                  data-axis="{{ sp.axis_id }}"
+                  x="{{ sp.label_x }}" y="{{ sp.label_y }}"
+                  aria-label="Select {{ sp.label }}">{{ sp.label }}</text>
+            <text class="fp-score-lbl" x="{{ sp.point_x }}" y="{{ sp.point_y - 10 }}">{{ sp.score | round(precision=0) }}</text>
+            {% endfor %}
+          </svg>
+          <div class="fp-legend" aria-hidden="false">
+            <span class="base">Baseline (100% retention)</span>
+            <span class="cand">Candidate retention</span>
+          </div>
+          {% else %}
+          <div class="fp-unavailable" role="status">
+            {% if behaviour_fingerprint.validation_diagnostics and behaviour_fingerprint.validation_diagnostics | length > 0 %}
+            Behavioural fingerprint unavailable: derived data failed rollup validation after recompute from probe results.
+            <ul style="margin:0.35rem 0 0;padding-left:1.2rem">
+              {% for d in behaviour_fingerprint.validation_diagnostics %}
+              <li>{{ d }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            Radar omitted: fewer than three dimensions with applicable observations.
+            See the table below for exact retention scores.
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if behaviour_fingerprint.omitted_axes and behaviour_fingerprint.omitted_axes | length > 0 %}
+          <div class="fp-omitted" role="status" style="margin-top:0.75rem;font-size:0.85rem">
+            <p class="muted" style="margin:0 0 0.35rem"><strong>Dimensions outside the polygon</strong></p>
+            <ul style="margin:0;padding-left:1.2rem">
+              {% for o in behaviour_fingerprint.omitted_axes %}
+              <li><strong>{{ o.label }}</strong> — {{ o.detail }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+
+        <aside class="fp-detail" id="fp-detail" aria-live="polite">
+          {% for axis in behaviour_fingerprint.axes %}
+          {% if loop.first %}
+          <h3 id="fp-detail-title">{{ axis.label }} — {{ axis.score | round(precision=0) }}%</h3>
+          <p id="fp-detail-expl" style="margin:0 0 0.5rem;font-size:0.9rem">{{ axis.explanation }}</p>
+          <dl>
+            <dt>Compatibility retention</dt><dd id="fp-d-score">{{ axis.score | round(precision=0) }}%</dd>
+            <dt>Applicable</dt><dd id="fp-d-applicable">{{ axis.applicable_probes }}</dd>
+            <dt>Unchanged</dt><dd id="fp-d-unchanged">{{ axis.unchanged_probes }}</dd>
+            <dt>Materially changed</dt><dd id="fp-d-changed">{{ axis.changed_probes }}</dd>
+            <dt>Regressions</dt><dd id="fp-d-reg">{{ axis.regressions }}</dd>
+            <dt>Improvements</dt><dd id="fp-d-imp">{{ axis.improvements }}</dd>
+            <dt>Neutral</dt><dd id="fp-d-neu">{{ axis.neutral_changes }}</dd>
+            <dt>Deployment risk / severity</dt><dd id="fp-d-risk"><span class="badge {{ axis.risk }}">{{ axis.risk }}</span></dd>
+            <dt>Confidence</dt><dd id="fp-d-conf">{{ axis.confidence }}</dd>
+          </dl>
+          <p class="muted" style="margin:0.5rem 0 0;font-size:0.82rem" id="fp-d-raw">
+            {% if axis.id == "consistency" and axis.baseline_raw and axis.candidate_raw %}
+            Consistency retention compares aggregate repeatability.
+            The probe count above shows only threshold-significant per-probe changes.
+            Baseline repeatability: {{ axis.baseline_raw }};
+            candidate: {{ axis.candidate_raw }};
+            difference: {{ axis.absolute_difference | default(value=0) }} percentage points;
+            aggregate retention: {{ axis.score }}%.
+            {% elif axis.baseline_raw and axis.candidate_raw %}
+            Baseline {{ axis.raw_unit | default(value="value") }}: {{ axis.baseline_raw }};
+            candidate: {{ axis.candidate_raw }};
+            absolute difference: {{ axis.absolute_difference | default(value=0) }};
+            retention score: {{ axis.score | round(precision=0) }}%.
+            {% endif %}
+          </p>
+          <h3 class="snap">Affected probes</h3>
+          <ul class="fp-evidence" id="fp-evidence">
+            {% for pid in axis.evidence_probe_ids %}
+            <li><a href="#probe-{{ pid }}">{% if probe_id_names[pid] %}{{ probe_id_names[pid] }}{% else %}{{ pid }}{% endif %}</a></li>
+            {% endfor %}
+            {% if axis.evidence_probe_ids | length == 0 %}
+            <li class="muted">No changed probes for this axis.</li>
+            {% endif %}
+          </ul>
+          {% endif %}
+          {% endfor %}
+        </aside>
+      </div>
+
+      <div class="fp-table">
+        <h3 class="snap">Retention table</h3>
+        <p class="muted" style="margin:0 0 0.5rem;font-size:0.85rem" id="fp-text-alt">{{ fingerprint_changelog.text_summary | default(value="") }}</p>
+        <table class="data" aria-label="Behavioural fingerprint retention by dimension">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th class="num">Retained %</th>
+              <th class="num">Unchanged</th>
+              <th class="num">Materially changed</th>
+              <th>Direction summary</th>
+              <th>Deployment risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for axis in behaviour_fingerprint.axes %}
+            <tr data-axis-row="{{ axis.id }}">
+              <td><strong>{{ axis.label }}</strong></td>
+              <td class="num mono">{{ axis.score | round(precision=0) }}</td>
+              <td class="num">{{ axis.unchanged_probes }}/{{ axis.applicable_probes }}</td>
+              <td class="num">{{ axis.changed_probes }}</td>
+              <td>
+                <span class="d-down">↓{{ axis.regressions }}</span>
+                <span class="d-up">↑{{ axis.improvements }}</span>
+                <span class="d-mid">→{{ axis.neutral_changes }}</span>
+              </td>
+              <td><span class="badge {{ axis.risk }}">{{ axis.risk }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fp-changelog">
+        <h3 class="snap">Behavioural changelog</h3>
+        {% if fingerprint_changelog.high_impact %}
+        <p style="margin:0;font-weight:600;font-size:0.88rem;color:#c5e4f5">High-impact changes</p>
+        <ul>
+          {% for item in fingerprint_changelog.high_impact %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if fingerprint_changelog.stable_contracts %}
+        <p style="margin:0;font-weight:600;font-size:0.88rem;color:#c5e4f5">Stable contracts</p>
+        <ul>
+          {% for item in fingerprint_changelog.stable_contracts %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if fingerprint_changelog.telemetry %}
+        <p style="margin:0;font-weight:600;font-size:0.88rem;color:#c5e4f5">Telemetry</p>
+        <ul>
+          {% for item in fingerprint_changelog.telemetry %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      {# Progressive-enhancement data: scores computed in Rust; JS only switches the detail panel. #}
+      <script type="application/json" id="fp-axes-data">{{ fingerprint_axes_json | safe }}</script>
+      <script type="application/json" id="fp-probe-names">{{ probe_id_names_json | safe }}</script>
+      {% else %}
+      <div class="fp-unavailable" role="status">
+        Behavioural fingerprint unavailable for this report — not enough per-dimension observations to compute retention scores.
+        Executive summary and probe evidence below remain authoritative.
+      </div>
+      {% endif %}
     </section>
 
     <section class="panel">
@@ -518,7 +902,7 @@
       <p class="muted" style="margin-top:0">True behavioural regressions (factual, schema, instruction, refusal, material claim loss) that should be resolved before rollout.</p>
       {% for pr in probe_results %}
         {% if pr.drift_impact == "Blocking" %}
-        <details class="probe" open>
+        <details class="probe" id="probe-blocking-{{ pr.probe.id }}" open>
           <summary>
             <span class="probe-title">{{ pr.probe.name }}</span>
             <span class="badge Red dir-{{ pr.overall_direction | lower }}">Blocking</span>
@@ -543,7 +927,7 @@
       <p class="muted" style="margin-top:0">Expand for prompt, dimension snapshot (with drift arrows), claim intelligence, and responses. Consistency σ shows run variance when multi-run sampling was enabled.</p>
 
       {% for pr in probe_results %}
-      <details class="probe">
+      <details class="probe" id="probe-{{ pr.probe.id }}">
         <summary>
           <span class="probe-title">{{ pr.probe.name }}</span>
           <span class="badge {{ pr.overall_risk }} dir-{{ pr.overall_direction | lower }}">{{ pr.drift_impact | default(value=pr.overall_risk) }}</span>
@@ -729,7 +1113,7 @@
       <p class="muted" style="margin-top:0">Structured rollout view. Validated prompt patches appear when mutations validate.</p>
       <p class="mono" style="font-size:0.82rem;color:var(--muted)">
         Blocking {{ upgrade_path.blocking_regressions | length }}
-        · Review {{ upgrade_path.improvements_to_verify | length }}
+        · Review {% if upgrade_path.changes_to_verify %}{{ upgrade_path.changes_to_verify | length }}{% else %}{{ upgrade_path.improvements_to_verify | length }}{% endif %}
         · Presentation {{ upgrade_path.presentation_drift | default(value=[]) | length }}
         · Telemetry {{ upgrade_path.telemetry_drift | default(value=[]) | length }}
         · Neutral {{ upgrade_path.neutral_changes | length }}
@@ -748,7 +1132,10 @@
       {% else %}
       <p class="upgrade-safe-banner">No blocking regressions detected.</p>
       {% endif %}
-      {% if upgrade_path.improvements_to_verify | length > 0 %}
+      {% if upgrade_path.changes_to_verify and upgrade_path.changes_to_verify | length > 0 %}
+      <h3 class="snap">Review items</h3>
+      <ul class="upgrade-list">{% for u in upgrade_path.changes_to_verify %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
+      {% elif upgrade_path.improvements_to_verify | length > 0 %}
       <h3 class="snap">Review items</h3>
       <ul class="upgrade-list">{% for u in upgrade_path.improvements_to_verify %}<li><strong>{{ u.probe_name }}</strong> — {{ u.summary }}</li>{% endfor %}</ul>
       {% endif %}
@@ -866,6 +1253,119 @@
         });
       }
     }
+
+    (function () {
+      var dataEl = document.getElementById('fp-axes-data');
+      var namesEl = document.getElementById('fp-probe-names');
+      if (!dataEl) return;
+      var axes;
+      var names = {};
+      try { axes = JSON.parse(dataEl.textContent || '[]'); } catch (e) { return; }
+      try { names = JSON.parse((namesEl && namesEl.textContent) || '{}'); } catch (e2) { names = {}; }
+      if (!axes || !axes.length) return;
+
+      function byId(id) {
+        for (var i = 0; i < axes.length; i++) {
+          if (axes[i].id === id) return axes[i];
+        }
+        return axes[0];
+      }
+
+      function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
+      function showAxis(id) {
+        var axis = byId(id);
+        if (!axis) return;
+        setText('fp-detail-title', axis.label + ' — ' + Math.round(axis.score) + '%');
+        setText('fp-detail-expl', axis.explanation || '');
+        setText('fp-d-score', Math.round(axis.score) + '%');
+        setText('fp-d-applicable', String(axis.applicable_probes));
+        setText('fp-d-unchanged', String(axis.unchanged_probes));
+        setText('fp-d-changed', String(axis.changed_probes));
+        setText('fp-d-reg', String(axis.regressions));
+        setText('fp-d-imp', String(axis.improvements));
+        setText('fp-d-neu', String(axis.neutral_changes));
+        setText('fp-d-conf', axis.confidence || '');
+        var riskEl = document.getElementById('fp-d-risk');
+        if (riskEl) {
+          riskEl.textContent = '';
+          var badge = document.createElement('span');
+          badge.className = 'badge ' + (axis.risk || 'Green');
+          badge.textContent = axis.risk || 'Green';
+          riskEl.appendChild(badge);
+        }
+        var rawEl = document.getElementById('fp-d-raw');
+        if (rawEl) {
+          if (axis.baseline_raw != null && axis.candidate_raw != null) {
+            var abs = (axis.absolute_difference != null)
+              ? axis.absolute_difference
+              : Math.abs(axis.candidate_raw - axis.baseline_raw);
+            if (axis.id === 'consistency') {
+              rawEl.textContent =
+                'Consistency retention compares aggregate repeatability. ' +
+                'The probe count above shows only threshold-significant per-probe changes. ' +
+                'Baseline repeatability: ' + axis.baseline_raw +
+                '; candidate: ' + axis.candidate_raw +
+                '; difference: ' + abs + ' percentage points' +
+                '; aggregate retention: ' + axis.score + '%.';
+            } else {
+              rawEl.textContent =
+                'Baseline ' + (axis.raw_unit || 'value') + ': ' + axis.baseline_raw +
+                '; candidate: ' + axis.candidate_raw +
+                '; absolute difference: ' + abs +
+                '; retention score: ' + Math.round(axis.score) + '%.';
+            }
+          } else {
+            rawEl.textContent = '';
+          }
+        }
+        var list = document.getElementById('fp-evidence');
+        if (list) {
+          list.textContent = '';
+          var ids = axis.evidence_probe_ids || [];
+          if (!ids.length) {
+            var empty = document.createElement('li');
+            empty.className = 'muted';
+            empty.textContent = 'No changed probes for this axis.';
+            list.appendChild(empty);
+          } else {
+            for (var j = 0; j < ids.length; j++) {
+              var li = document.createElement('li');
+              var a = document.createElement('a');
+              a.href = '#probe-' + ids[j];
+              a.textContent = names[ids[j]] || ids[j];
+              li.appendChild(a);
+              list.appendChild(li);
+            }
+          }
+        }
+        var nodes = document.querySelectorAll('[data-axis]');
+        for (var k = 0; k < nodes.length; k++) {
+          nodes[k].setAttribute('data-selected', nodes[k].getAttribute('data-axis') === id ? 'true' : 'false');
+        }
+      }
+
+      function onActivate(ev) {
+        var t = ev.target;
+        while (t && t !== document) {
+          var axis = t.getAttribute && t.getAttribute('data-axis');
+          if (axis) {
+            ev.preventDefault();
+            showAxis(axis);
+            return;
+          }
+          t = t.parentNode;
+        }
+      }
+
+      document.addEventListener('click', onActivate);
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') onActivate(ev);
+      });
+    })();
   </script>
 </body>
 </html>

@@ -149,6 +149,8 @@ impl ComparisonEngine {
         let upgrade_path = build_upgrade_path(&probe_results, &[]);
         let latency_summary = compute_latency_summary(&probe_results);
         let migration_profile = compute_migration_profile(&probe_results, &latency_summary);
+        let behaviour_fingerprint =
+            crate::fingerprint::compute_behaviour_fingerprint(&probe_results, &v1_model, &v2_model);
         Ok(DriftReport {
             run_id,
             generated_at: chrono::Utc::now(),
@@ -163,6 +165,7 @@ impl ComparisonEngine {
             mutation_results: Vec::new(),
             latency_summary,
             migration_profile,
+            behaviour_fingerprint,
         })
     }
 
@@ -808,7 +811,14 @@ impl ComparisonEngine {
     }
 
     pub fn compute_dimension_summaries(&self, results: &[ProbeResult]) -> DimensionSummaries {
-        DimensionSummaries {
+        use crate::materiality::{
+            claim_materially_changed, consistency_materially_changed, factual_materially_changed,
+            instruction_materially_changed, morphology_materially_changed,
+            refusal_materially_changed, schema_materially_changed, semantic_materially_changed,
+            tone_materially_changed,
+        };
+
+        let mut summaries = DimensionSummaries {
             morphology: dim_summary_core("morphology", results, |d| {
                 Some((&d.morphology.risk, d.morphology.direction))
             }),
@@ -840,7 +850,68 @@ impl ComparisonEngine {
             custom_assertions: dim_summary_core("custom_assertions", results, |d| {
                 d.custom_assertions.as_ref().map(|c| (&c.risk, c.direction))
             }),
-        }
+        };
+
+        // Material counts use the same helpers as the fingerprint (not risk colour).
+        // Consistency probes_affected remains absolute inconsistency (risk ≠ Green).
+        summaries.morphology.materially_changed_probes = results
+            .iter()
+            .filter(|pr| morphology_materially_changed(&pr.dimensions.morphology))
+            .count();
+        summaries.tone.materially_changed_probes = results
+            .iter()
+            .filter(|pr| tone_materially_changed(&pr.dimensions.tone))
+            .count();
+        summaries.factual.materially_changed_probes = results
+            .iter()
+            .filter(|pr| {
+                pr.dimensions
+                    .factual
+                    .as_ref()
+                    .is_some_and(factual_materially_changed)
+            })
+            .count();
+        summaries.schema.materially_changed_probes = results
+            .iter()
+            .filter(|pr| {
+                pr.dimensions
+                    .schema
+                    .as_ref()
+                    .is_some_and(schema_materially_changed)
+            })
+            .count();
+        summaries.instruction.materially_changed_probes = results
+            .iter()
+            .filter(|pr| {
+                pr.dimensions
+                    .instruction
+                    .as_ref()
+                    .is_some_and(instruction_materially_changed)
+            })
+            .count();
+        summaries.refusal.materially_changed_probes = results
+            .iter()
+            .filter(|pr| refusal_materially_changed(&pr.dimensions.refusal))
+            .count();
+        summaries.semantic.materially_changed_probes = results
+            .iter()
+            .filter(|pr| semantic_materially_changed(&pr.dimensions.semantic))
+            .count();
+        summaries.claim.materially_changed_probes = results
+            .iter()
+            .filter(|pr| claim_materially_changed(&pr.dimensions.claim, pr.probe.category))
+            .count();
+        summaries.consistency.materially_changed_probes = results
+            .iter()
+            .filter(|pr| {
+                pr.dimensions
+                    .consistency
+                    .as_ref()
+                    .is_some_and(consistency_materially_changed)
+            })
+            .count();
+
+        summaries
     }
 }
 
@@ -1481,6 +1552,11 @@ impl DriftReport {
         self.migration_profile =
             compute_migration_profile(&self.probe_results, &self.latency_summary);
         self.dimension_summaries = engine.compute_dimension_summaries(&self.probe_results);
+        self.behaviour_fingerprint = crate::fingerprint::compute_behaviour_fingerprint(
+            &self.probe_results,
+            &self.v1_model,
+            &self.v2_model,
+        );
     }
 
     /// Recomputes valence counts from `probe_results` and copies probe-level buckets into `summary`.
@@ -1702,17 +1778,20 @@ fn build_upgrade_path(results: &[ProbeResult], mutations: &[MutationResult]) -> 
             .count(),
         auto_certified: mutations.iter().filter(|m| m.validated).count(),
     };
-    UpgradePathReport {
+    let mut path = UpgradePathReport {
         critical_regressions: critical,
         policy_changes: policy,
         blocking_regressions: blocking,
+        changes_to_verify: verify.clone(),
         improvements_to_verify: verify,
         neutral_changes: neutral,
         presentation_drift: presentation,
         telemetry_drift: telemetry,
         certified_prompts: certified,
         remediation,
-    }
+    };
+    path.sync_review_aliases();
+    path
 }
 
 fn dim_summary_core<Rd>(dimension: &str, results: &[ProbeResult], mut get: Rd) -> DimensionSummary
@@ -1753,6 +1832,8 @@ where
         drift_neutral,
         drift_not_applicable,
         impact_label,
+        // Ordinary dimensions: non-Green risk is the materiality signal.
+        materially_changed_probes: affected,
     }
 }
 
@@ -1765,7 +1846,12 @@ fn morphology_risk_level(
 ) -> RiskLevel {
     if token_delta_pct >= red || (response_type_changed && token_delta_pct >= amber) {
         RiskLevel::Red
-    } else if token_delta_pct >= amber || structure_changed || response_type_changed {
+    } else if crate::materiality::morphology_crosses_material_band(
+        token_delta_pct,
+        response_type_changed,
+        structure_changed,
+        amber,
+    ) {
         RiskLevel::Amber
     } else {
         RiskLevel::Green
@@ -1846,6 +1932,15 @@ fn soften_dimensions_for_code_formatting(probe: &Probe, dims: &mut ProbeDimensio
     if fence_only_structure || dims.morphology.delta.token_delta_pct < 0.10 {
         dims.morphology.risk = RiskLevel::Green;
         dims.morphology.direction = DriftDirection::Neutral;
+        // Keep materiality helpers aligned with the softened Green decision.
+        dims.morphology.delta.structure_changed = false;
+        dims.morphology.delta.response_type_changed = false;
+        if dims.morphology.delta.token_delta_pct
+            >= crate::materiality::DEFAULT_MORPHOLOGY_TOKEN_DELTA_AMBER
+        {
+            dims.morphology.delta.token_delta_pct =
+                crate::materiality::DEFAULT_MORPHOLOGY_TOKEN_DELTA_AMBER - f64::EPSILON;
+        }
     }
 
     dims.semantic.risk = RiskLevel::Green;

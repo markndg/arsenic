@@ -223,6 +223,9 @@ pub struct DriftReport {
     /// Plain-English behavioural fingerprint of v2 relative to v1.
     #[serde(default)]
     pub migration_profile: MigrationProfile,
+    /// Baseline-retention radar data (additive; derived on render if missing).
+    #[serde(default)]
+    pub behaviour_fingerprint: crate::fingerprint::BehaviourFingerprint,
 }
 
 /// Headline summary of how v2 behaves relative to v1 across the run.
@@ -730,6 +733,13 @@ pub struct UpgradePathReport {
     pub policy_changes: Vec<UpgradePathItem>,
     /// All blocking items (critical + policy); kept for backward-compatible JSON consumers.
     pub blocking_regressions: Vec<UpgradePathItem>,
+    /// Review items (regressions, neutral changes, and improvements needing verification).
+    /// Preferred name; populated together with [`Self::improvements_to_verify`].
+    #[serde(default)]
+    pub changes_to_verify: Vec<UpgradePathItem>,
+    /// Deprecated alias of [`Self::changes_to_verify`]. Still serialised for older consumers;
+    /// deserialise either field (see [`UpgradePathReport::sync_review_aliases`]).
+    #[serde(default)]
     pub improvements_to_verify: Vec<UpgradePathItem>,
     pub neutral_changes: Vec<UpgradePathItem>,
     /// Non-blocking format/verbosity/structure changes.
@@ -740,6 +750,17 @@ pub struct UpgradePathReport {
     pub telemetry_drift: Vec<UpgradePathItem>,
     pub certified_prompts: Vec<CertifiedPromptDiff>,
     pub remediation: RemediationCounts,
+}
+
+impl UpgradePathReport {
+    /// Keep `changes_to_verify` and legacy `improvements_to_verify` in sync after load/build.
+    pub fn sync_review_aliases(&mut self) {
+        if self.changes_to_verify.is_empty() && !self.improvements_to_verify.is_empty() {
+            self.changes_to_verify = self.improvements_to_verify.clone();
+        } else if !self.changes_to_verify.is_empty() {
+            self.improvements_to_verify = self.changes_to_verify.clone();
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -819,7 +840,7 @@ pub enum MutationStrategy {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DimensionSummaries {
     pub morphology: DimensionSummary,
     pub tone: DimensionSummary,
@@ -840,6 +861,12 @@ pub struct DimensionSummaries {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DimensionSummary {
+    /// Probes with non-Green risk for this dimension.
+    ///
+    /// For most dimensions this matches material Amber/Red behaviour.
+    /// For **consistency**, this is absolute inconsistency (either side outside the
+    /// 0.12 run-variance band), not baseline→candidate drift. Prefer
+    /// [`Self::materially_changed_probes`] for fingerprint reconciliation.
     pub probes_affected: usize,
     pub worst_risk: RiskLevel,
     pub notes: Vec<String>,
@@ -855,6 +882,12 @@ pub struct DimensionSummary {
     /// Non-blocking drift label for report dimension rows (e.g. "presentation drift, non-blocking").
     #[serde(default)]
     pub impact_label: String,
+    /// Probes with material behavioural change used by the fingerprint.
+    ///
+    /// Ordinary dimensions: equals [`Self::probes_affected`].
+    /// Consistency: band-crossing drift count (`v1_consistent != v2_consistent`).
+    #[serde(default)]
+    pub materially_changed_probes: usize,
 }
 
 impl Default for DimensionSummary {
@@ -868,6 +901,7 @@ impl Default for DimensionSummary {
             drift_neutral: 0,
             drift_not_applicable: 0,
             impact_label: String::new(),
+            materially_changed_probes: 0,
         }
     }
 }

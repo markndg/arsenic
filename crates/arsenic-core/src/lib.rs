@@ -8,7 +8,9 @@ pub mod code_equivalence;
 pub mod comparison;
 pub mod embedding;
 pub mod error;
+pub mod fingerprint;
 pub mod impact;
+pub mod materiality;
 pub mod morphology;
 pub mod mutation;
 pub mod reconcile;
@@ -35,7 +37,23 @@ pub use comparison::{
 };
 pub use embedding::{embed_batch_hash, hash_embed, weighted_sentence_similarity};
 pub use error::ArsenicError;
+pub use fingerprint::{
+    build_fingerprint_changelog, build_fingerprint_svg, compute_behaviour_fingerprint,
+    consistency_retention, fingerprint_summary_mismatches, retention_score, validate_fingerprint,
+    validate_fingerprint_rollups, variance_to_repeatability, BehaviourFingerprint,
+    FingerprintAggregationKind, FingerprintAxis, FingerprintChangelog, FingerprintConfidence,
+    FingerprintInterpretation, FingerprintSvgModel, FingerprintSvgSpoke, OmittedAxisReason,
+    OmittedFingerprintAxis, RollupValidationError, FINGERPRINT_VERSION, MIN_AXES_FOR_RADAR,
+};
 pub use impact::{assess_probe_impact, dimension_impact_label, ProbeImpactAssessment};
+pub use materiality::{
+    assess_consistency_materiality, claim_materially_changed, consistency_materially_changed,
+    factual_materially_changed, instruction_materially_changed, morphology_crosses_material_band,
+    morphology_materially_changed, refusal_materially_changed, schema_materially_changed,
+    semantic_materially_changed, tone_materially_changed, ConsistencyMateriality,
+    FingerprintObservation, CONSISTENCY_HIGH_IMPACT_RETENTION_BELOW,
+    DEFAULT_MORPHOLOGY_TOKEN_DELTA_AMBER,
+};
 pub use morphology::MorphologyAnalyser;
 pub use mutation::{apply_mutations, propose_strategies};
 pub use reconcile::{
