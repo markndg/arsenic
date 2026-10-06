@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Qualification · {{ contract.application_name }}</title>
+  {# Self-contained: no CDN. System stacks mirror Drift Report DM Sans / JetBrains Mono. #}
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --purple: #9b7bd4;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; max-width: 48rem; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    section.panel.stale-border { border-left-color: var(--muted); }
+    section.panel.incomplete-border { border-left-color: var(--purple); }
+    section.panel.blocked-border { border-left-color: var(--red); }
+    section.panel.safe-border { border-left-color: var(--green); }
+    section.panel.review-border { border-left-color: var(--amber); }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.PASS, .badge.VALID, .badge.Green {
+      background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45);
+    }
+    .badge.WARN, .badge.Amber {
+      background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4);
+    }
+    .badge.REVIEW {
+      background: rgba(232, 168, 56, 0.22); color: #f5d08a; border-color: rgba(232, 168, 56, 0.5);
+    }
+    .badge.BLOCK, .badge.Red {
+      background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55);
+    }
+    .badge.STALE {
+      background: rgba(139, 156, 176, 0.18); color: #b4c8dc; border-color: rgba(139, 156, 176, 0.45);
+    }
+    .badge.INCOMPLETE, .badge.MIXED {
+      background: rgba(155, 123, 212, 0.22); color: #d4c4f5; border-color: rgba(155, 123, 212, 0.5);
+    }
+    .badge.hist {
+      background: rgba(139, 156, 176, 0.12); color: var(--muted); border-color: var(--border);
+    }
+    .badge.sev-block { border-color: rgba(226, 77, 86, 0.55); color: #ffb3b8; }
+    .badge.sev-review { border-color: rgba(232, 168, 56, 0.5); color: #f5d08a; }
+    .badge.sev-warn { border-color: rgba(232, 168, 56, 0.35); color: #e8d4a0; }
+    .badge.sev-info { border-color: var(--border); color: var(--muted); }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .meta-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+    }
+    .meta-card .k {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .meta-card .v {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
+      word-break: break-word;
+    }
+
+    .decision-banner {
+      margin: 0 0 1rem;
+      padding: 1.15rem 1.35rem;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.25;
+    }
+    .decision-banner.safe {
+      background: rgba(46, 184, 114, 0.15);
+      border-color: rgba(46, 184, 114, 0.55);
+      color: #9ee8c4;
+    }
+    .decision-banner.blocked {
+      background: rgba(226, 77, 86, 0.16);
+      border-color: rgba(226, 77, 86, 0.6);
+      color: #ffb3b8;
+    }
+    .decision-banner.review {
+      background: rgba(232, 168, 56, 0.14);
+      border-color: rgba(232, 168, 56, 0.5);
+      color: #f5d08a;
+    }
+    .decision-banner.incomplete {
+      background: rgba(155, 123, 212, 0.16);
+      border-color: rgba(155, 123, 212, 0.55);
+      color: #d4c4f5;
+    }
+    .decision-banner.stale, .decision-banner.none {
+      background: rgba(139, 156, 176, 0.12);
+      border-color: rgba(139, 156, 176, 0.45);
+      color: #b4c8dc;
+    }
+    .decision-explainer {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 0.75rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.5rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .val.purple { color: var(--purple); }
+    .stat .val.muted { color: var(--muted); }
+    .stat .lbl {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.status-cell { font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; }
+    table.data td.status-cell.PASS { color: #7ae0a8; }
+    table.data td.status-cell.WARN { color: #f5d08a; }
+    table.data td.status-cell.REVIEW { color: #f5d08a; }
+    table.data td.status-cell.BLOCK {
+      color: #ffb3b8;
+      background: rgba(226, 77, 86, 0.12);
+      box-shadow: inset 3px 0 0 var(--red);
+    }
+    table.data td.status-cell.STALE {
+      color: #b4c8dc;
+      background: rgba(139, 156, 176, 0.1);
+      box-shadow: inset 3px 0 0 var(--muted);
+    }
+    table.data td.status-cell.INCOMPLETE {
+      color: #d4c4f5;
+      background: rgba(155, 123, 212, 0.12);
+      box-shadow: inset 3px 0 0 var(--purple);
+    }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .callout {
+      margin: 0.75rem 0;
+      padding: 0.75rem 0.95rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .callout.evidence-quality {
+      background: rgba(155, 123, 212, 0.12);
+      border: 1px solid rgba(155, 123, 212, 0.45);
+      color: #d4c4f5;
+    }
+    .callout.stale-warn {
+      background: rgba(139, 156, 176, 0.1);
+      border: 1px solid rgba(139, 156, 176, 0.4);
+      color: #b4c8dc;
+    }
+    .callout.behaviour-fail {
+      background: rgba(226, 77, 86, 0.12);
+      border: 1px solid rgba(226, 77, 86, 0.45);
+      color: #ffb3b8;
+    }
+    .callout.patch-ok {
+      background: rgba(46, 184, 114, 0.12);
+      border: 1px solid rgba(46, 184, 114, 0.4);
+      color: #9ee8c4;
+    }
+    .callout.patch-stale {
+      background: rgba(232, 168, 56, 0.12);
+      border: 1px solid rgba(232, 168, 56, 0.45);
+      color: #f5d08a;
+    }
+
+    details.qual, details.req, details.evidence {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.qual.historical {
+      opacity: 0.92;
+      border-style: dashed;
+    }
+    details.qual > summary, details.req > summary, details.evidence > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.qual.historical > summary {
+      background: linear-gradient(90deg, rgba(139, 156, 176, 0.08), transparent);
+    }
+    details.qual > summary::-webkit-details-marker,
+    details.req > summary::-webkit-details-marker,
+    details.evidence > summary::-webkit-details-marker { display: none; }
+    details[open] > summary { border-bottom: 1px solid var(--border); }
+    .qual-body, .req-body, .ev-body { padding: 0.85rem 1rem 1rem; }
+    .kv {
+      display: grid;
+      grid-template-columns: minmax(9rem, 12rem) 1fr;
+      gap: 0.35rem 0.75rem;
+      font-size: 0.86rem;
+      margin: 0.5rem 0 0.85rem;
+    }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; font-family: var(--mono); font-size: 0.82rem; word-break: break-all; }
+
+    pre.diff, pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin: 0.5rem 0 0;
+    }
+
+    ul.reason-list {
+      margin: 0.4rem 0 0;
+      padding-left: 1.15rem;
+      color: #c5d4e0;
+      font-size: 0.88rem;
+    }
+
+    footer.report-foot {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .top-bar { display: none; }
+      header.hero, section.panel, details.qual, details.req {
+        box-shadow: none;
+        background: #fff;
+        border-color: #ccc;
+        color: #111;
+      }
+      .decision-banner { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar" aria-hidden="true"></div>
+  <header class="hero">
+    <h1>ARSENIC · Qualification</h1>
+    <p class="sub">
+      Application compatibility for <strong>{{ contract.application_name }}</strong> —
+      not a generic model benchmark. Compatibility ≠ intelligence.
+      This report answers whether the application can safely migrate based on
+      <em>current, complete</em> evidence.
+    </p>
+    <div class="meta-grid" role="group" aria-label="Qualification context">
+      <div class="meta-card"><div class="k">Application</div><div class="v">{{ contract.application_name }}</div></div>
+      <div class="meta-card"><div class="k">Production</div><div class="v">{% if baseline %}{{ baseline.model }}{% else %}—{% endif %}</div></div>
+      <div class="meta-card"><div class="k">Candidate</div><div class="v">{{ candidates_label }}</div></div>
+      <div class="meta-card"><div class="k">Contract</div><div class="v">v{{ contract.version }}</div></div>
+      <div class="meta-card"><div class="k">Evidence</div><div class="v"><span class="badge {{ evidence_label }}">{{ evidence_label }}</span></div></div>
+      <div class="meta-card"><div class="k">Decision</div><div class="v" style="font-size:0.85rem">{{ migration }}</div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel {{ migration_class }}-border" aria-labelledby="mig-decision">
+      <h2 id="mig-decision">Migration decision</h2>
+      <div class="decision-banner {{ migration_class }}" role="status">
+        {{ migration }}
+      </div>
+      <p class="decision-explainer">{{ decision_explainer }}</p>
+      {% if migration_class == "safe" %}
+      <p class="muted" style="margin:0.75rem 0 0">Derived exclusively from the current effective-state assessment — not from historical PASS alone.</p>
+      {% elif migration_class == "stale" or migration_class == "incomplete" %}
+      <p class="muted" style="margin:0.75rem 0 0">Historical PASS evidence cannot certify migration while evidence is {{ evidence_label }}.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="exec-sum">
+      <h2 id="exec-sum">Executive summary</h2>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">{{ exec.requirements }}</div><div class="lbl">Requirements</div></div>
+        <div class="stat"><div class="val green">{{ exec.passed }}</div><div class="lbl">Passed</div></div>
+        <div class="stat"><div class="val amber">{{ exec.warnings }}</div><div class="lbl">Warnings</div></div>
+        <div class="stat"><div class="val amber">{{ exec.review_items }}</div><div class="lbl">Review items</div></div>
+        <div class="stat"><div class="val red">{{ exec.blockers }}</div><div class="lbl">Blockers</div></div>
+        <div class="stat"><div class="val muted">{{ exec.stale_qualifications }}</div><div class="lbl">Stale quals</div></div>
+        <div class="stat"><div class="val purple">{{ exec.incomplete_qualifications }}</div><div class="lbl">Incomplete</div></div>
+        <div class="stat"><div class="val green">{{ exec.validated_repairs }}</div><div class="lbl">Current repairs</div></div>
+      </div>
+      <p class="muted" style="margin:0.85rem 0 0">
+        Counts for passed / warnings / review / blockers use current (non-stale, complete) qualifications only.
+        Stale and incomplete qualifications are listed separately and cannot contribute to SAFE TO MIGRATE.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="cand-matrix">
+      <h2 id="cand-matrix">Candidate matrix</h2>
+      {% if models | length == 0 %}
+      <p class="muted">No qualification evidence available.</p>
+      {% else %}
+      <table class="data">
+        <thead>
+          <tr>
+            <th scope="col">Dimension</th>
+            {% for m in models %}<th scope="col">{{ m }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in matrix %}
+          <tr>
+            <td>{{ row.label }}</td>
+            {% for cell in row.cells %}
+            <td class="status-cell {{ cell.status }}" title="{{ cell.title }}">{{ cell.status }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="muted" style="margin:0.75rem 0 0">Hover a cell for supporting detail. BLOCK, STALE, and INCOMPLETE are highlighted.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="contract-reqs">
+      <h2 id="contract-reqs">Contract requirements</h2>
+      {% for req in requirements %}
+      <details class="req">
+        <summary>
+          <span class="mono">{{ req.id }}</span>
+          <span class="badge sev-{{ req.severity }}">sev · {{ req.severity }}</span>
+          <span class="muted">{{ req.kind }} · {{ req.prompt }}</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: {{ req.provenance_source }}{% if req.provenance_file %} ({{ req.provenance_file }}){% endif %}
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              {% for r in req.results %}
+              <tr>
+                <td class="mono">{{ r.model }}</td>
+                <td class="status-cell {{ r.status }}">{{ r.status }}</td>
+                <td>{% if r.is_execution_failure %}<span class="badge INCOMPLETE">evidence quality</span> {% endif %}{{ r.reason }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endfor %}
+    </section>
+
+    <section class="panel" aria-labelledby="qual-detail">
+      <h2 id="qual-detail">Qualification evidence</h2>
+      {% if qualifications | length == 0 %}
+      <p class="muted">No qualifications recorded.</p>
+      {% endif %}
+      {% for q in qualifications %}
+      <details class="qual{% if q.is_historical and not q.certifies_migration %} historical{% endif %}"{% if q.certifies_migration %} open{% endif %}>
+        <summary>
+          <strong>{{ q.candidate_model }}</strong>
+          {% if q.certifies_migration %}
+          <span class="badge PASS">current · certifies</span>
+          {% elif q.is_stale %}
+          <span class="badge STALE">historical · stale</span>
+          {% elif q.evidence_validity == "INCOMPLETE" %}
+          <span class="badge INCOMPLETE">incomplete evidence</span>
+          {% else %}
+          <span class="badge hist">recorded evidence</span>
+          {% endif %}
+          <span class="badge">recorded {{ q.recorded_decision }}</span>
+          <span class="badge {{ q.evidence_validity }}">{{ q.evidence_validity }}</span>
+          <span class="muted">{{ q.migration_recommendation }}</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">{{ q.recorded_decision }}</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">{{ q.effective_decision }}</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge {{ q.evidence_validity }}">{{ q.evidence_validity }}</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">{{ q.migration_recommendation }}</div></div>
+          </div>
+
+          {% if q.is_stale %}
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded {{ q.recorded_decision }} cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              {% for reason in q.stale_reasons %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {% if q.evidence_validity == "INCOMPLETE" %}
+          <div class="callout evidence-quality" role="note">
+            <strong>Evidence quality — Arsenic could not obtain sufficient evidence to decide.</strong>
+            This is not a behavioural regression result.
+            <ul class="reason-list">
+              {% for reason in q.incomplete_reasons %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>{{ q.id }}</dd>
+            <dt>Candidate</dt><dd>{{ q.candidate_model }}</dd>
+            <dt>Baseline model</dt><dd>{{ q.baseline_model }}</dd>
+            <dt>Contract version</dt><dd>v{{ q.contract_version }}</dd>
+            <dt>Recorded at</dt><dd>{{ q.created_at }}</dd>
+            <dt>Qual contract hash</dt><dd>{{ q.contract_hash_short }}</dd>
+            <dt>Current contract hash</dt><dd>{{ q.current_contract_hash_short }}</dd>
+            <dt>Qual baseline hash</dt><dd>{{ q.baseline_hash_short }}</dd>
+            <dt>Current baseline hash</dt><dd>{{ q.current_baseline_hash_short }}</dd>
+            <dt>Input fingerprint</dt><dd>{{ q.input_fingerprint_short }}</dd>
+          </dl>
+
+          {% if q.has_validated_patch and q.validated_patch %}
+            {% if q.patch_applies_to_current and not q.is_stale %}
+            <div class="callout patch-ok">
+              <strong>Validated repair — applies to current contract/baseline.</strong>
+              Patch is recorded but not applied to application prompts.
+            </div>
+            {% else %}
+            <div class="callout patch-stale">
+              <strong>Previously validated repair — no longer valid for the current contract/baseline.</strong>
+              Do not treat this patch as currently certified.
+            </div>
+            {% endif %}
+            <details class="evidence">
+              <summary>Prompt diff</summary>
+              <div class="ev-body"><pre class="diff">{{ q.validated_patch.prompt_diff }}</pre></div>
+            </details>
+          {% endif %}
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          {% for r in q.item_views %}
+            {% if r.status != "PASS" or r.is_execution_failure %}
+            <details class="evidence"{% if r.status == "BLOCK" or r.is_execution_failure %} open{% endif %}>
+              <summary>
+                <span class="mono">{{ r.item_id }}</span>
+                <span class="badge {{ r.status }}">{{ r.status }}</span>
+                {% if r.is_execution_failure %}<span class="badge INCOMPLETE">could not decide</span>{% endif %}
+                <span class="badge sev-{{ r.severity }}">{{ r.severity }}</span>
+              </summary>
+              <div class="ev-body">
+                {% if r.is_execution_failure %}
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                {% elif r.status == "BLOCK" or r.status == "REVIEW" %}
+                <div class="callout behaviour-fail">
+                  <strong>Behaviour failed / needs review</strong> — contract expectation was evaluated against captured evidence.
+                </div>
+                {% endif %}
+                <p>{{ r.reason }}</p>
+                {% for e in r.baseline_evidence %}
+                <p class="muted"><strong>{{ e.label }} (baseline):</strong> {{ e.text }}</p>
+                {% endfor %}
+                {% for e in r.candidate_evidence %}
+                <p class="muted"><strong>{{ e.label }} (candidate):</strong> {{ e.text }}</p>
+                {% endfor %}
+              </div>
+            </details>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </section>
+
+    <footer class="report-foot">
+      Contract {{ contract_hash_short }} · Baseline {{ baseline_hash_short }} ·
+      Migration recommendation derived via assess_qualification / aggregate_migration ·
+      Self-contained HTML · Arsenic Application Contracts
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_order",
+        "description": "Look up an order by id",
+        "parameters": {
+          "type": "object",
+          "required": ["order_id"],
+          "properties": {
+            "order_id": { "type": "string" }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -26,3 +26,5 @@ futures.workspace = true
 regex = { workspace = true }
 # Baseline cache: SHA-256 hashing of cache keys.
 sha2.workspace = true
+toml.workspace = true
+jsonschema = { workspace = true }

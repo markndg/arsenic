@@ -1,0 +1,18 @@
+application = "customer-support"
+production_model = "openai:gpt-current"
+
+[[candidates]]
+model = "openai:gpt-safe"
+tags = ["preferred", "hosted"]
+
+[[candidates]]
+model = "anthropic:claude-y"
+tags = ["hosted"]
+
+[[candidates]]
+model = "google:gemini-z"
+tags = ["hosted"]
+
+[[candidates]]
+model = "openai:gpt-repairable"
+tags = ["repair-demo"]

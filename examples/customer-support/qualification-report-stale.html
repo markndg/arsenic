@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ARSENIC · Qualification · Customer Support</title>
+  
+  <style>
+    :root {
+      --bg-deep: #0a0e14;
+      --bg-elev: #12181f;
+      --bg-card: #151c26;
+      --border: #243044;
+      --border-glow: rgba(8, 217, 198, 0.35);
+      --fg: #e6edf5;
+      --muted: #8b9cb0;
+      --accent: #08d9c6;
+      --accent-dim: #067a70;
+      --green: #2eb872;
+      --green-ring: rgba(46, 184, 114, 0.65);
+      --amber: #e8a838;
+      --red: #e24d56;
+      --red-deep: #9b2335;
+      --purple: #9b7bd4;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --radius: 12px;
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--fg);
+      line-height: 1.55;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(8, 217, 198, 0.12), transparent),
+        linear-gradient(180deg, var(--bg-deep) 0%, #0d1218 100%);
+    }
+    a { color: var(--accent); }
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+    .top-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-dim));
+      opacity: 0.9;
+    }
+    header.hero {
+      padding: 1.75rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(18, 24, 31, 0.95) 0%, rgba(15, 20, 28, 0.98) 100%);
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header.hero h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+    header.hero .sub { color: var(--muted); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; max-width: 48rem; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    section.panel {
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    section.panel h2 {
+      margin: 0 0 1rem;
+      font-weight: 600;
+      color: #b8d9ea;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+    }
+    section.panel.stale-border { border-left-color: var(--muted); }
+    section.panel.incomplete-border { border-left-color: var(--purple); }
+    section.panel.blocked-border { border-left-color: var(--red); }
+    section.panel.safe-border { border-left-color: var(--green); }
+    section.panel.review-border { border-left-color: var(--amber); }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .badge.PASS, .badge.VALID, .badge.Green {
+      background: rgba(46, 184, 114, 0.22); color: #7ae0a8; border-color: rgba(46, 184, 114, 0.45);
+    }
+    .badge.WARN, .badge.Amber {
+      background: rgba(232, 168, 56, 0.18); color: #f5d08a; border-color: rgba(232, 168, 56, 0.4);
+    }
+    .badge.REVIEW {
+      background: rgba(232, 168, 56, 0.22); color: #f5d08a; border-color: rgba(232, 168, 56, 0.5);
+    }
+    .badge.BLOCK, .badge.Red {
+      background: rgba(226, 77, 86, 0.22); color: #ffb3b8; border-color: rgba(226, 77, 86, 0.55);
+    }
+    .badge.STALE {
+      background: rgba(139, 156, 176, 0.18); color: #b4c8dc; border-color: rgba(139, 156, 176, 0.45);
+    }
+    .badge.INCOMPLETE, .badge.MIXED {
+      background: rgba(155, 123, 212, 0.22); color: #d4c4f5; border-color: rgba(155, 123, 212, 0.5);
+    }
+    .badge.hist {
+      background: rgba(139, 156, 176, 0.12); color: var(--muted); border-color: var(--border);
+    }
+    .badge.sev-block { border-color: rgba(226, 77, 86, 0.55); color: #ffb3b8; }
+    .badge.sev-review { border-color: rgba(232, 168, 56, 0.5); color: #f5d08a; }
+    .badge.sev-warn { border-color: rgba(232, 168, 56, 0.35); color: #e8d4a0; }
+    .badge.sev-info { border-color: var(--border); color: var(--muted); }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .meta-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+    }
+    .meta-card .k {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .meta-card .v {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
+      word-break: break-word;
+    }
+
+    .decision-banner {
+      margin: 0 0 1rem;
+      padding: 1.15rem 1.35rem;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.25;
+    }
+    .decision-banner.safe {
+      background: rgba(46, 184, 114, 0.15);
+      border-color: rgba(46, 184, 114, 0.55);
+      color: #9ee8c4;
+    }
+    .decision-banner.blocked {
+      background: rgba(226, 77, 86, 0.16);
+      border-color: rgba(226, 77, 86, 0.6);
+      color: #ffb3b8;
+    }
+    .decision-banner.review {
+      background: rgba(232, 168, 56, 0.14);
+      border-color: rgba(232, 168, 56, 0.5);
+      color: #f5d08a;
+    }
+    .decision-banner.incomplete {
+      background: rgba(155, 123, 212, 0.16);
+      border-color: rgba(155, 123, 212, 0.55);
+      color: #d4c4f5;
+    }
+    .decision-banner.stale, .decision-banner.none {
+      background: rgba(139, 156, 176, 0.12);
+      border-color: rgba(139, 156, 176, 0.45);
+      color: #b4c8dc;
+    }
+    .decision-explainer {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 0.75rem;
+      text-align: center;
+    }
+    .stat .val { font-size: 1.5rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.amber { color: var(--amber); }
+    .stat .val.red { color: var(--red); }
+    .stat .val.purple { color: var(--purple); }
+    .stat .val.muted { color: var(--muted); }
+    .stat .lbl {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data th, table.data td {
+      text-align: left;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.data th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.data tbody tr:hover { background: rgba(8, 217, 198, 0.04); }
+    table.data td.status-cell { font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; }
+    table.data td.status-cell.PASS { color: #7ae0a8; }
+    table.data td.status-cell.WARN { color: #f5d08a; }
+    table.data td.status-cell.REVIEW { color: #f5d08a; }
+    table.data td.status-cell.BLOCK {
+      color: #ffb3b8;
+      background: rgba(226, 77, 86, 0.12);
+      box-shadow: inset 3px 0 0 var(--red);
+    }
+    table.data td.status-cell.STALE {
+      color: #b4c8dc;
+      background: rgba(139, 156, 176, 0.1);
+      box-shadow: inset 3px 0 0 var(--muted);
+    }
+    table.data td.status-cell.INCOMPLETE {
+      color: #d4c4f5;
+      background: rgba(155, 123, 212, 0.12);
+      box-shadow: inset 3px 0 0 var(--purple);
+    }
+
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .callout {
+      margin: 0.75rem 0;
+      padding: 0.75rem 0.95rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .callout.evidence-quality {
+      background: rgba(155, 123, 212, 0.12);
+      border: 1px solid rgba(155, 123, 212, 0.45);
+      color: #d4c4f5;
+    }
+    .callout.stale-warn {
+      background: rgba(139, 156, 176, 0.1);
+      border: 1px solid rgba(139, 156, 176, 0.4);
+      color: #b4c8dc;
+    }
+    .callout.behaviour-fail {
+      background: rgba(226, 77, 86, 0.12);
+      border: 1px solid rgba(226, 77, 86, 0.45);
+      color: #ffb3b8;
+    }
+    .callout.patch-ok {
+      background: rgba(46, 184, 114, 0.12);
+      border: 1px solid rgba(46, 184, 114, 0.4);
+      color: #9ee8c4;
+    }
+    .callout.patch-stale {
+      background: rgba(232, 168, 56, 0.12);
+      border: 1px solid rgba(232, 168, 56, 0.45);
+      color: #f5d08a;
+    }
+
+    details.qual, details.req, details.evidence {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    details.qual.historical {
+      opacity: 0.92;
+      border-style: dashed;
+    }
+    details.qual > summary, details.req > summary, details.evidence > summary {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: linear-gradient(90deg, rgba(8, 217, 198, 0.06), transparent);
+    }
+    details.qual.historical > summary {
+      background: linear-gradient(90deg, rgba(139, 156, 176, 0.08), transparent);
+    }
+    details.qual > summary::-webkit-details-marker,
+    details.req > summary::-webkit-details-marker,
+    details.evidence > summary::-webkit-details-marker { display: none; }
+    details[open] > summary { border-bottom: 1px solid var(--border); }
+    .qual-body, .req-body, .ev-body { padding: 0.85rem 1rem 1rem; }
+    .kv {
+      display: grid;
+      grid-template-columns: minmax(9rem, 12rem) 1fr;
+      gap: 0.35rem 0.75rem;
+      font-size: 0.86rem;
+      margin: 0.5rem 0 0.85rem;
+    }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; font-family: var(--mono); font-size: 0.82rem; word-break: break-all; }
+
+    pre.diff, pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1016;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin: 0.5rem 0 0;
+    }
+
+    ul.reason-list {
+      margin: 0.4rem 0 0;
+      padding-left: 1.15rem;
+      color: #c5d4e0;
+      font-size: 0.88rem;
+    }
+
+    footer.report-foot {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .top-bar { display: none; }
+      header.hero, section.panel, details.qual, details.req {
+        box-shadow: none;
+        background: #fff;
+        border-color: #ccc;
+        color: #111;
+      }
+      .decision-banner { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar" aria-hidden="true"></div>
+  <header class="hero">
+    <h1>ARSENIC · Qualification</h1>
+    <p class="sub">
+      Application compatibility for <strong>Customer Support</strong> —
+      not a generic model benchmark. Compatibility ≠ intelligence.
+      This report answers whether the application can safely migrate based on
+      <em>current, complete</em> evidence.
+    </p>
+    <div class="meta-grid" role="group" aria-label="Qualification context">
+      <div class="meta-card"><div class="k">Application</div><div class="v">Customer Support</div></div>
+      <div class="meta-card"><div class="k">Production</div><div class="v">openai:gpt-current</div></div>
+      <div class="meta-card"><div class="k">Candidate</div><div class="v">5 candidates</div></div>
+      <div class="meta-card"><div class="k">Contract</div><div class="v">v2</div></div>
+      <div class="meta-card"><div class="k">Evidence</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+      <div class="meta-card"><div class="k">Decision</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel stale-border" aria-labelledby="mig-decision">
+      <h2 id="mig-decision">Migration decision</h2>
+      <div class="decision-banner stale" role="status">
+        STALE — REQUALIFY REQUIRED
+      </div>
+      <p class="decision-explainer">Available qualifications no longer match the current contract and&#x2F;or baseline. Requalify before migrating.</p>
+      
+      <p class="muted" style="margin:0.75rem 0 0">Historical PASS evidence cannot certify migration while evidence is STALE.</p>
+      
+    </section>
+
+    <section class="panel" aria-labelledby="exec-sum">
+      <h2 id="exec-sum">Executive summary</h2>
+      <div class="exec-grid">
+        <div class="stat"><div class="val">6</div><div class="lbl">Requirements</div></div>
+        <div class="stat"><div class="val green">0</div><div class="lbl">Passed</div></div>
+        <div class="stat"><div class="val amber">0</div><div class="lbl">Warnings</div></div>
+        <div class="stat"><div class="val amber">0</div><div class="lbl">Review items</div></div>
+        <div class="stat"><div class="val red">0</div><div class="lbl">Blockers</div></div>
+        <div class="stat"><div class="val muted">5</div><div class="lbl">Stale quals</div></div>
+        <div class="stat"><div class="val purple">0</div><div class="lbl">Incomplete</div></div>
+        <div class="stat"><div class="val green">0</div><div class="lbl">Current repairs</div></div>
+      </div>
+      <p class="muted" style="margin:0.85rem 0 0">
+        Counts for passed / warnings / review / blockers use current (non-stale, complete) qualifications only.
+        Stale and incomplete qualifications are listed separately and cannot contribute to SAFE TO MIGRATE.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="cand-matrix">
+      <h2 id="cand-matrix">Candidate matrix</h2>
+      
+      <table class="data">
+        <thead>
+          <tr>
+            <th scope="col">Dimension</th>
+            <th scope="col">anthropic:claude-y</th><th scope="col">google:gemini-z</th><th scope="col">openai:gpt-repairable</th><th scope="col">openai:gpt-safe</th><th scope="col">openai:gpt-timeout</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td>claims</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>tool arguments</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>structure</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>instructions</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>refusals</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>presentation</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+          <tr>
+            <td>cost Δ</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+            <td class="status-cell STALE" title="contract hash differs from current application contract">STALE</td>
+            
+          </tr>
+          
+        </tbody>
+      </table>
+      <p class="muted" style="margin:0.75rem 0 0">Hover a cell for supporting detail. BLOCK, STALE, and INCOMPLETE are highlighted.</p>
+      
+    </section>
+
+    <section class="panel" aria-labelledby="contract-reqs">
+      <h2 id="contract-reqs">Contract requirements</h2>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">refund_decision.required_claim.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">RequiredClaim · refund_decision</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (prompts&#x2F;refund_decision.txt)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">order_lookup.tool_argument.002</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">ToolArgument · order_lookup</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (tools&#x2F;lookup_order.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">order_lookup.tool_call.001</span>
+          <span class="badge sev-review">sev · review</span>
+          <span class="muted">ToolCall · order_lookup</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (tools&#x2F;lookup_order.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">refund_decision.structured_output.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">StructuredOutput · refund_json</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (schemas&#x2F;refund.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">abuse.refusal.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">Refusal · abuse_request</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (prompts&#x2F;abuse_request.txt)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">greeting.presentation.001</span>
+          <span class="badge sev-warn">sev · warn</span>
+          <span class="muted">Presentation · greeting</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (prompts&#x2F;greeting.txt)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">anthropic:claude-y</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">google:gemini-z</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-repairable</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+              <tr>
+                <td class="mono">openai:gpt-timeout</td>
+                <td class="status-cell STALE">STALE</td>
+                <td>contract hash differs from current application contract</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+    </section>
+
+    <section class="panel" aria-labelledby="qual-detail">
+      <h2 id="qual-detail">Qualification evidence</h2>
+      
+      
+      <details class="qual historical">
+        <summary>
+          <strong>anthropic:claude-y</strong>
+          
+          <span class="badge STALE">historical · stale</span>
+          
+          <span class="badge">recorded PASS_WITH_WARNINGS</span>
+          <span class="badge STALE">STALE</span>
+          <span class="muted">STALE — REQUALIFY REQUIRED</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">PASS_WITH_WARNINGS</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">STALE</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+          </div>
+
+          
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded PASS_WITH_WARNINGS cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              <li>contract hash differs from current application contract</li>
+            </ul>
+          </div>
+          
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>qual-0002</dd>
+            <dt>Candidate</dt><dd>anthropic:claude-y</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v2</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.064947+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>031c2ff916b3…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>9141cea6cee8…</dd>
+          </dl>
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+            <details class="evidence">
+              <summary>
+                <span class="mono">greeting.presentation.001</span>
+                <span class="badge WARN">WARN</span>
+                
+                <span class="badge sev-warn">warn</span>
+              </summary>
+              <div class="ev-body">
+                
+                <p>Greeting tone&#x2F;presentation may drift</p>
+                
+                <p class="muted"><strong>Baseline (baseline):</strong> Hello! How can I help you today?</p>
+                
+                
+                <p class="muted"><strong>Candidate (candidate):</strong> Hello! Welcome to Northwind Shop support. I&#x27;m delighted to assist you today with anything you need regarding orders, refunds, shipping timelines, product questions, account updates, or general enquiri</p>
+                
+              </div>
+            </details>
+            
+          
+        </div>
+      </details>
+      
+      <details class="qual historical">
+        <summary>
+          <strong>google:gemini-z</strong>
+          
+          <span class="badge STALE">historical · stale</span>
+          
+          <span class="badge">recorded BLOCK</span>
+          <span class="badge STALE">STALE</span>
+          <span class="muted">STALE — REQUALIFY REQUIRED</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">BLOCK</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">STALE</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+          </div>
+
+          
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded BLOCK cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              <li>contract hash differs from current application contract</li>
+            </ul>
+          </div>
+          
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>qual-0003</dd>
+            <dt>Candidate</dt><dd>google:gemini-z</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v2</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.080560+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>031c2ff916b3…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>5c9d4f74863f…</dd>
+          </dl>
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">refund_decision.required_claim.001</span>
+                <span class="badge BLOCK">BLOCK</span>
+                
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout behaviour-fail">
+                  <strong>Behaviour failed / needs review</strong> — contract expectation was evaluated against captured evidence.
+                </div>
+                
+                <p>Required claim absent</p>
+                
+                <p class="muted"><strong>Baseline (baseline):</strong> Refunds over £500 require manager approval</p>
+                
+                
+                <p class="muted"><strong>Candidate (candidate):</strong> claim absent</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">order_lookup.tool_argument.002</span>
+                <span class="badge BLOCK">BLOCK</span>
+                
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout behaviour-fail">
+                  <strong>Behaviour failed / needs review</strong> — contract expectation was evaluated against captured evidence.
+                </div>
+                
+                <p>candidate model&#x2F;provider does not support required tool calling</p>
+                
+                
+                <p class="muted"><strong>Capability (candidate):</strong> candidate model&#x2F;provider does not support required tool calling</p>
+                
+              </div>
+            </details>
+            
+          
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">refund_decision.structured_output.001</span>
+                <span class="badge BLOCK">BLOCK</span>
+                
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout behaviour-fail">
+                  <strong>Behaviour failed / needs review</strong> — contract expectation was evaluated against captured evidence.
+                </div>
+                
+                <p>candidate model&#x2F;provider does not support required structured output</p>
+                
+                
+                <p class="muted"><strong>Capability (candidate):</strong> candidate model&#x2F;provider does not support required structured output</p>
+                
+              </div>
+            </details>
+            
+          
+            
+          
+            
+            <details class="evidence">
+              <summary>
+                <span class="mono">greeting.presentation.001</span>
+                <span class="badge WARN">WARN</span>
+                
+                <span class="badge sev-warn">warn</span>
+              </summary>
+              <div class="ev-body">
+                
+                <p>Greeting tone&#x2F;presentation may drift</p>
+                
+                <p class="muted"><strong>Baseline (baseline):</strong> Hello! How can I help you today?</p>
+                
+                
+                <p class="muted"><strong>Candidate (candidate):</strong> Hey!</p>
+                
+              </div>
+            </details>
+            
+          
+        </div>
+      </details>
+      
+      <details class="qual historical">
+        <summary>
+          <strong>openai:gpt-repairable</strong>
+          
+          <span class="badge STALE">historical · stale</span>
+          
+          <span class="badge">recorded PASS_WITH_PATCH</span>
+          <span class="badge STALE">STALE</span>
+          <span class="muted">STALE — REQUALIFY REQUIRED</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">PASS_WITH_PATCH</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">STALE</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+          </div>
+
+          
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded PASS_WITH_PATCH cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              <li>contract hash differs from current application contract</li>
+            </ul>
+          </div>
+          
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>qual-0004</dd>
+            <dt>Candidate</dt><dd>openai:gpt-repairable</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v2</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.117215+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>031c2ff916b3…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>7c30aa201d0f…</dd>
+          </dl>
+
+          
+            
+            <div class="callout patch-stale">
+              <strong>Previously validated repair — no longer valid for the current contract/baseline.</strong>
+              Do not treat this patch as currently certified.
+            </div>
+            
+            <details class="evidence">
+              <summary>Prompt diff</summary>
+              <div class="ev-body"><pre class="diff">--- original
++++ patched
+-Customer asks for a £600 refund on order ORD-1001. Should we approve?
++Customer asks for a £600 refund on order ORD-1001. Should we approve? Your answer must address or include these specific values: Refunds over £500 require manager approval.</pre></div>
+            </details>
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+        </div>
+      </details>
+      
+      <details class="qual historical">
+        <summary>
+          <strong>openai:gpt-safe</strong>
+          
+          <span class="badge STALE">historical · stale</span>
+          
+          <span class="badge">recorded PASS</span>
+          <span class="badge STALE">STALE</span>
+          <span class="muted">STALE — REQUALIFY REQUIRED</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">PASS</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">STALE</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+          </div>
+
+          
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded PASS cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              <li>contract hash differs from current application contract</li>
+            </ul>
+          </div>
+          
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>qual-0001</dd>
+            <dt>Candidate</dt><dd>openai:gpt-safe</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v2</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.063321+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>031c2ff916b3…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>1e1848343ed3…</dd>
+          </dl>
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+        </div>
+      </details>
+      
+      <details class="qual historical">
+        <summary>
+          <strong>openai:gpt-timeout</strong>
+          
+          <span class="badge STALE">historical · stale</span>
+          
+          <span class="badge">recorded PASS</span>
+          <span class="badge STALE">STALE</span>
+          <span class="muted">STALE — REQUALIFY REQUIRED</span>
+        </summary>
+        <div class="qual-body">
+          <div class="meta-grid" style="margin-top:0">
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">PASS</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">STALE</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge STALE">STALE</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">STALE — REQUALIFY REQUIRED</div></div>
+          </div>
+
+          
+          <div class="callout stale-warn" role="note">
+            <strong>Historical qualification — STALE.</strong>
+            This recorded PASS cannot certify migration against the current contract/baseline.
+            <ul class="reason-list">
+              <li>contract hash differs from current application contract</li>
+            </ul>
+          </div>
+          
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
+          <dl class="kv">
+            <dt>Qualification ID</dt><dd>qual-0005</dd>
+            <dt>Candidate</dt><dd>openai:gpt-timeout</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v2</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.143390+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>031c2ff916b3…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>0556b204c709…</dd>
+          </dl>
+
+          
+
+          <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">refund_decision.required_claim.001</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">order_lookup.tool_argument.002</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">order_lookup.tool_call.001</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-review">review</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">refund_decision.structured_output.001</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">abuse.refusal.001</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-block">block</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+            
+            <details class="evidence" open>
+              <summary>
+                <span class="mono">greeting.presentation.001</span>
+                <span class="badge REVIEW">REVIEW</span>
+                <span class="badge INCOMPLETE">could not decide</span>
+                <span class="badge sev-warn">warn</span>
+              </summary>
+              <div class="ev-body">
+                
+                <div class="callout evidence-quality">
+                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
+                </div>
+                
+                <p>TIMEOUT: provider timed out</p>
+                
+                
+                <p class="muted"><strong>Execution (candidate):</strong> TIMEOUT</p>
+                
+              </div>
+            </details>
+            
+          
+        </div>
+      </details>
+      
+    </section>
+
+    <footer class="report-foot">
+      Contract 031c2ff916b3… · Baseline 488981dd5e37… ·
+      Migration recommendation derived via assess_qualification / aggregate_migration ·
+      Self-contained HTML · Arsenic Application Contracts
+    </footer>
+  </main>
+</body>
+</html>

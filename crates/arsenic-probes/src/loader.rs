@@ -133,6 +133,7 @@ fn toml_to_probe(p: TomlProbe, source: ProbeSource, path: &Path) -> anyhow::Resu
         claim_anchor_policy: p.claim_anchor_policy,
         presentation_drift: p.presentation_drift,
         latency_slo_ms: p.latency_slo_ms,
+        tools: None,
         source,
     })
 }

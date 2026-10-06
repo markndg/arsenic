@@ -17,6 +17,8 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 mod baseline_cmd;
+mod contract_cmd;
+mod live_exec;
 mod model_download;
 mod mutation_validate;
 mod reconcile;
@@ -25,7 +27,7 @@ mod reconcile;
 #[command(
     name = "arsenic",
     version,
-    about = "ARSENIC — migration safety and behavioural drift"
+    about = "Arsenic — the compatibility layer for changing LLMs"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -100,20 +102,123 @@ enum Commands {
         #[arg(long)]
         cache_dir: Option<PathBuf>,
     },
-    /// Capture, inspect, verify, and manage cached v1 response sets
+    /// Capture, inspect, verify, and manage cached v1 response sets —
+    /// or establish an application-contract production baseline:
+    /// `arsenic baseline <provider:model>`
+    #[command(args_conflicts_with_subcommands = true)]
     Baseline {
         #[command(subcommand)]
-        sub: BaselineCmd,
+        sub: Option<BaselineCmd>,
+        /// Production model for application-contract baseline (e.g. openai:gpt-current)
+        model: Option<String>,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Offline fixture behaviours JSON (reproducible testing path)
+        #[arg(long)]
+        from_fixtures: Option<PathBuf>,
+        #[arg(long)]
+        key_env: Option<String>,
+        #[arg(long)]
+        endpoint: Option<String>,
+        #[arg(long, default_value_t = 0.0)]
+        temperature: f64,
+        #[arg(long)]
+        max_tokens: Option<usize>,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        #[arg(long, default_value_t = 3)]
+        retry_attempts: usize,
+        #[arg(long, default_value_t = 1000)]
+        retry_delay_ms: u64,
+    },
+    /// Discover application artefacts and draft an Application Contract
+    Init {
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        name: Option<String>,
+        /// Explicitly accept all proposed discovery items (never silent by default)
+        #[arg(long, default_value_t = false)]
+        accept_proposals: bool,
+        /// Seed from an existing contract JSON
+        #[arg(long)]
+        contract: Option<PathBuf>,
+    },
+    /// Qualify candidate models against the application contract + baseline
+    Qualify {
+        /// Candidate models (provider:model). If omitted, uses arsenic.toml candidates.
+        models: Vec<String>,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Offline fixture behaviours (testing). Omit for live providers.
+        #[arg(long)]
+        from_fixtures: Option<PathBuf>,
+        #[arg(long)]
+        tag: Option<String>,
+        #[arg(long, default_value_t = false)]
+        changed: bool,
+        #[arg(long, default_value_t = false)]
+        repair: bool,
+        #[arg(long, default_value_t = false)]
+        json: bool,
+        /// Machine-readable JSON + CI exit codes (0 pass, 1 block, 2 review, 3 error)
+        #[arg(long, default_value_t = false)]
+        ci: bool,
+        /// Re-evaluate stored evidence without contacting providers
+        #[arg(long)]
+        replay: Option<String>,
+        #[arg(long)]
+        key_env: Option<String>,
+        #[arg(long)]
+        endpoint: Option<String>,
+        #[arg(long, default_value_t = 0.0)]
+        temperature: f64,
+        #[arg(long)]
+        max_tokens: Option<usize>,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        #[arg(long, default_value_t = 3)]
+        retry_attempts: usize,
+        #[arg(long, default_value_t = 1000)]
+        retry_delay_ms: u64,
+    },
+    /// Migration impact for a candidate
+    Impact {
+        candidate: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+    },
+    /// Application contract operations
+    Contract {
+        #[command(subcommand)]
+        sub: ContractCmd,
+    },
+    /// Validated repair patches (explicit apply only)
+    Patch {
+        #[command(subcommand)]
+        sub: PatchCmd,
     },
     /// Inspect probe suites
     Probe {
         #[command(subcommand)]
         sub: ProbeCmd,
     },
-    /// Render reports from saved JSON
+    /// Render reports from saved JSON, or application qualification report
     Report {
         #[command(subcommand)]
-        sub: ReportCmd,
+        sub: Option<ReportCmd>,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        candidate: Option<String>,
+        #[arg(long, default_value_t = false)]
+        json: bool,
+        #[arg(long)]
+        output: Option<PathBuf>,
     },
     /// Validate a user probe corpus directory or file
     Validate { path: PathBuf },
@@ -168,6 +273,34 @@ enum Commands {
         v2_label: String,
         #[arg(long, default_value_t = 0.0)]
         temperature: f64,
+    },
+}
+
+#[derive(Subcommand)]
+enum ContractCmd {
+    Diff {
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        from: Option<PathBuf>,
+        #[arg(long)]
+        to: Option<PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum PatchCmd {
+    Show {
+        qualification_id: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+    },
+    Apply {
+        qualification_id: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long, default_value_t = false)]
+        yes: bool,
     },
 }
 
@@ -287,6 +420,17 @@ enum ProbeCmd {
 
 #[derive(Subcommand)]
 enum ReportCmd {
+    /// Application contract qualification report (default when no subcommand)
+    Application {
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        candidate: Option<String>,
+        #[arg(long, default_value_t = false)]
+        json: bool,
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
     Render {
         input: PathBuf,
         #[arg(long)]
@@ -634,12 +778,34 @@ async fn main() -> anyhow::Result<()> {
                 println!("{}", "OK".green());
             }
         },
-        Commands::Report { sub } => match sub {
-            ReportCmd::Render {
+        Commands::Report {
+            sub,
+            project,
+            candidate,
+            json,
+            output,
+        } => match sub {
+            None => {
+                contract_cmd::cmd_app_report(project, candidate, json, output)?;
+            }
+            Some(ReportCmd::Application {
+                project: p,
+                candidate: c,
+                json: j,
+                output: o,
+            }) => {
+                contract_cmd::cmd_app_report(
+                    p.or(project),
+                    c.or(candidate),
+                    j || json,
+                    o.or(output),
+                )?;
+            }
+            Some(ReportCmd::Render {
                 input,
                 format,
                 output,
-            } => {
+            }) => {
                 let report: DriftReport = load_report_json(&input)?;
                 let bytes = match format.as_str() {
                     "html" => ReportRenderer::render_html(&report)?,
@@ -651,10 +817,10 @@ async fn main() -> anyhow::Result<()> {
                     .with_context(|| format!("write {}", output.display()))?;
                 println!("Wrote {}", output.display());
             }
-            ReportCmd::Summary {
+            Some(ReportCmd::Summary {
                 input,
                 debug_summary,
-            } => {
+            }) => {
                 let report: DriftReport = load_report_json(&input)?;
                 let summary_json = ReportRenderer::summary_json(&report)?;
                 if debug_summary {
@@ -678,6 +844,88 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 println!("{}", serde_json::to_string_pretty(&summary_json)?);
+            }
+        },
+        Commands::Init {
+            project,
+            name,
+            accept_proposals,
+            contract,
+        } => {
+            contract_cmd::cmd_init(project, name, accept_proposals, contract)?;
+        }
+        Commands::Qualify {
+            models,
+            project,
+            from_fixtures,
+            tag,
+            changed,
+            repair,
+            json,
+            ci,
+            replay,
+            key_env,
+            endpoint,
+            temperature,
+            max_tokens,
+            timeout_secs,
+            concurrency,
+            retry_attempts,
+            retry_delay_ms,
+        } => {
+            match contract_cmd::cmd_qualify(contract_cmd::QualifyArgs {
+                project,
+                models,
+                fixtures: from_fixtures,
+                tag,
+                changed_only: changed,
+                repair,
+                json,
+                ci,
+                replay,
+                key_env,
+                endpoint,
+                temperature,
+                max_tokens,
+                timeout_secs,
+                concurrency,
+                retry_attempts,
+                retry_delay_ms,
+            })
+            .await
+            {
+                Ok(code) => {
+                    if code != 0 {
+                        std::process::exit(code);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("error: {e:#}");
+                    std::process::exit(3);
+                }
+            }
+        }
+        Commands::Impact { candidate, project } => {
+            contract_cmd::cmd_impact(project, &candidate)?;
+        }
+        Commands::Contract { sub } => match sub {
+            ContractCmd::Diff { project, from, to } => {
+                contract_cmd::cmd_contract_diff(project, from, to)?;
+            }
+        },
+        Commands::Patch { sub } => match sub {
+            PatchCmd::Show {
+                qualification_id,
+                project,
+            } => {
+                contract_cmd::cmd_patch_show(project, &qualification_id)?;
+            }
+            PatchCmd::Apply {
+                qualification_id,
+                project,
+                yes,
+            } => {
+                contract_cmd::cmd_patch_apply(project, &qualification_id, yes)?;
             }
         },
         Commands::Validate { path } => {
@@ -756,8 +1004,40 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         },
-        Commands::Baseline { sub } => match sub {
-            BaselineCmd::Create {
+        Commands::Baseline {
+            sub,
+            model,
+            project,
+            from_fixtures,
+            key_env,
+            endpoint,
+            temperature,
+            max_tokens,
+            timeout_secs,
+            concurrency,
+            retry_attempts,
+            retry_delay_ms,
+        } => match sub {
+            None => {
+                let model = model.context(
+                    "usage: arsenic baseline <provider:model> [--from-fixtures PATH]\n       or: arsenic baseline <create|list|show|…>",
+                )?;
+                contract_cmd::cmd_app_baseline(contract_cmd::BaselineArgs {
+                    project,
+                    model,
+                    from_fixtures,
+                    key_env,
+                    endpoint,
+                    temperature,
+                    max_tokens,
+                    timeout_secs,
+                    concurrency,
+                    retry_attempts,
+                    retry_delay_ms,
+                })
+                .await?;
+            }
+            Some(BaselineCmd::Create {
                 name,
                 model,
                 endpoint,
@@ -775,7 +1055,7 @@ async fn main() -> anyhow::Result<()> {
                 cache_dir,
                 notes,
                 force,
-            } => {
+            }) => {
                 baseline_cmd::run_create(baseline_cmd::CreateArgs {
                     name,
                     model,
@@ -797,30 +1077,30 @@ async fn main() -> anyhow::Result<()> {
                 })
                 .await?;
             }
-            BaselineCmd::List { cache_dir } => baseline_cmd::run_list(cache_dir.as_ref())?,
-            BaselineCmd::Show { name, cache_dir } => {
+            Some(BaselineCmd::List { cache_dir }) => baseline_cmd::run_list(cache_dir.as_ref())?,
+            Some(BaselineCmd::Show { name, cache_dir }) => {
                 baseline_cmd::run_show(&name, cache_dir.as_ref())?
             }
-            BaselineCmd::Verify { name, cache_dir } => {
+            Some(BaselineCmd::Verify { name, cache_dir }) => {
                 baseline_cmd::run_verify(&name, cache_dir.as_ref())?
             }
-            BaselineCmd::Remove {
+            Some(BaselineCmd::Remove {
                 name,
                 cache_dir,
                 yes,
-            } => baseline_cmd::run_remove(&name, cache_dir.as_ref(), yes)?,
-            BaselineCmd::Freeze { name, cache_dir } => {
+            }) => baseline_cmd::run_remove(&name, cache_dir.as_ref(), yes)?,
+            Some(BaselineCmd::Freeze { name, cache_dir }) => {
                 baseline_cmd::run_freeze(&name, cache_dir.as_ref())?
             }
-            BaselineCmd::Unfreeze { name, cache_dir } => {
+            Some(BaselineCmd::Unfreeze { name, cache_dir }) => {
                 baseline_cmd::run_unfreeze(&name, cache_dir.as_ref())?
             }
-            BaselineCmd::Diff {
+            Some(BaselineCmd::Diff {
                 baseline_a,
                 baseline_b,
                 cache_dir,
-            } => baseline_cmd::run_diff(&baseline_a, &baseline_b, cache_dir.as_ref())?,
-            BaselineCmd::Timeline { model, cache_dir } => {
+            }) => baseline_cmd::run_diff(&baseline_a, &baseline_b, cache_dir.as_ref())?,
+            Some(BaselineCmd::Timeline { model, cache_dir }) => {
                 baseline_cmd::run_timeline(model.as_deref(), cache_dir.as_ref())?
             }
         },

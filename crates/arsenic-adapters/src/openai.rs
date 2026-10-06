@@ -26,14 +26,34 @@ fn build_chat_body(
     messages: &[serde_json::Value],
     temperature: f64,
     max_tokens: usize,
+    tools: Option<&serde_json::Value>,
+    expected_schema: Option<&serde_json::Value>,
 ) -> serde_json::Value {
     let (limit_key, limit) = completion_limit_field(model_id, max_tokens);
-    json!({
+    let mut body = json!({
         "model": model_id,
         "messages": messages,
         "temperature": temperature,
         limit_key: limit,
-    })
+    });
+    let obj = body.as_object_mut().expect("object");
+    if let Some(tools) = tools {
+        obj.insert("tools".into(), tools.clone());
+    }
+    if let Some(schema) = expected_schema {
+        obj.insert(
+            "response_format".into(),
+            json!({
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "arsenic_contract_schema",
+                    "schema": schema,
+                    "strict": false
+                }
+            }),
+        );
+    }
+    body
 }
 
 fn is_max_tokens_unsupported(err: &serde_json::Value) -> bool {
@@ -90,7 +110,14 @@ impl ModelAdapter for OpenAIAdapter {
             messages.push(json!({"role":"system","content":sys}));
         }
         messages.push(json!({"role":"user","content":probe.prompt}));
-        let body = build_chat_body(&self.model_id, &messages, self.temperature, self.max_tokens);
+        let body = build_chat_body(
+            &self.model_id,
+            &messages,
+            self.temperature,
+            self.max_tokens,
+            probe.tools.as_ref(),
+            probe.expected_schema.as_ref(),
+        );
         let start = Instant::now();
         let (status, raw) = self.post_chat_completion(&url, &body).await?;
 
@@ -99,12 +126,31 @@ impl ModelAdapter for OpenAIAdapter {
             && is_max_tokens_unsupported(&raw)
             && body.get("max_tokens").is_some()
         {
-            let fallback = json!({
+            let mut fallback = json!({
                 "model": self.model_id,
                 "messages": messages,
                 "temperature": self.temperature,
                 "max_completion_tokens": self.max_tokens,
             });
+            if let Some(tools) = &probe.tools {
+                fallback
+                    .as_object_mut()
+                    .unwrap()
+                    .insert("tools".into(), tools.clone());
+            }
+            if let Some(schema) = &probe.expected_schema {
+                fallback.as_object_mut().unwrap().insert(
+                    "response_format".into(),
+                    json!({
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "arsenic_contract_schema",
+                            "schema": schema,
+                            "strict": false
+                        }
+                    }),
+                );
+            }
             let retry_start = Instant::now();
             let (status2, raw2) = self.post_chat_completion(&url, &fallback).await?;
             if !status2.is_success() {
@@ -162,6 +208,12 @@ impl OpenAIAdapter {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        // Prefer returned model id when provider exposes it.
+        let returned_model = raw
+            .get("model")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&self.model_id)
+            .to_string();
         let finish_raw = raw
             .pointer("/choices/0/finish_reason")
             .and_then(|v| v.as_str());
@@ -169,6 +221,7 @@ impl OpenAIAdapter {
             Some("stop") => FinishReason::Stop,
             Some("length") => FinishReason::Length,
             Some("content_filter") => FinishReason::Refusal,
+            Some("tool_calls") => FinishReason::Stop,
             _ => FinishReason::Unknown,
         };
         let token_count = raw
@@ -178,7 +231,7 @@ impl OpenAIAdapter {
         Ok(ModelResponse {
             probe_id: probe.id,
             model_label: String::new(),
-            model_id: self.model_id.clone(),
+            model_id: returned_model,
             content,
             token_count,
             latency_ms,
@@ -216,11 +269,11 @@ mod tests {
     #[test]
     fn build_chat_body_selects_correct_limit_key() {
         let msgs = vec![json!({"role":"user","content":"hi"})];
-        let legacy = build_chat_body("gpt-4.1-mini", &msgs, 0.0, 512);
+        let legacy = build_chat_body("gpt-4.1-mini", &msgs, 0.0, 512, None, None);
         assert!(legacy.get("max_tokens").is_some());
         assert!(legacy.get("max_completion_tokens").is_none());
 
-        let modern = build_chat_body("gpt-5.4-mini", &msgs, 0.0, 512);
+        let modern = build_chat_body("gpt-5.4-mini", &msgs, 0.0, 512, None, None);
         assert!(modern.get("max_completion_tokens").is_some());
         assert!(modern.get("max_tokens").is_none());
     }

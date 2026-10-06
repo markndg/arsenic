@@ -2371,6 +2371,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::default(),
             presentation_drift: PresentationDriftPolicy::default(),
             latency_slo_ms: None,
+            tools: None,
         };
         let mk = |v1_ms, v2_ms| ProbeResult {
             probe: probe.clone(),
@@ -2432,6 +2433,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::default(),
             presentation_drift: PresentationDriftPolicy::default(),
             latency_slo_ms: None,
+            tools: None,
         };
         let v1_ms = 7012_u64;
         let v2_ms = v1_ms - 4261;
@@ -2495,6 +2497,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::default(),
             presentation_drift: PresentationDriftPolicy::default(),
             latency_slo_ms: None,
+            tools: None,
         };
         let (overall_risk, drift_category, drift_severity, drift_impact) =
             compute_probe_risk(&probe, &dimensions);
@@ -2664,6 +2667,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::default(),
             presentation_drift: PresentationDriftPolicy::default(),
             latency_slo_ms: None,
+            tools: None,
         };
         let mut dims = test_probe_dimensions(
             RiskLevel::Green,
@@ -3103,6 +3107,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::default(),
             presentation_drift: PresentationDriftPolicy::default(),
             latency_slo_ms: None,
+            tools: None,
         };
         let mk = |label: &str, content: &str| ModelResponse {
             probe_id: id,

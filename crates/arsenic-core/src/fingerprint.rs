@@ -442,6 +442,7 @@ fn round2(v: f64) -> f64 {
     (v * 100.0).round() / 100.0
 }
 
+#[allow(clippy::too_many_arguments)]
 fn explain_axis(
     label: &str,
     score: f64,
@@ -516,8 +517,6 @@ fn changelog_axis_line(axis: &FingerprintAxis) -> String {
         && axis.changed_probes > 0
     {
         format!("{drop_note}, all neutral in quality direction.")
-    } else if axis.regressions == 0 && axis.improvements == 0 {
-        format!("{drop_note} ({detail}).")
     } else {
         format!("{drop_note} ({detail}).")
     }
@@ -1240,6 +1239,7 @@ mod tests {
                 claim_anchor_policy: ClaimAnchorPolicy::default(),
                 presentation_drift: PresentationDriftPolicy::default(),
                 latency_slo_ms: None,
+                tools: None,
             },
             v1_content: "a".into(),
             v2_content: "b".into(),
