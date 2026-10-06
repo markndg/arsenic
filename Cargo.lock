@@ -92,7 +92,7 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "arsenic"
-version = "0.3.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "arsenic-adapters",
@@ -118,7 +118,7 @@ dependencies = [
 
 [[package]]
 name = "arsenic-adapters"
-version = "0.3.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "arsenic-core",
@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "arsenic-core"
-version = "0.3.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -154,7 +154,7 @@ dependencies = [
 
 [[package]]
 name = "arsenic-probes"
-version = "0.3.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "arsenic-core",
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "arsenic-report"
-version = "0.3.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "arsenic-core",
