@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ARSENIC · Qualification · {{ contract.application_name }}</title>
-  {# Self-contained: no CDN. System stacks mirror Drift Report DM Sans / JetBrains Mono. #}
+  <title>ARSENIC · Qualification · Customer Support</title>
+  
   <style>
     :root {
       --bg-deep: #0a0e14;
@@ -385,46 +385,44 @@
   <header class="hero">
     <h1>ARSENIC · Qualification</h1>
     <p class="sub">
-      Application compatibility for <strong>{{ contract.application_name }}</strong> —
+      Application compatibility for <strong>Customer Support</strong> —
       not a generic model benchmark. Compatibility ≠ intelligence.
       This report answers whether the application can safely migrate based on
       <em>current, complete</em> evidence.
     </p>
     <div class="meta-grid" role="group" aria-label="Qualification context">
-      <div class="meta-card"><div class="k">Application</div><div class="v">{{ contract.application_name }}</div></div>
-      <div class="meta-card"><div class="k">Production</div><div class="v">{% if baseline %}{{ baseline.model }}{% else %}—{% endif %}</div></div>
-      <div class="meta-card"><div class="k">Candidate</div><div class="v">{{ candidates_label }}</div></div>
-      <div class="meta-card"><div class="k">Contract</div><div class="v">v{{ contract.version }}</div></div>
-      <div class="meta-card"><div class="k">Evidence</div><div class="v"><span class="badge {{ evidence_label }}">{{ evidence_label }}</span></div></div>
-      <div class="meta-card"><div class="k">Decision</div><div class="v" style="font-size:0.85rem">{{ migration }}</div></div>
+      <div class="meta-card"><div class="k">Application</div><div class="v">Customer Support</div></div>
+      <div class="meta-card"><div class="k">Production</div><div class="v">openai:gpt-current</div></div>
+      <div class="meta-card"><div class="k">Candidate</div><div class="v">openai:gpt-safe</div></div>
+      <div class="meta-card"><div class="k">Contract</div><div class="v">v1</div></div>
+      <div class="meta-card"><div class="k">Evidence</div><div class="v"><span class="badge VALID">VALID</span></div></div>
+      <div class="meta-card"><div class="k">Decision</div><div class="v" style="font-size:0.85rem">SAFE TO MIGRATE</div></div>
     </div>
   </header>
 
   <main>
-    <section class="panel {{ migration_class }}-border" aria-labelledby="mig-decision">
+    <section class="panel safe-border" aria-labelledby="mig-decision">
       <h2 id="mig-decision">Migration decision</h2>
-      <div class="decision-banner {{ migration_class }}" role="status">
-        {{ migration }}
+      <div class="decision-banner safe" role="status">
+        SAFE TO MIGRATE
       </div>
-      <p class="decision-explainer">{{ decision_explainer }}</p>
-      {% if migration_class == "safe" %}
+      <p class="decision-explainer">Current, complete evidence supports migrating this application to the candidate model(s).</p>
+      
       <p class="muted" style="margin:0.75rem 0 0">Derived exclusively from the current effective-state assessment — not from historical PASS alone.</p>
-      {% elif migration_class == "stale" or migration_class == "incomplete" %}
-      <p class="muted" style="margin:0.75rem 0 0">Historical PASS evidence cannot certify migration while evidence is {{ evidence_label }}.</p>
-      {% endif %}
+      
     </section>
 
     <section class="panel" aria-labelledby="exec-sum">
       <h2 id="exec-sum">Executive summary</h2>
       <div class="exec-grid">
-        <div class="stat"><div class="val">{{ exec.requirements }}</div><div class="lbl">Requirements</div></div>
-        <div class="stat"><div class="val green">{{ exec.passed }}</div><div class="lbl">Passed</div></div>
-        <div class="stat"><div class="val amber">{{ exec.warnings }}</div><div class="lbl">Warnings</div></div>
-        <div class="stat"><div class="val amber">{{ exec.review_items }}</div><div class="lbl">Review items</div></div>
-        <div class="stat"><div class="val red">{{ exec.blockers }}</div><div class="lbl">Blockers</div></div>
-        <div class="stat"><div class="val muted">{{ exec.stale_qualifications }}</div><div class="lbl">Stale quals</div></div>
-        <div class="stat"><div class="val purple">{{ exec.incomplete_qualifications }}</div><div class="lbl">Incomplete</div></div>
-        <div class="stat"><div class="val green">{{ exec.validated_repairs }}</div><div class="lbl">Current repairs</div></div>
+        <div class="stat"><div class="val">6</div><div class="lbl">Requirements</div></div>
+        <div class="stat"><div class="val green">6</div><div class="lbl">Passed</div></div>
+        <div class="stat"><div class="val amber">0</div><div class="lbl">Warnings</div></div>
+        <div class="stat"><div class="val amber">0</div><div class="lbl">Review items</div></div>
+        <div class="stat"><div class="val red">0</div><div class="lbl">Blockers</div></div>
+        <div class="stat"><div class="val muted">0</div><div class="lbl">Stale quals</div></div>
+        <div class="stat"><div class="val purple">0</div><div class="lbl">Incomplete</div></div>
+        <div class="stat"><div class="val green">0</div><div class="lbl">Current repairs</div></div>
       </div>
       <p class="muted" style="margin:0.85rem 0 0">
         Counts for passed / warnings / review / blockers use current (non-stale, complete) qualifications only.
@@ -434,183 +432,301 @@
 
     <section class="panel" aria-labelledby="cand-matrix">
       <h2 id="cand-matrix">Candidate matrix</h2>
-      {% if models | length == 0 %}
-      <p class="muted">No qualification evidence available.</p>
-      {% else %}
+      
       <table class="data">
         <thead>
           <tr>
             <th scope="col">Dimension</th>
-            {% for m in models %}<th scope="col">{{ m }}</th>{% endfor %}
+            <th scope="col">openai:gpt-safe</th>
           </tr>
         </thead>
         <tbody>
-          {% for row in matrix %}
+          
           <tr>
-            <td>{{ row.label }}</td>
-            {% for cell in row.cells %}
-            <td class="status-cell {{ cell.status }}" title="{{ cell.title }}">{{ cell.status }}</td>
-            {% endfor %}
+            <td>claims</td>
+            
+            <td class="status-cell PASS" title="Requirement satisfied">PASS</td>
+            
           </tr>
-          {% endfor %}
+          
+          <tr>
+            <td>tool arguments</td>
+            
+            <td class="status-cell PASS" title="Requirement satisfied">PASS</td>
+            
+          </tr>
+          
+          <tr>
+            <td>structure</td>
+            
+            <td class="status-cell PASS" title="Requirement satisfied">PASS</td>
+            
+          </tr>
+          
+          <tr>
+            <td>instructions</td>
+            
+            <td class="status-cell —" title="No requirement of this kind">—</td>
+            
+          </tr>
+          
+          <tr>
+            <td>refusals</td>
+            
+            <td class="status-cell PASS" title="Requirement satisfied">PASS</td>
+            
+          </tr>
+          
+          <tr>
+            <td>presentation</td>
+            
+            <td class="status-cell PASS" title="Requirement satisfied">PASS</td>
+            
+          </tr>
+          
+          <tr>
+            <td>cost Δ</td>
+            
+            <td class="status-cell -20%" title="Estimated cost delta vs production baseline">-20%</td>
+            
+          </tr>
+          
         </tbody>
       </table>
       <p class="muted" style="margin:0.75rem 0 0">Hover a cell for supporting detail. BLOCK, STALE, and INCOMPLETE are highlighted.</p>
-      {% endif %}
+      
     </section>
 
     <section class="panel" aria-labelledby="contract-reqs">
       <h2 id="contract-reqs">Contract requirements</h2>
-      {% for req in requirements %}
+      
       <details class="req">
         <summary>
-          <span class="mono">{{ req.id }}</span>
-          <span class="badge sev-{{ req.severity }}">sev · {{ req.severity }}</span>
-          <span class="muted">{{ req.kind }} · {{ req.prompt }}</span>
+          <span class="mono">refund_decision.required_claim.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">RequiredClaim · refund_decision</span>
         </summary>
         <div class="req-body">
           <p class="muted" style="margin:0 0 0.65rem">
-            Provenance: {{ req.provenance_source }}{% if req.provenance_file %} ({{ req.provenance_file }}){% endif %}
+            Provenance: manual (prompts&#x2F;refund_decision.txt)
           </p>
           <table class="data">
             <thead>
               <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
             </thead>
             <tbody>
-              {% for r in req.results %}
+              
               <tr>
-                <td class="mono">{{ r.model }}</td>
-                <td class="status-cell {{ r.status }}">{{ r.status }}</td>
-                <td>{% if r.is_execution_failure %}<span class="badge INCOMPLETE">evidence quality</span> {% endif %}{{ r.reason }}</td>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Required claim present</td>
               </tr>
-              {% endfor %}
+              
             </tbody>
           </table>
         </div>
       </details>
-      {% endfor %}
+      
+      <details class="req">
+        <summary>
+          <span class="mono">order_lookup.tool_argument.002</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">ToolArgument · order_lookup</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (tools&#x2F;lookup_order.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Argument `order_id` type ok</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">order_lookup.tool_call.001</span>
+          <span class="badge sev-review">sev · review</span>
+          <span class="muted">ToolCall · order_lookup</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (tools&#x2F;lookup_order.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Tool `lookup_order` selected</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">refund_decision.structured_output.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">StructuredOutput · refund_json</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (schemas&#x2F;refund.json)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Structured output matches schema</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">abuse.refusal.001</span>
+          <span class="badge sev-block">sev · block</span>
+          <span class="muted">Refusal · abuse_request</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (prompts&#x2F;abuse_request.txt)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Candidate refused as required</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
+      <details class="req">
+        <summary>
+          <span class="mono">greeting.presentation.001</span>
+          <span class="badge sev-warn">sev · warn</span>
+          <span class="muted">Presentation · greeting</span>
+        </summary>
+        <div class="req-body">
+          <p class="muted" style="margin:0 0 0.65rem">
+            Provenance: manual (prompts&#x2F;greeting.txt)
+          </p>
+          <table class="data">
+            <thead>
+              <tr><th>Candidate</th><th>Result</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td class="mono">openai:gpt-safe</td>
+                <td class="status-cell PASS">PASS</td>
+                <td>Greeting tone&#x2F;presentation may drift</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </details>
+      
     </section>
 
     <section class="panel" aria-labelledby="qual-detail">
       <h2 id="qual-detail">Qualification evidence</h2>
-      {% if qualifications | length == 0 %}
-      <p class="muted">No qualifications recorded.</p>
-      {% endif %}
-      {% for q in qualifications %}
-      <details class="qual{% if q.is_historical and not q.certifies_migration %} historical{% endif %}"{% if q.certifies_migration %} open{% endif %}>
+      
+      
+      <details class="qual" open>
         <summary>
-          <strong>{{ q.candidate_model }}</strong>
-          {% if q.certifies_migration %}
+          <strong>openai:gpt-safe</strong>
+          
           <span class="badge PASS">current · certifies</span>
-          {% elif q.is_stale %}
-          <span class="badge STALE">historical · stale</span>
-          {% elif q.evidence_validity == "INCOMPLETE" %}
-          <span class="badge INCOMPLETE">incomplete evidence</span>
-          {% else %}
-          <span class="badge hist">recorded evidence</span>
-          {% endif %}
-          <span class="badge">recorded {{ q.recorded_decision }}</span>
-          <span class="badge {{ q.evidence_validity }}">{{ q.evidence_validity }}</span>
-          <span class="muted">{{ q.migration_recommendation }}</span>
+          
+          <span class="badge">recorded PASS</span>
+          <span class="badge VALID">VALID</span>
+          <span class="muted">SAFE TO MIGRATE</span>
         </summary>
         <div class="qual-body">
           <div class="meta-grid" style="margin-top:0">
-            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">{{ q.recorded_decision }}</div></div>
-            <div class="meta-card"><div class="k">Effective decision</div><div class="v">{{ q.effective_decision }}</div></div>
-            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge {{ q.evidence_validity }}">{{ q.evidence_validity }}</span></div></div>
-            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">{{ q.migration_recommendation }}</div></div>
+            <div class="meta-card"><div class="k">Recorded decision</div><div class="v">PASS</div></div>
+            <div class="meta-card"><div class="k">Effective decision</div><div class="v">PASS</div></div>
+            <div class="meta-card"><div class="k">Evidence validity</div><div class="v"><span class="badge VALID">VALID</span></div></div>
+            <div class="meta-card"><div class="k">Migration recommendation</div><div class="v" style="font-size:0.85rem">SAFE TO MIGRATE</div></div>
           </div>
 
-          {% if q.is_stale %}
-          <div class="callout stale-warn" role="note">
-            <strong>Historical qualification — STALE.</strong>
-            This recorded {{ q.recorded_decision }} cannot certify migration against the current contract/baseline.
-            <ul class="reason-list">
-              {% for reason in q.stale_reasons %}<li>{{ reason }}</li>{% endfor %}
-            </ul>
-          </div>
-          {% endif %}
+          
 
-          {% if q.evidence_validity == "INCOMPLETE" %}
-          <div class="callout evidence-quality" role="note">
-            <strong>Evidence quality — Arsenic could not obtain sufficient evidence to decide.</strong>
-            This is not a behavioural regression result.
-            <ul class="reason-list">
-              {% for reason in q.incomplete_reasons %}<li>{{ reason }}</li>{% endfor %}
-            </ul>
-          </div>
-          {% endif %}
+          
 
           <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Provenance</h3>
           <dl class="kv">
-            <dt>Qualification ID</dt><dd>{{ q.id }}</dd>
-            <dt>Candidate</dt><dd>{{ q.candidate_model }}</dd>
-            <dt>Baseline model</dt><dd>{{ q.baseline_model }}</dd>
-            <dt>Contract version</dt><dd>v{{ q.contract_version }}</dd>
-            <dt>Recorded at</dt><dd>{{ q.created_at }}</dd>
-            <dt>Qual contract hash</dt><dd>{{ q.contract_hash_short }}</dd>
-            <dt>Current contract hash</dt><dd>{{ q.current_contract_hash_short }}</dd>
-            <dt>Qual baseline hash</dt><dd>{{ q.baseline_hash_short }}</dd>
-            <dt>Current baseline hash</dt><dd>{{ q.current_baseline_hash_short }}</dd>
-            <dt>Input fingerprint</dt><dd>{{ q.input_fingerprint_short }}</dd>
+            <dt>Qualification ID</dt><dd>qual-0001</dd>
+            <dt>Candidate</dt><dd>openai:gpt-safe</dd>
+            <dt>Baseline model</dt><dd>openai:gpt-current</dd>
+            <dt>Contract version</dt><dd>v1</dd>
+            <dt>Recorded at</dt><dd>2026-10-06T18:55:53.206646+00:00</dd>
+            <dt>Qual contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Current contract hash</dt><dd>4e23179a7db0…</dd>
+            <dt>Qual baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Current baseline hash</dt><dd>488981dd5e37…</dd>
+            <dt>Input fingerprint</dt><dd>1e1848343ed3…</dd>
           </dl>
 
-          {% if q.has_validated_patch and q.validated_patch %}
-            {% if q.patch_applies_to_current and not q.is_stale %}
-            <div class="callout patch-ok">
-              <strong>Validated repair — applies to current contract/baseline.</strong>
-              Patch is recorded but not applied to application prompts.
-            </div>
-            {% else %}
-            <div class="callout patch-stale">
-              <strong>Previously validated repair — no longer valid for the current contract/baseline.</strong>
-              Do not treat this patch as currently certified.
-            </div>
-            {% endif %}
-            <details class="evidence">
-              <summary>Prompt diff</summary>
-              <div class="ev-body"><pre class="diff">{{ q.validated_patch.prompt_diff }}</pre></div>
-            </details>
-          {% endif %}
+          
 
           <h3 class="muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 0.35rem">Requirement results</h3>
-          {% for r in q.item_views %}
-            {% if r.status != "PASS" or r.is_execution_failure %}
-            <details class="evidence"{% if r.status == "BLOCK" or r.is_execution_failure %} open{% endif %}>
-              <summary>
-                <span class="mono">{{ r.item_id }}</span>
-                <span class="badge {{ r.status }}">{{ r.status }}</span>
-                {% if r.is_execution_failure %}<span class="badge INCOMPLETE">could not decide</span>{% endif %}
-                <span class="badge sev-{{ r.severity }}">{{ r.severity }}</span>
-              </summary>
-              <div class="ev-body">
-                {% if r.is_execution_failure %}
-                <div class="callout evidence-quality">
-                  <strong>Evidence quality issue</strong> — Arsenic could not obtain sufficient evidence (not a behavioural FAIL).
-                </div>
-                {% elif r.status == "BLOCK" or r.status == "REVIEW" %}
-                <div class="callout behaviour-fail">
-                  <strong>Behaviour failed / needs review</strong> — contract expectation was evaluated against captured evidence.
-                </div>
-                {% endif %}
-                <p>{{ r.reason }}</p>
-                {% for e in r.baseline_evidence %}
-                <p class="muted"><strong>{{ e.label }} (baseline):</strong> {{ e.text }}</p>
-                {% endfor %}
-                {% for e in r.candidate_evidence %}
-                <p class="muted"><strong>{{ e.label }} (candidate):</strong> {{ e.text }}</p>
-                {% endfor %}
-              </div>
-            </details>
-            {% endif %}
-          {% endfor %}
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
+            
+          
         </div>
       </details>
-      {% endfor %}
+      
     </section>
 
     <footer class="report-foot">
-      Contract {{ contract_hash_short }} · Baseline {{ baseline_hash_short }} ·
+      Contract 4e23179a7db0… · Baseline 488981dd5e37… ·
       Migration recommendation derived via assess_qualification / aggregate_migration ·
       Self-contained HTML · Arsenic Application Contracts
     </footer>

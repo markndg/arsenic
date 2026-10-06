@@ -16,3 +16,4 @@
 !/scripts/application_contract_smoke.sh
 !/scripts/application_contract_mocked_live_smoke.sh
 
+generate-report.sh

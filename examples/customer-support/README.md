@@ -29,3 +29,15 @@ arsenic qualify openai:gpt-safe anthropic:claude-y google:gemini-z \
   --from-fixtures examples/customer-support/fixtures/candidates.json
 arsenic report --project examples/customer-support --output /tmp/app.html
 ```
+
+## Sample HTML reports
+
+Offline-generated fixtures (no API keys):
+
+| File | Contents |
+|------|----------|
+| `qualification-report.html` | Multi-candidate PASS / BLOCK / INCOMPLETE |
+| `qualification-report-pass.html` | Single SAFE TO MIGRATE |
+| `qualification-report-stale.html` | Same evidence after contract bump → STALE |
+
+Regenerate with `./scripts/application_contract_smoke.sh` then `arsenic report --output …`, or the offline fixture flow above.
