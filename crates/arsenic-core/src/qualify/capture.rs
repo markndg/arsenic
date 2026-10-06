@@ -9,9 +9,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::adapter::ModelAdapter;
-use crate::contract::{
-    ApplicationContract, ContractExpectation, ContractItem, ContractItemKind,
-};
+use crate::contract::{ApplicationContract, ContractExpectation, ContractItem, ContractItemKind};
 use crate::types::{FinishReason, ModelResponse, Probe, ProbeCategory, ProbeSource};
 use uuid::Uuid;
 
@@ -132,9 +130,7 @@ pub fn redact_secrets(text: &str) -> String {
     if let Ok(re) = regex::Regex::new(r"AIza[0-9A-Za-z\-_]{20,}") {
         out = re.replace_all(&out, "[REDACTED]").to_string();
     }
-    if let Ok(re) = regex::Regex::new(
-        r"(?i)(api[_-]?key|authorization|x-api-key)\s*[:=]\s*\S+",
-    ) {
+    if let Ok(re) = regex::Regex::new(r"(?i)(api[_-]?key|authorization|x-api-key)\s*[:=]\s*\S+") {
         out = re.replace_all(&out, "$1: [REDACTED]").to_string();
     }
     out
@@ -168,8 +164,7 @@ pub fn redact_json(value: &serde_json::Value) -> serde_json::Value {
 
 pub fn classify_provider_error(err: &str) -> ExecutionErrorKind {
     let e = err.to_lowercase();
-    if e.contains("401") || e.contains("403") || e.contains("missing env") || e.contains("auth")
-    {
+    if e.contains("401") || e.contains("403") || e.contains("missing env") || e.contains("auth") {
         ExecutionErrorKind::AuthError
     } else if e.contains("429") || e.contains("rate limit") || e.contains("rate_limit") {
         ExecutionErrorKind::RateLimited
@@ -212,7 +207,10 @@ pub fn extract_tool_calls(raw: &serde_json::Value) -> Vec<CapturedToolCall> {
             continue;
         }
         let mut arguments = BTreeMap::new();
-        if let Some(args) = tc.pointer("/function/arguments").or_else(|| tc.get("arguments")) {
+        if let Some(args) = tc
+            .pointer("/function/arguments")
+            .or_else(|| tc.get("arguments"))
+        {
             match args {
                 serde_json::Value::String(s) => {
                     if let Ok(obj) = serde_json::from_str::<serde_json::Value>(s) {
@@ -303,7 +301,9 @@ pub fn behaviour_from_error(
 }
 
 /// Build one Probe per unique contract prompt (merge tools/schemas from items).
-pub fn scenarios_from_contract(contract: &ApplicationContract) -> Vec<(String, Probe, Vec<String>)> {
+pub fn scenarios_from_contract(
+    contract: &ApplicationContract,
+) -> Vec<(String, Probe, Vec<String>)> {
     let mut by_prompt: BTreeMap<String, (Probe, Vec<String>)> = BTreeMap::new();
     for item in &contract.items {
         let entry = by_prompt.entry(item.prompt.clone()).or_insert_with(|| {
@@ -351,10 +351,7 @@ pub fn scenarios_from_contract(contract: &ApplicationContract) -> Vec<(String, P
                 entry.0.expected_schema = Some(schema.clone());
             }
             ContractExpectation::ToolRequired { tool_name }
-            | ContractExpectation::ToolArgument {
-                tool_name,
-                ..
-            } => {
+            | ContractExpectation::ToolArgument { tool_name, .. } => {
                 let tools = entry.0.tools.get_or_insert_with(|| serde_json::json!([]));
                 if let Some(arr) = tools.as_array_mut() {
                     let exists = arr.iter().any(|t| {
@@ -386,12 +383,16 @@ pub fn scenarios_from_contract(contract: &ApplicationContract) -> Vec<(String, P
 
 fn category_for_item(item: &ContractItem) -> ProbeCategory {
     match item.kind {
-        ContractItemKind::RequiredClaim | ContractItemKind::ForbiddenClaim => ProbeCategory::Factual,
+        ContractItemKind::RequiredClaim | ContractItemKind::ForbiddenClaim => {
+            ProbeCategory::Factual
+        }
         ContractItemKind::StructuredOutput => ProbeCategory::Schema,
         ContractItemKind::ToolCall | ContractItemKind::ToolArgument => ProbeCategory::Schema,
         ContractItemKind::Refusal => ProbeCategory::Refusal,
         ContractItemKind::Instruction => ProbeCategory::Instruction,
-        ContractItemKind::Presentation | ContractItemKind::OutputFormat => ProbeCategory::Morphology,
+        ContractItemKind::Presentation | ContractItemKind::OutputFormat => {
+            ProbeCategory::Morphology
+        }
         _ => ProbeCategory::Semantic,
     }
 }
@@ -404,8 +405,7 @@ pub fn capability_failures(
     let mut out = Vec::new();
     for item in &contract.items {
         let (unsupported, reason) = match &item.expectation {
-            ContractExpectation::ToolRequired { .. }
-            | ContractExpectation::ToolArgument { .. }
+            ContractExpectation::ToolRequired { .. } | ContractExpectation::ToolArgument { .. }
                 if !caps.tools =>
             {
                 (
@@ -413,12 +413,10 @@ pub fn capability_failures(
                     "candidate model/provider does not support required tool calling",
                 )
             }
-            ContractExpectation::JsonSchema { .. } if !caps.structured_output => {
-                (
-                    true,
-                    "candidate model/provider does not support required structured output",
-                )
-            }
+            ContractExpectation::JsonSchema { .. } if !caps.structured_output => (
+                true,
+                "candidate model/provider does not support required structured output",
+            ),
             _ => (false, ""),
         };
         if unsupported {
@@ -514,12 +512,7 @@ pub async fn capture_contract_live(
                         Ok(resp) => {
                             return (
                                 prompt_id.clone(),
-                                behaviour_from_response(
-                                    &prompt_id,
-                                    &resp,
-                                    meta,
-                                    &adapter_name,
-                                ),
+                                behaviour_from_response(&prompt_id, &resp, meta, &adapter_name),
                             );
                         }
                         Err(e) => {
@@ -527,8 +520,7 @@ pub async fn capture_contract_live(
                             let kind = classify_provider_error(&e.to_string());
                             if matches!(
                                 kind,
-                                ExecutionErrorKind::AuthError
-                                    | ExecutionErrorKind::InvalidResponse
+                                ExecutionErrorKind::AuthError | ExecutionErrorKind::InvalidResponse
                             ) {
                                 break;
                             }
@@ -559,6 +551,7 @@ pub async fn capture_contract_live(
 }
 
 /// Fingerprint of inputs that force a candidate re-run under `--changed`.
+#[allow(clippy::too_many_arguments)]
 pub fn candidate_input_fingerprint(
     contract_hash: &str,
     baseline_hash: &str,

@@ -6,17 +6,19 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use arsenic_core::{
-    attempt_validated_repair, build_impact, candidate_input_fingerprint, capability_failures,
-    capture_contract_live, compatibility_summary_pct, content_hash, contract_from_discovery,
-    count_stale_qualifications, diff_contracts, discover_project, filter_candidates, json_hash,
-    load_config, load_contract, load_current_baseline, load_fixture_behaviours, load_lock,
-    load_patch, load_qualification, list_qualifications, next_baseline_id, next_qualification_id,
-    parse_model_spec, qualify_candidate, save_baseline, save_config, save_contract, save_lock,
-    save_patch, save_qualification, scenarios_from_contract, update_lock_from_qualification,
-    ApplicationContract, ArsenicLock, BaselineSnapshot, CapturedBehaviour, CaptureSource,
-    ContractExpectation, ContractItem, ContractItemKind, ContractProvenance,
-    ContractProvenanceSource, ContractSeverity, LiveCaptureConfig, LockProduction, ProjectPaths,
-    ProviderCapabilities, QualificationDecision, QualificationResult,
+    aggregate_migration, assess_all, assess_qualification, attempt_validated_repair, build_impact,
+    candidate_input_fingerprint, capability_failures, capture_contract_live,
+    compatibility_summary_pct, content_hash, contract_from_discovery, count_stale_qualifications,
+    diff_contracts, discover_project, effective_to_json, filter_candidates, json_hash,
+    list_qualifications, load_config, load_contract, load_current_baseline,
+    load_fixture_behaviours, load_lock, load_patch, load_qualification, next_baseline_id,
+    next_qualification_id, parse_model_spec, qualify_candidate, save_baseline, save_config,
+    save_contract, save_lock, save_patch, save_qualification, scenarios_from_contract,
+    update_lock_from_qualification, ApplicationContract, ArsenicLock, BaselineSnapshot,
+    CaptureSource, CapturedBehaviour, ContractExpectation, ContractItem, ContractItemKind,
+    ContractProvenance, ContractProvenanceSource, ContractSeverity, LiveCaptureConfig,
+    LockProduction, MigrationRecommendation, ProjectPaths, ProviderCapabilities,
+    QualificationResult,
 };
 use colored::Colorize;
 use serde::Deserialize;
@@ -39,9 +41,7 @@ pub fn cmd_init(
             .unwrap_or("application")
             .to_string()
     });
-    let app_id = app_name
-        .to_lowercase()
-        .replace([' ', '_'], "-");
+    let app_id = app_name.to_lowercase().replace([' ', '_'], "-");
 
     let report = discover_project(&root)?;
     fs::write(
@@ -53,12 +53,21 @@ pub fn cmd_init(
     println!();
     println!("Found:");
     println!("  {:>3} prompts", report.prompts);
-    println!("  {:>3} structured output schemas", report.structured_schemas);
+    println!(
+        "  {:>3} structured output schemas",
+        report.structured_schemas
+    );
     println!("  {:>3} tool schemas", report.tool_schemas);
     println!("  {:>3} system prompts", report.system_prompts);
-    println!("  {:>3} existing behavioural suites", report.existing_suites);
+    println!(
+        "  {:>3} existing behavioural suites",
+        report.existing_suites
+    );
     println!();
-    println!("{}", "Discovery is approximate — review before accepting.".dimmed());
+    println!(
+        "{}",
+        "Discovery is approximate — review before accepting.".dimmed()
+    );
     println!();
 
     for hit in &report.hits {
@@ -105,11 +114,11 @@ pub fn cmd_init(
         contract.version,
         &contract.content_hash()[..12]
     );
+    println!("Discovery report: {}", paths.discovery_path().display());
     println!(
-        "Discovery report: {}",
-        paths.discovery_path().display()
+        "{}",
+        "Critical items were not auto-accepted unless --accept-proposals was set.".dimmed()
     );
-    println!("{}", "Critical items were not auto-accepted unless --accept-proposals was set.".dimmed());
     Ok(())
 }
 
@@ -138,10 +147,7 @@ pub async fn cmd_app_baseline(args: BaselineArgs) -> Result<()> {
     let contract = load_contract(&paths).context("run arsenic init first")?;
 
     let (source_label, behaviours) = if let Some(fix) = &args.from_fixtures {
-        (
-            "fixtures",
-            load_fixture_behaviours(fix)?,
-        )
+        ("fixtures", load_fixture_behaviours(fix)?)
     } else {
         let adapter = build_contract_adapter(
             &args.model,
@@ -176,8 +182,7 @@ pub async fn cmd_app_baseline(args: BaselineArgs) -> Result<()> {
             "Capturing production baseline live via {} …",
             adapter.adapter_name()
         );
-        let behaviours =
-            capture_contract_live(&contract, adapter, &args.model, &cfg).await;
+        let behaviours = capture_contract_live(&contract, adapter, &args.model, &cfg).await;
         ("live", behaviours)
     };
 
@@ -294,11 +299,8 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
     let cfg = load_config(&paths)?;
     let mut lock = load_lock(&paths)?.unwrap_or_else(|| ArsenicLock::new(&contract.application_id));
 
-    let stale_n = count_stale_qualifications(
-        &paths,
-        &contract.content_hash(),
-        &baseline.content_hash(),
-    )?;
+    let stale_n =
+        count_stale_qualifications(&paths, &contract.content_hash(), &baseline.content_hash())?;
     if stale_n > 0 && !args.json && !args.ci {
         println!(
             "{}",
@@ -326,11 +328,31 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
         // Do not persist replay as a new historical run unless explicitly desired —
         // still print and return exit code.
         if args.json || args.ci {
-            println!("{}", serde_json::to_string_pretty(&result)?);
+            // Machine-readable only — no human prose on stdout.
+            let eff =
+                assess_qualification(&result, &contract.content_hash(), &baseline.content_hash());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "qualification": result,
+                    "effective": effective_to_json(&eff),
+                    "migration_recommendation": eff.migration_recommendation,
+                    "ci_exit_code": eff.migration_recommendation.ci_exit_code(),
+                }))?
+            );
         } else {
-            print_qualify_table(&baseline, &[result.clone()]);
+            print_qualify_table(
+                &baseline,
+                &[result.clone()],
+                &contract.content_hash(),
+                &baseline.content_hash(),
+            );
         }
-        return Ok(exit_code_for_results(std::slice::from_ref(&result)));
+        return Ok(exit_code_for_results(
+            std::slice::from_ref(&result),
+            &contract.content_hash(),
+            &baseline.content_hash(),
+        ));
     }
 
     let fixture_map = if let Some(f) = &args.fixtures {
@@ -386,24 +408,22 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
                 args.endpoint.as_deref(),
                 &thresholds_hash,
             );
-            // Re-run if no prior PASS with matching fingerprint.
+            // Re-run unless a *currently valid* PASS exists for this fingerprint.
             !list_qualifications(&paths)
                 .ok()
                 .unwrap_or_default()
                 .iter()
                 .any(|q| {
-                    q.candidate_model == *m
-                        && q.input_fingerprint.as_deref() == Some(fp.as_str())
-                        && matches!(
-                            q.decision,
-                            QualificationDecision::Pass
-                                | QualificationDecision::PassWithWarnings
-                                | QualificationDecision::PassWithPatch
-                        )
-                        && q.effective_decision(
-                            &contract.content_hash(),
-                            &baseline.content_hash()
-                        ) != QualificationDecision::Stale
+                    if q.candidate_model != *m {
+                        return false;
+                    }
+                    if q.input_fingerprint.as_deref() != Some(fp.as_str()) {
+                        return false;
+                    }
+                    let eff =
+                        assess_qualification(q, &contract.content_hash(), &baseline.content_hash());
+                    eff.evidence_validity == arsenic_core::EvidenceValidity::Valid
+                        && eff.migration_recommendation.allows_safe_migrate()
                 })
         });
         if targets.is_empty() {
@@ -442,8 +462,7 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
                 source: CaptureSource::Live,
             };
             println!("Qualifying {model} live via {} …", adapter.adapter_name());
-            let mut captured =
-                capture_contract_live(&contract, adapter, model, &live_cfg).await;
+            let mut captured = capture_contract_live(&contract, adapter, model, &live_cfg).await;
             // Inject capability failure markers as empty behaviours with error.
             for fail in &cap_fails {
                 if let Some(item) = contract.item(&fail.item_id) {
@@ -501,9 +520,12 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
         result.metadata.insert("source".into(), source_label);
         result.input_fingerprint = Some(fp);
 
-        // Overlay explicit capability Fail results (block/review) so they are not
-        // treated as execution Review.
-        let (adapter_type, _) = parse_provider_model(model).unwrap_or(("unknown".into(), model.clone()));
+        // Overlay capability Fail results for required unsupported capabilities.
+        // Never overwrite Pass/Warn evidence (e.g. fixture captures that already
+        // demonstrated the behaviour) — unsupported capability is only asserted
+        // when the candidate did not already satisfy the requirement.
+        let (adapter_type, _) =
+            parse_provider_model(model).unwrap_or(("unknown".into(), model.clone()));
         let caps = ProviderCapabilities::for_adapter(&adapter_type);
         for fail in capability_failures(&contract, &caps) {
             if let Some(existing) = result
@@ -511,6 +533,12 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
                 .iter_mut()
                 .find(|r| r.item_id == fail.item_id)
             {
+                if matches!(
+                    existing.outcome,
+                    arsenic_core::ItemOutcome::Pass | arsenic_core::ItemOutcome::Warn
+                ) {
+                    continue;
+                }
                 *existing = fail;
             } else {
                 result.item_results.push(fail);
@@ -523,27 +551,29 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
             .filter(|r| r.regression_type.as_deref() != Some("execution_error"))
             .cloned()
             .collect();
-        result.decision = arsenic_core::decide_overall(
-            &behavioural,
-            &baseline.qualification_thresholds,
-            false,
-        );
+        result.decision =
+            arsenic_core::decide_overall(&behavioural, &baseline.qualification_thresholds, false);
         result.original_decision = Some(result.decision);
 
         if args.repair {
             if args.fixtures.is_some() || results_source_is_fixture(&cand) {
                 let repair_fixtures = cand.clone();
-                attempt_validated_repair(&contract, &mut result, &baseline, &|prompt_id, mutated| {
-                    let mut b = repair_fixtures.get(prompt_id)?.clone();
-                    if let Some(item) = contract.items.iter().find(|i| i.prompt == prompt_id) {
-                        if let ContractExpectation::ContainsClaim { text } = &item.expectation {
-                            if mutated.contains(text) && !b.content.contains(text) {
-                                b.content = format!("{}\n{}", b.content.trim(), text);
+                attempt_validated_repair(
+                    &contract,
+                    &mut result,
+                    &baseline,
+                    &|prompt_id, mutated| {
+                        let mut b = repair_fixtures.get(prompt_id)?.clone();
+                        if let Some(item) = contract.items.iter().find(|i| i.prompt == prompt_id) {
+                            if let ContractExpectation::ContainsClaim { text } = &item.expectation {
+                                if mutated.contains(text) && !b.content.contains(text) {
+                                    b.content = format!("{}\n{}", b.content.trim(), text);
+                                }
                             }
                         }
-                    }
-                    Some(b)
-                });
+                        Some(b)
+                    },
+                );
             } else {
                 live_repair_pass(
                     &contract,
@@ -564,6 +594,9 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
         }
 
         save_qualification(&paths, &result)?;
+        // Stamp current hashes before lock classification so effective state is used.
+        lock.contract_hash = Some(contract.content_hash());
+        lock.baseline_hash = Some(baseline.content_hash());
         update_lock_from_qualification(&mut lock, &result);
         results.push(result);
     }
@@ -572,30 +605,48 @@ pub async fn cmd_qualify(args: QualifyArgs) -> Result<i32> {
     save_lock(&paths, &lock)?;
 
     if args.json || args.ci {
-        println!("{}", serde_json::to_string_pretty(&results)?);
+        let effectives = assess_all(&results, &contract.content_hash(), &baseline.content_hash());
+        let agg = aggregate_migration(&effectives);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "qualifications": results,
+                "effective": effectives.iter().map(effective_to_json).collect::<Vec<_>>(),
+                "aggregate_migration_recommendation": agg,
+                "aggregate_migration_recommendation_text": agg.as_str(),
+                "ci_exit_code": agg.ci_exit_code(),
+                "contract_hash": contract.content_hash(),
+                "baseline_hash": baseline.content_hash(),
+            }))?
+        );
     } else {
-        print_qualify_table(&baseline, &results);
+        print_qualify_table(
+            &baseline,
+            &results,
+            &contract.content_hash(),
+            &baseline.content_hash(),
+        );
     }
 
-    Ok(exit_code_for_results(&results))
+    Ok(exit_code_for_results(
+        &results,
+        &contract.content_hash(),
+        &baseline.content_hash(),
+    ))
 }
 
-fn exit_code_for_results(results: &[QualificationResult]) -> i32 {
-    if results.iter().any(|r| r.has_execution_errors) {
-        return 3;
+fn exit_code_for_results(
+    results: &[QualificationResult],
+    current_contract_hash: &str,
+    current_baseline_hash: &str,
+) -> i32 {
+    if results.is_empty() {
+        return MigrationRecommendation::NoEvidence.ci_exit_code();
     }
-    if results.iter().any(|r| r.decision == QualificationDecision::Block) {
-        return QualificationDecision::Block.ci_exit_code();
-    }
-    if results.iter().any(|r| {
-        matches!(
-            r.decision,
-            QualificationDecision::Review | QualificationDecision::Stale
-        )
-    }) {
-        return QualificationDecision::Review.ci_exit_code();
-    }
-    0
+    let effectives = assess_all(results, current_contract_hash, current_baseline_hash);
+    // For multi-candidate qualify, use worst/fail-closed aggregate.
+    // For single candidate, that's just that candidate.
+    aggregate_migration(&effectives).ci_exit_code()
 }
 
 fn results_source_is_fixture(cand: &BTreeMap<String, CapturedBehaviour>) -> bool {
@@ -603,6 +654,7 @@ fn results_source_is_fixture(cand: &BTreeMap<String, CapturedBehaviour>) -> bool
         .any(|b| matches!(b.execution_meta.source, CaptureSource::Fixture))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn live_repair_pass(
     contract: &ApplicationContract,
     result: &mut QualificationResult,
@@ -618,7 +670,6 @@ async fn live_repair_pass(
         apply_mutations, evaluate_item, ItemOutcome, MutationStrategy, RepairAttempt,
         ValidatedPatch,
     };
-    use arsenic_core::ModelAdapter as _;
 
     let adapter = build_contract_adapter(
         model,
@@ -693,8 +744,8 @@ async fn live_repair_pass(
                     continue;
                 }
             };
-            let outcome = evaluate_item(item, baseline.behaviours.get(&item.prompt), Some(&capture))
-                .outcome;
+            let outcome =
+                evaluate_item(item, baseline.behaviours.get(&item.prompt), Some(&capture)).outcome;
             result.repair_attempts.push(RepairAttempt {
                 attempt_index: attempt_idx,
                 strategies: slice.iter().map(|s| format!("{s:?}")).collect(),
@@ -735,16 +786,18 @@ async fn live_repair_pass(
         .filter(|r| r.regression_type.as_deref() != Some("execution_error"))
         .cloned()
         .collect();
-    result.decision = arsenic_core::decide_overall(
-        &behavioural,
-        &baseline.qualification_thresholds,
-        any_patch,
-    );
+    result.decision =
+        arsenic_core::decide_overall(&behavioural, &baseline.qualification_thresholds, any_patch);
     result.original_decision = Some(result.decision);
     Ok(())
 }
 
-fn print_qualify_table(baseline: &BaselineSnapshot, results: &[QualificationResult]) {
+fn print_qualify_table(
+    baseline: &BaselineSnapshot,
+    results: &[QualificationResult],
+    current_contract_hash: &str,
+    current_baseline_hash: &str,
+) {
     println!("{}", "APPLICATION COMPATIBILITY".bold());
     println!();
     println!("Production:");
@@ -755,13 +808,16 @@ fn print_qualify_table(baseline: &BaselineSnapshot, results: &[QualificationResu
         "Candidate", "Compatibility", "Blockers", "Review", "Cost Δ"
     );
     for r in results {
+        let eff = assess_qualification(r, current_contract_hash, current_baseline_hash);
         let blockers = r.blockers().count();
         let reviews = r
             .item_results
             .iter()
             .filter(|i| {
-                matches!(i.outcome, arsenic_core::ItemOutcome::Fail | arsenic_core::ItemOutcome::Review)
-                    && matches!(i.severity, ContractSeverity::Review)
+                matches!(
+                    i.outcome,
+                    arsenic_core::ItemOutcome::Fail | arsenic_core::ItemOutcome::Review
+                ) && matches!(i.severity, ContractSeverity::Review)
                     || matches!(i.outcome, arsenic_core::ItemOutcome::Review)
             })
             .count();
@@ -775,7 +831,24 @@ fn print_qualify_table(baseline: &BaselineSnapshot, results: &[QualificationResu
             "{:<28} {:>14} {:>10} {:>8} {:>8}",
             r.candidate_model, compat, blockers, reviews, cost
         );
-        println!("  → {}", r.decision.as_str());
+        println!(
+            "  → recorded {} · effective {} · {}",
+            r.decision.as_str(),
+            eff.effective_decision.as_str(),
+            eff.migration_recommendation.as_str()
+        );
+        if eff.is_stale {
+            println!(
+                "  {}",
+                "STALE — requalify against current contract/baseline".yellow()
+            );
+        }
+        if eff.evidence_validity == arsenic_core::EvidenceValidity::Incomplete {
+            println!("  {}", "QUALIFICATION INCOMPLETE".yellow().bold());
+            for reason in &eff.incomplete_reasons {
+                println!("    - {reason}");
+            }
+        }
         for b in r.blockers() {
             println!();
             println!("{}", "BLOCK".red().bold());
@@ -795,9 +868,21 @@ fn print_qualify_table(baseline: &BaselineSnapshot, results: &[QualificationResu
             println!("  {:?}", b.severity);
         }
         if let Some(p) = &r.validated_patch {
-            println!();
-            println!("{}", "Validated repair available (explicit apply required).".green());
-            println!("  arsenic patch show {}", p.qualification_id);
+            if eff.patch_applies_to_current {
+                println!();
+                println!(
+                    "{}",
+                    "Validated repair available (explicit apply required).".green()
+                );
+                println!("  arsenic patch show {}", p.qualification_id);
+            } else {
+                println!();
+                println!(
+                    "{}",
+                    "Validated repair exists but does not bind to current contract/baseline."
+                        .yellow()
+                );
+            }
         }
     }
 }
@@ -805,16 +890,43 @@ fn print_qualify_table(baseline: &BaselineSnapshot, results: &[QualificationResu
 pub fn cmd_impact(project: Option<PathBuf>, candidate: &str) -> Result<()> {
     let root = project.unwrap_or_else(|| PathBuf::from("."));
     let paths = ProjectPaths::at(&root);
+    let contract = load_contract(&paths)?;
+    let baseline = load_current_baseline(&paths)?;
     let quals = list_qualifications(&paths)?;
     let result = quals
-        .into_iter()
-        .rev()
-        .find(|q| q.candidate_model == candidate && !q.stale)
-        .with_context(|| format!("no qualification found for {candidate}"))?;
+        .iter()
+        .filter(|q| q.candidate_model == candidate)
+        .max_by(|a, b| {
+            a.created_at
+                .cmp(&b.created_at)
+                .then_with(|| a.id.cmp(&b.id))
+        })
+        .with_context(|| format!("no qualification found for {candidate}"))?
+        .clone();
+    let eff = assess_qualification(&result, &contract.content_hash(), &baseline.content_hash());
     let impact = build_impact(&result);
     println!("{}", "MIGRATION IMPACT".bold());
     println!("Candidate: {}", impact.candidate_model);
+    println!(
+        "Evidence: {} · Recommendation: {}",
+        eff.evidence_validity.as_str(),
+        eff.migration_recommendation.as_str()
+    );
     println!();
+    if eff.is_stale {
+        println!("{}", "STALE — REQUALIFY REQUIRED".yellow().bold());
+        for r in &eff.stale_reasons {
+            println!("  - {r}");
+        }
+        return Ok(());
+    }
+    if eff.evidence_validity == arsenic_core::EvidenceValidity::Incomplete {
+        println!("{}", "QUALIFICATION INCOMPLETE".yellow().bold());
+        for r in &eff.incomplete_reasons {
+            println!("  - {r}");
+        }
+        return Ok(());
+    }
     println!("BLOCKERS");
     println!("  {}", impact.blockers.len());
     for b in &impact.blockers {
@@ -836,23 +948,25 @@ pub fn cmd_impact(project: Option<PathBuf>, candidate: &str) -> Result<()> {
     println!("UNAFFECTED");
     println!("  {}", impact.unaffected.len());
     println!();
-    match impact.decision {
-        QualificationDecision::Pass
-        | QualificationDecision::PassWithWarnings
-        | QualificationDecision::PassWithPatch => {
+    match eff.migration_recommendation {
+        MigrationRecommendation::SafeToMigrate => {
             println!("{}", "SAFE TO MIGRATE".green().bold());
         }
-        QualificationDecision::Block => {
+        MigrationRecommendation::MigrationBlocked => {
             println!("{}", "MIGRATION BLOCKED".red().bold());
         }
-        QualificationDecision::Review | QualificationDecision::Stale => {
-            println!("{}", "MIGRATION REQUIRES REVIEW".yellow().bold());
+        other => {
+            println!("{}", other.as_str().yellow().bold());
         }
     }
     Ok(())
 }
 
-pub fn cmd_contract_diff(project: Option<PathBuf>, from: Option<PathBuf>, to: Option<PathBuf>) -> Result<()> {
+pub fn cmd_contract_diff(
+    project: Option<PathBuf>,
+    from: Option<PathBuf>,
+    to: Option<PathBuf>,
+) -> Result<()> {
     let root = project.unwrap_or_else(|| PathBuf::from("."));
     let paths = ProjectPaths::at(&root);
     let current = load_contract(&paths)?;
@@ -861,10 +975,10 @@ pub fn cmd_contract_diff(project: Option<PathBuf>, from: Option<PathBuf>, to: Op
         (Some(f), None) => (load_contract_json(&f)?, current),
         (None, None) => {
             // Compare previous version file if present.
-            let prev = paths
-                .arsenic_dir()
-                .join("contract")
-                .join(format!("contract.v{}.json", current.version.saturating_sub(1)));
+            let prev = paths.arsenic_dir().join("contract").join(format!(
+                "contract.v{}.json",
+                current.version.saturating_sub(1)
+            ));
             if prev.exists() {
                 (load_contract_json(&prev)?, current)
             } else {
@@ -933,7 +1047,10 @@ pub fn cmd_patch_apply(project: Option<PathBuf>, qualification_id: &str, yes: bo
         .to_string(),
     )?;
     println!("Recorded explicit apply intent at {}", out.display());
-    println!("{}", "Application source prompts were not silently modified.".yellow());
+    println!(
+        "{}",
+        "Application source prompts were not silently modified.".yellow()
+    );
     Ok(())
 }
 
@@ -952,33 +1069,53 @@ pub fn cmd_app_report(
     if let Some(c) = &candidate {
         quals.retain(|q| &q.candidate_model == c);
     }
-    // Prefer non-stale latest per model for summary display.
-    quals.sort_by(|a, b| a.created_at.cmp(&b.created_at));
-    let mut latest: BTreeMap<String, QualificationResult> = BTreeMap::new();
-    for q in quals {
-        latest.insert(q.candidate_model.clone(), q);
+    let contract_hash = contract.content_hash();
+    let baseline_hash = baseline
+        .as_ref()
+        .map(|b| b.content_hash())
+        .unwrap_or_default();
+    let effectives = assess_all(&quals, &contract_hash, &baseline_hash);
+    let agg = aggregate_migration(&effectives);
+    let latest: Vec<QualificationResult> = arsenic_core::latest_per_candidate(&quals)
+        .into_iter()
+        .cloned()
+        .collect();
+    let by_id: BTreeMap<&str, &QualificationResult> =
+        latest.iter().map(|q| (q.id.as_str(), q)).collect();
+
+    let mut by_rec: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    for e in &effectives {
+        by_rec
+            .entry(e.migration_recommendation.as_str())
+            .or_default()
+            .push(e.candidate_model.clone());
     }
-    let quals: Vec<_> = latest.into_values().collect();
 
     let report = serde_json::json!({
         "application": contract.application_name,
         "application_id": contract.application_id,
         "contract_version": contract.version,
-        "contract_hash": contract.content_hash(),
+        "contract_hash": contract_hash,
+        "baseline_hash": baseline_hash,
         "production": lock.as_ref().and_then(|l| l.production.clone()),
         "baseline": baseline.as_ref().map(|b| serde_json::json!({
             "id": b.id,
             "model": b.model,
             "created_at": b.created_at,
+            "content_hash": b.content_hash(),
         })),
+        "aggregate_migration_recommendation": agg,
+        "aggregate_migration_recommendation_text": agg.as_str(),
         "candidates": {
-            "pass": quals.iter().filter(|q| matches!(q.decision,
-                QualificationDecision::Pass | QualificationDecision::PassWithWarnings | QualificationDecision::PassWithPatch) && !q.stale).map(|q| &q.candidate_model).collect::<Vec<_>>(),
-            "review": quals.iter().filter(|q| q.decision == QualificationDecision::Review && !q.stale).map(|q| &q.candidate_model).collect::<Vec<_>>(),
-            "blocked": quals.iter().filter(|q| q.decision == QualificationDecision::Block && !q.stale).map(|q| &q.candidate_model).collect::<Vec<_>>(),
-            "stale": quals.iter().filter(|q| q.stale).map(|q| &q.candidate_model).collect::<Vec<_>>(),
+            "safe": by_rec.get("SAFE TO MIGRATE").cloned().unwrap_or_default(),
+            "review": by_rec.get("REVIEW REQUIRED").cloned().unwrap_or_default(),
+            "blocked": by_rec.get("MIGRATION BLOCKED").cloned().unwrap_or_default(),
+            "stale": by_rec.get("STALE — REQUALIFY REQUIRED").cloned().unwrap_or_default(),
+            "incomplete": by_rec.get("QUALIFICATION INCOMPLETE").cloned().unwrap_or_default(),
+            "no_evidence": by_rec.get("NO EVIDENCE").cloned().unwrap_or_default(),
         },
-        "qualifications": quals,
+        "qualifications": effectives.iter().map(effective_to_json).collect::<Vec<_>>(),
+        "recorded_qualifications": latest,
     });
 
     if json {
@@ -998,70 +1135,75 @@ pub fn cmd_app_report(
         println!("Production baseline: {} ({})", b.model, b.id);
     }
     println!("Contract version: v{}", contract.version);
+    println!("Aggregate recommendation: {}", agg.as_str());
     println!();
-    println!("Candidate summary");
-    let pass: Vec<_> = quals
-        .iter()
-        .filter(|q| {
-            matches!(
-                q.decision,
-                QualificationDecision::Pass
-                    | QualificationDecision::PassWithWarnings
-                    | QualificationDecision::PassWithPatch
-            ) && !q.stale
-        })
-        .collect();
-    let review: Vec<_> = quals
-        .iter()
-        .filter(|q| q.decision == QualificationDecision::Review && !q.stale)
-        .collect();
-    let blocked: Vec<_> = quals
-        .iter()
-        .filter(|q| q.decision == QualificationDecision::Block && !q.stale)
-        .collect();
-    println!("  PASS:    {}", pass.len());
-    println!("  REVIEW:  {}", review.len());
-    println!("  BLOCKED: {}", blocked.len());
+    println!("Candidate summary (effective)");
+    println!(
+        "  SAFE:       {}",
+        by_rec.get("SAFE TO MIGRATE").map(|v| v.len()).unwrap_or(0)
+    );
+    println!(
+        "  REVIEW:     {}",
+        by_rec.get("REVIEW REQUIRED").map(|v| v.len()).unwrap_or(0)
+    );
+    println!(
+        "  BLOCKED:    {}",
+        by_rec
+            .get("MIGRATION BLOCKED")
+            .map(|v| v.len())
+            .unwrap_or(0)
+    );
+    println!(
+        "  STALE:      {}",
+        by_rec
+            .get("STALE — REQUALIFY REQUIRED")
+            .map(|v| v.len())
+            .unwrap_or(0)
+    );
+    println!(
+        "  INCOMPLETE: {}",
+        by_rec
+            .get("QUALIFICATION INCOMPLETE")
+            .map(|v| v.len())
+            .unwrap_or(0)
+    );
     println!();
-    for q in &quals {
-        if q.stale {
-            continue;
+    for e in &effectives {
+        println!(
+            "{} — recorded {} · effective {} · {}",
+            e.candidate_model,
+            e.recorded_decision.as_str(),
+            e.effective_decision.as_str(),
+            e.migration_recommendation.as_str()
+        );
+        if let Some(src) = by_id.get(e.qualification_id.as_str()) {
+            let blockers = src.blockers().count();
+            let cost = src
+                .cost_latency
+                .cost_delta_pct
+                .map(|p| format!("{p:+.0}%"))
+                .unwrap_or_else(|| "n/a".into());
+            let lat = src
+                .cost_latency
+                .latency_delta_pct
+                .map(|p| format!("{p:+.0}%"))
+                .unwrap_or_else(|| "n/a".into());
+            println!("  blockers={blockers}  cost Δ {cost} (est.)  latency Δ {lat} (est.)");
+            if let Some(p) = &src.validated_patch {
+                println!("  validated repair: {}", p.qualification_id);
+            }
         }
-        println!("{} — {}", q.candidate_model, q.decision.as_str());
-        let blockers = q.blockers().count();
-        let cost = q
-            .cost_latency
-            .cost_delta_pct
-            .map(|p| format!("{p:+.0}%"))
-            .unwrap_or_else(|| "n/a".into());
-        let lat = q
-            .cost_latency
-            .latency_delta_pct
-            .map(|p| format!("{p:+.0}%"))
-            .unwrap_or_else(|| "n/a".into());
-        println!("  blockers={blockers}  cost Δ {cost} (est.)  latency Δ {lat} (est.)");
-        if let Some(p) = &q.validated_patch {
-            println!("  validated repair: {}", p.qualification_id);
+        for r in &e.stale_reasons {
+            println!("  stale: {r}");
         }
-        match q.decision {
-            QualificationDecision::Pass
-            | QualificationDecision::PassWithWarnings
-            | QualificationDecision::PassWithPatch => {
-                println!("  Migration recommendation: SAFE TO MIGRATE");
-            }
-            QualificationDecision::Block => {
-                println!("  Migration recommendation: MIGRATION BLOCKED");
-            }
-            QualificationDecision::Review | QualificationDecision::Stale => {
-                println!("  Migration recommendation: REVIEW REQUIRED");
-            }
+        for r in &e.incomplete_reasons {
+            println!("  incomplete: {r}");
         }
         println!();
     }
 
     if let Some(out) = output {
-        // Also write HTML application report via report crate if available.
-        let html = render_application_html(&contract, baseline.as_ref(), &quals, lock.as_ref())?;
+        let html = render_application_html(&contract, baseline.as_ref(), &latest, lock.as_ref())?;
         fs::write(&out, html)?;
         println!("Wrote {}", out.display());
     }

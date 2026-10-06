@@ -17,9 +17,9 @@ pub fn default_key_env(adapter_type: &str) -> &'static str {
 pub fn parse_provider_model(spec: &str) -> Result<(String, String)> {
     let (adapter, model) = match spec.split_once(':') {
         Some((a, m)) => (a.to_lowercase(), m.to_string()),
-        None => bail!(
-            "model must look like provider:model (e.g. openai:gpt-4.1-mini), got `{spec}`"
-        ),
+        None => {
+            bail!("model must look like provider:model (e.g. openai:gpt-4.1-mini), got `{spec}`")
+        }
     };
     let adapter = if adapter == "ollama" {
         "openai".to_string()

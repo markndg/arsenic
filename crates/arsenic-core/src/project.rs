@@ -204,7 +204,10 @@ pub fn save_baseline(paths: &ProjectPaths, snap: &BaselineSnapshot) -> Result<Pa
     paths.ensure_layout()?;
     let path = paths.baselines_dir().join(format!("{}.json", snap.id));
     if path.exists() {
-        bail!("Baseline {} already exists (baselines are immutable)", snap.id);
+        bail!(
+            "Baseline {} already exists (baselines are immutable)",
+            snap.id
+        );
     }
     fs::write(&path, serde_json::to_string_pretty(snap)?)?;
     Ok(path)
@@ -219,7 +222,9 @@ pub fn load_baseline(paths: &ProjectPaths, id: &str) -> Result<BaselineSnapshot>
 
 pub fn load_current_baseline(paths: &ProjectPaths) -> Result<BaselineSnapshot> {
     let lock = load_lock(paths)?.context("no arsenic.lock — run arsenic baseline first")?;
-    let prod = lock.production.context("no production baseline in arsenic.lock")?;
+    let prod = lock
+        .production
+        .context("no production baseline in arsenic.lock")?;
     load_baseline(paths, &prod.baseline)
 }
 
@@ -270,11 +275,16 @@ pub fn list_qualifications(paths: &ProjectPaths) -> Result<Vec<QualificationResu
     files.sort();
     for f in files {
         if f.extension().and_then(|e| e.to_str()) == Some("json") {
-            if let Ok(text) = fs::read_to_string(&f) {
-                if let Ok(q) = serde_json::from_str::<QualificationResult>(&text) {
-                    out.push(q);
-                }
-            }
+            let text = fs::read_to_string(&f).with_context(|| {
+                format!("failed to read qualification evidence {}", f.display())
+            })?;
+            let q: QualificationResult = serde_json::from_str(&text).with_context(|| {
+                format!(
+                    "corrupt or unreadable qualification evidence at {} — refusing to ignore (fail closed)",
+                    f.display()
+                )
+            })?;
+            out.push(q);
         }
     }
     Ok(out)
@@ -291,7 +301,8 @@ pub fn count_stale_qualifications(
 ) -> Result<usize> {
     let mut n = 0;
     for q in list_qualifications(paths)? {
-        if q.effective_decision(contract_hash, baseline_hash) == crate::qualify::QualificationDecision::Stale
+        if q.effective_decision(contract_hash, baseline_hash)
+            == crate::qualify::QualificationDecision::Stale
         {
             n += 1;
         }
@@ -318,16 +329,31 @@ pub fn save_patch(paths: &ProjectPaths, patch: &ValidatedPatch) -> Result<PathBu
 }
 
 pub fn load_patch(paths: &ProjectPaths, qualification_id: &str) -> Result<ValidatedPatch> {
-    let path = paths
-        .patches_dir()
-        .join(format!("{qualification_id}.json"));
+    let path = paths.patches_dir().join(format!("{qualification_id}.json"));
     Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
 }
 
-pub fn update_lock_from_qualification(
-    lock: &mut ArsenicLock,
-    result: &QualificationResult,
-) {
+/// Update lock buckets from a *fresh* qualification using authoritative effective state.
+///
+/// Lock entries are historical references keyed to a specific qualification id and the
+/// contract/baseline hashes stored on the lock. They must not imply current safety after
+/// the contract or baseline changes — callers reassess via [`assess_qualification`].
+/// Incomplete / stale evidence is never recorded under `qualified`.
+pub fn update_lock_from_qualification(lock: &mut ArsenicLock, result: &QualificationResult) {
+    use crate::qualify::{assess_qualification, EvidenceValidity, MigrationRecommendation};
+
+    // Prefer hashes already stamped on the lock (current project context); fall back to
+    // the qualification's own hashes so a brand-new lock still classifies consistently.
+    let contract_hash = lock
+        .contract_hash
+        .as_deref()
+        .unwrap_or(result.contract_hash.as_str());
+    let baseline_hash = lock
+        .baseline_hash
+        .as_deref()
+        .unwrap_or(result.baseline_hash.as_str());
+    let eff = assess_qualification(result, contract_hash, baseline_hash);
+
     // Remove prior entries for this model.
     lock.qualified.retain(|q| q.model != result.candidate_model);
     lock.blocked.retain(|q| q.model != result.candidate_model);
@@ -337,20 +363,35 @@ pub fn update_lock_from_qualification(
         model: result.candidate_model.clone(),
         qualification: result.id.clone(),
     };
-    match result.decision {
-        crate::qualify::QualificationDecision::Pass
-        | crate::qualify::QualificationDecision::PassWithWarnings
-        | crate::qualify::QualificationDecision::PassWithPatch => {
+
+    // Never promote incomplete/stale evidence into the qualified bucket.
+    if eff.is_stale
+        || eff.evidence_validity == EvidenceValidity::Incomplete
+        || matches!(
+            eff.migration_recommendation,
+            MigrationRecommendation::Incomplete
+                | MigrationRecommendation::Stale
+                | MigrationRecommendation::NoEvidence
+        )
+    {
+        lock.review.push(entry);
+        return;
+    }
+
+    match eff.migration_recommendation {
+        MigrationRecommendation::SafeToMigrate => {
             lock.qualified.push(entry);
         }
-        crate::qualify::QualificationDecision::Block => {
+        MigrationRecommendation::MigrationBlocked => {
             lock.blocked.push(LockBlocked {
                 model: result.candidate_model.clone(),
                 qualification: result.id.clone(),
             });
         }
-        crate::qualify::QualificationDecision::Review
-        | crate::qualify::QualificationDecision::Stale => {
+        MigrationRecommendation::ReviewRequired
+        | MigrationRecommendation::Incomplete
+        | MigrationRecommendation::Stale
+        | MigrationRecommendation::NoEvidence => {
             lock.review.push(entry);
         }
     }

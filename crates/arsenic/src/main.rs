@@ -784,70 +784,68 @@ async fn main() -> anyhow::Result<()> {
             candidate,
             json,
             output,
-        } => {
-            match sub {
-                None => {
-                    contract_cmd::cmd_app_report(project, candidate, json, output)?;
-                }
-                Some(ReportCmd::Application {
-                    project: p,
-                    candidate: c,
-                    json: j,
-                    output: o,
-                }) => {
-                    contract_cmd::cmd_app_report(
-                        p.or(project),
-                        c.or(candidate),
-                        j || json,
-                        o.or(output),
-                    )?;
-                }
-                Some(ReportCmd::Render {
-                    input,
-                    format,
-                    output,
-                }) => {
-                    let report: DriftReport = load_report_json(&input)?;
-                    let bytes = match format.as_str() {
-                        "html" => ReportRenderer::render_html(&report)?,
-                        "md" | "markdown" => ReportRenderer::render_markdown(&report)?,
-                        "json" => ReportRenderer::render_json(&report)?,
-                        _ => anyhow::bail!("unknown format {format}"),
-                    };
-                    std::fs::write(&output, bytes)
-                        .with_context(|| format!("write {}", output.display()))?;
-                    println!("Wrote {}", output.display());
-                }
-                Some(ReportCmd::Summary {
-                    input,
-                    debug_summary,
-                }) => {
-                    let report: DriftReport = load_report_json(&input)?;
-                    let summary_json = ReportRenderer::summary_json(&report)?;
-                    if debug_summary {
-                        if let Some(s) = summary_json.get("summary").and_then(|x| x.as_object()) {
-                            let mut keys: Vec<_> = s.keys().cloned().collect();
-                            keys.sort();
-                            eprintln!("summary keys (sorted): {keys:?}");
-                            for k in [
-                                "total_probes",
-                                "probe_regressions",
-                                "regressions",
-                                "probe_improvements",
-                                "improvements",
-                                "probe_neutral",
-                                "neutral",
-                            ] {
-                                eprintln!("  {k}: {:?}", s.get(k));
-                            }
-                        } else {
-                            eprintln!("debug_summary: no `summary` object in output");
-                        }
-                    }
-                    println!("{}", serde_json::to_string_pretty(&summary_json)?);
-                }
+        } => match sub {
+            None => {
+                contract_cmd::cmd_app_report(project, candidate, json, output)?;
             }
-        }
+            Some(ReportCmd::Application {
+                project: p,
+                candidate: c,
+                json: j,
+                output: o,
+            }) => {
+                contract_cmd::cmd_app_report(
+                    p.or(project),
+                    c.or(candidate),
+                    j || json,
+                    o.or(output),
+                )?;
+            }
+            Some(ReportCmd::Render {
+                input,
+                format,
+                output,
+            }) => {
+                let report: DriftReport = load_report_json(&input)?;
+                let bytes = match format.as_str() {
+                    "html" => ReportRenderer::render_html(&report)?,
+                    "md" | "markdown" => ReportRenderer::render_markdown(&report)?,
+                    "json" => ReportRenderer::render_json(&report)?,
+                    _ => anyhow::bail!("unknown format {format}"),
+                };
+                std::fs::write(&output, bytes)
+                    .with_context(|| format!("write {}", output.display()))?;
+                println!("Wrote {}", output.display());
+            }
+            Some(ReportCmd::Summary {
+                input,
+                debug_summary,
+            }) => {
+                let report: DriftReport = load_report_json(&input)?;
+                let summary_json = ReportRenderer::summary_json(&report)?;
+                if debug_summary {
+                    if let Some(s) = summary_json.get("summary").and_then(|x| x.as_object()) {
+                        let mut keys: Vec<_> = s.keys().cloned().collect();
+                        keys.sort();
+                        eprintln!("summary keys (sorted): {keys:?}");
+                        for k in [
+                            "total_probes",
+                            "probe_regressions",
+                            "regressions",
+                            "probe_improvements",
+                            "improvements",
+                            "probe_neutral",
+                            "neutral",
+                        ] {
+                            eprintln!("  {k}: {:?}", s.get(k));
+                        }
+                    } else {
+                        eprintln!("debug_summary: no `summary` object in output");
+                    }
+                }
+                println!("{}", serde_json::to_string_pretty(&summary_json)?);
+            }
+        },
         Commands::Init {
             project,
             name,

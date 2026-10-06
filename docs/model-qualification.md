@@ -9,28 +9,39 @@ arsenic qualify openai:gpt-x anthropic:claude-y google:gemini-z
 
 Omit models to run the configured candidate pool from `arsenic.toml` / `arsenic.lock`.
 
-## Decisions
+## Decisions vs effective state
 
-Overall decision is deterministic from contract-item outcomes:
+Recorded behavioural decisions are immutable. **Current** migration recommendations
+are derived with `assess_qualification` against the live contract/baseline hashes.
 
-| Decision | Rule |
-|----------|------|
+| Recorded decision | Rule |
+|-------------------|------|
 | `BLOCK` | Any block-severity behavioural failure |
-| `REVIEW` | Any review-severity failure, or infrastructure-only failures |
+| `REVIEW` | Any review-severity failure |
 | `PASS_WITH_WARNINGS` | Warnings only |
-| `PASS_WITH_PATCH` | Pass after validated repair |
+| `PASS_WITH_PATCH` | Pass after validated repair (must bind to current hashes/model) |
 | `PASS` | Otherwise |
-| `STALE` | Derived when contract/baseline hashes diverge (history preserved) |
 
-Provider/runtime failures (`AUTH_ERROR`, `TIMEOUT`, `RATE_LIMITED`, …) are **not** behavioural BLOCK/PASS. CI returns exit code **3**.
+| Effective overlay | Meaning |
+|-------------------|---------|
+| `STALE` | Contract/baseline hash diverged — requalify; never SAFE |
+| `INCOMPLETE` | Provider/runtime errors — never SAFE; CI exit 3 |
+
+Provider/runtime failures (`AUTH_ERROR`, `TIMEOUT`, `RATE_LIMITED`, `INVALID_RESPONSE`, …)
+are **not** behavioural BLOCK/PASS. Migration recommendation is `QUALIFICATION INCOMPLETE`.
 
 ## `--changed`
 
-Re-runs a candidate when any of these change: contract hash, baseline hash, model, prompt hashes, tools hash, temperature/max_tokens/endpoint, qualification thresholds. Matching prior PASS fingerprints are skipped.
+Re-runs a candidate unless a **currently valid** SAFE qualification exists for the same
+input fingerprint (contract, baseline, model, prompts, tools, temperature/max_tokens/endpoint,
+thresholds). Stale or incomplete priors never skip requalification.
 
 ## Lockfile
 
-`arsenic.lock` records production baseline and qualification outcomes:
+`arsenic.lock` records production baseline and historical qualification references under
+the contract/baseline hashes at write time. Entries in `qualified` are never written for
+incomplete or stale evidence. After a contract/baseline change, treat lock `qualified`
+as historical — reporting reassesses effective state.
 
 ```toml
 application = "customer-support"
@@ -68,6 +79,7 @@ arsenic patch apply <qualification-id> --yes
 ```
 
 Repairs are explicit, diffable, reversible, and never silently modify application prompts.
+A patch validated on stale evidence cannot certify the current contract.
 
 ## Impact
 
@@ -75,4 +87,5 @@ Repairs are explicit, diffable, reversible, and never silently modify applicatio
 arsenic impact openai:gpt-x
 ```
 
-Groups BLOCKERS / REVIEW / PRESENTATION DRIFT / UNAFFECTED for change review.
+Groups BLOCKERS / REVIEW / PRESENTATION DRIFT / UNAFFECTED and prints the **effective**
+migration recommendation (SAFE / BLOCKED / STALE / INCOMPLETE / REVIEW).

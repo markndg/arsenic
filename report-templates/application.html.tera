@@ -59,6 +59,8 @@
   .decision.blocked { border-color: var(--block); color: var(--block); }
   .decision.safe { border-color: var(--pass); color: var(--pass); }
   .decision.review { border-color: var(--review); color: var(--review); }
+  .decision.incomplete { border-color: #5a3d7a; color: #5a3d7a; }
+  .decision.stale { border-color: var(--muted); color: var(--muted); }
   table.matrix { width: 100%; border-collapse: collapse; background: var(--card); }
   table.matrix th, table.matrix td {
     border: 1px solid var(--line);
@@ -71,6 +73,9 @@
   .BLOCK { color: var(--block); font-weight: 700; }
   .REVIEW { color: var(--review); font-weight: 600; }
   .WARN { color: var(--warn); font-weight: 600; }
+  .STALE { color: var(--muted); font-weight: 600; }
+  .INCOMPLETE { color: #5a3d7a; font-weight: 700; }
+  .badge { display: inline-block; font-size: 0.7rem; text-transform: uppercase; border: 1px solid var(--line); padding: 0.1rem 0.35rem; margin-left: 0.4rem; }
   .item {
     border-top: 1px solid var(--line);
     padding: 0.85rem 0;
@@ -89,7 +94,7 @@
   <p class="sub">Application compatibility for {{ contract.application_name }} — not a generic model benchmark. Compatibility ≠ intelligence.</p>
 </header>
 <main>
-  <div class="decision {% if migration == 'MIGRATION BLOCKED' %}blocked{% elif migration == 'SAFE TO MIGRATE' %}safe{% else %}review{% endif %}">
+  <div class="decision {{ migration_class }}">
     {{ migration }}
   </div>
 
@@ -136,10 +141,19 @@
 
   <h2>Qualification detail</h2>
   {% for q in qualifications %}
-    {% if not q.stale %}
     <div class="item">
-      <strong>{{ q.candidate_model }}</strong> — {{ q.decision }}
+      <strong>{{ q.candidate_model }}</strong>
+      <span class="badge">recorded: {{ q.decision }}</span>
+      <span class="badge">effective: {{ q.effective_decision }}</span>
+      <span class="badge">{{ q.evidence_validity }}</span>
+      <div style="font-weight:600;margin-top:0.35rem">{{ q.migration_recommendation }}</div>
       <div style="font-size:0.9rem;color:var(--muted)">{{ q.id }} · contract {{ q.contract_hash | truncate(length=12) }} · baseline {{ q.baseline_hash | truncate(length=12) }}</div>
+      {% if q.is_stale %}
+      <p>This qualification is STALE relative to the current contract/baseline and cannot certify migration.</p>
+      {% endif %}
+      {% if q.evidence_validity == "INCOMPLETE" %}
+      <p>QUALIFICATION INCOMPLETE — provider/runtime evidence is insufficient to certify behaviour.</p>
+      {% endif %}
       {% for r in q.item_results %}
         {% if r.outcome == "fail" or r.outcome == "review" or r.outcome == "warn" %}
         <details class="evidence" open>
@@ -155,7 +169,6 @@
       <pre class="diff">{{ q.validated_patch.prompt_diff }}</pre>
       {% endif %}
     </div>
-    {% endif %}
   {% endfor %}
 </main>
 </body>

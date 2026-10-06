@@ -55,13 +55,21 @@ pub fn discover_project(root: &Path) -> Result<DiscoveryReport> {
         .iter()
         .filter(|h| h.kind == "prompt" || h.kind == "system_prompt")
         .count();
-    report.system_prompts = report.hits.iter().filter(|h| h.kind == "system_prompt").count();
+    report.system_prompts = report
+        .hits
+        .iter()
+        .filter(|h| h.kind == "system_prompt")
+        .count();
     report.structured_schemas = report
         .hits
         .iter()
         .filter(|h| h.kind == "structured_output")
         .count();
-    report.tool_schemas = report.hits.iter().filter(|h| h.kind == "tool_schema").count();
+    report.tool_schemas = report
+        .hits
+        .iter()
+        .filter(|h| h.kind == "tool_schema")
+        .count();
     report.existing_suites = report
         .hits
         .iter()
@@ -140,11 +148,7 @@ fn inspect_prompt_file(root: &Path, path: &Path, report: &mut DiscoveryReport) -
         kind: ContractItemKind::OutputFormat,
         severity: ContractSeverity::Info,
         prompt: prompt_id.clone(),
-        system_prompt: if is_system {
-            Some(text.clone())
-        } else {
-            None
-        },
+        system_prompt: if is_system { Some(text.clone()) } else { None },
         user_prompt: if is_system { None } else { Some(text.clone()) },
         expectation: ContractExpectation::OutputFormat {
             description: format!("Preserve behaviour of discovered {kind}"),
@@ -278,7 +282,9 @@ fn inspect_json(root: &Path, path: &Path, report: &mut DiscoveryReport) -> Resul
 
 fn looks_like_json_schema(v: &serde_json::Value) -> bool {
     v.get("type").is_some()
-        && (v.get("properties").is_some() || v.get("$schema").is_some() || v.get("required").is_some())
+        && (v.get("properties").is_some()
+            || v.get("$schema").is_some()
+            || v.get("required").is_some())
 }
 
 fn inspect_yaml_like(root: &Path, path: &Path, report: &mut DiscoveryReport) -> Result<()> {
@@ -334,8 +340,7 @@ fn inspect_python(root: &Path, path: &Path, report: &mut DiscoveryReport) -> Res
                 proposed_item: None,
             });
         }
-        if line.contains("tools=") || line.contains("\"tools\"") || line.contains("function_call")
-        {
+        if line.contains("tools=") || line.contains("\"tools\"") || line.contains("function_call") {
             report.hits.push(DiscoveryHit {
                 kind: "tool_schema".into(),
                 path: rel(root, path),
@@ -357,8 +362,7 @@ fn inspect_js(root: &Path, path: &Path, report: &mut DiscoveryReport) -> Result<
     let text = fs::read_to_string(path).unwrap_or_default();
     for (i, line) in text.lines().enumerate() {
         let l = line.to_lowercase();
-        if l.contains("system:") || l.contains("role: \"system\"") || l.contains("role: 'system'")
-        {
+        if l.contains("system:") || l.contains("role: \"system\"") || l.contains("role: 'system'") {
             report.hits.push(DiscoveryHit {
                 kind: "system_prompt".into(),
                 path: rel(root, path),
@@ -371,7 +375,8 @@ fn inspect_js(root: &Path, path: &Path, report: &mut DiscoveryReport) -> Result<
                 proposed_item: None,
             });
         }
-        if l.contains("parameters:") && (l.contains("type") || text.contains("\"type\": \"object\""))
+        if l.contains("parameters:")
+            && (l.contains("type") || text.contains("\"type\": \"object\""))
         {
             report.hits.push(DiscoveryHit {
                 kind: "tool_schema".into(),
@@ -437,7 +442,10 @@ pub fn write_contract_file(path: &Path, contract: &ApplicationContract) -> Resul
 }
 
 pub fn default_contract_path(project_root: &Path) -> PathBuf {
-    project_root.join(".arsenic").join("contract").join("contract.json")
+    project_root
+        .join(".arsenic")
+        .join("contract")
+        .join("contract.json")
 }
 
 #[cfg(test)]
@@ -446,10 +454,7 @@ mod tests {
 
     #[test]
     fn discovers_prompt_and_schema() {
-        let dir = std::env::temp_dir().join(format!(
-            "arsenic-discovery-{}",
-            std::process::id()
-        ));
+        let dir = std::env::temp_dir().join(format!("arsenic-discovery-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let prompts = dir.join("prompts");
         fs::create_dir_all(&prompts).unwrap();
@@ -467,7 +472,10 @@ mod tests {
         let report = discover_project(&dir).unwrap();
         assert!(report.system_prompts >= 1);
         assert!(report.structured_schemas >= 1);
-        assert!(report.hits.iter().all(|h| !h.auto_accepted || h.confidence >= 0.9));
+        assert!(report
+            .hits
+            .iter()
+            .all(|h| !h.auto_accepted || h.confidence >= 0.9));
         let _ = fs::remove_dir_all(&dir);
     }
 }

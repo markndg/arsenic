@@ -13,19 +13,16 @@ use std::collections::BTreeMap;
 pub const CONTRACT_SCHEMA_VERSION: u32 = 1;
 
 /// Severity of a contract requirement.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ContractSeverity {
     Info,
     Warn,
+    #[default]
     Review,
     Block,
-}
-
-impl Default for ContractSeverity {
-    fn default() -> Self {
-        Self::Review
-    }
 }
 
 /// How a contract item was obtained.
@@ -291,7 +288,8 @@ mod tests {
     fn content_hash_is_stable() {
         let mut a = ApplicationContract::new("customer-support", "Customer Support");
         a.created_at = "fixed".into();
-        a.items.push(sample_item("refund.001", ContractSeverity::Block));
+        a.items
+            .push(sample_item("refund.001", ContractSeverity::Block));
         let mut b = a.clone();
         assert_eq!(a.content_hash(), b.content_hash());
         b.items[0].severity = ContractSeverity::Warn;

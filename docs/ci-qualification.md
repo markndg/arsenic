@@ -7,14 +7,32 @@ arsenic qualify --ci openai:gpt-x
 arsenic qualify --json openai:gpt-x anthropic:claude-y
 ```
 
+With `--ci` / `--json`, stdout is JSON only (no human banners). The envelope includes
+authoritative effective fields so CI does not reimplement Arsenic policy:
+
+- `recorded_decision` / `effective_decision`
+- `evidence_validity` (`VALID` · `STALE` · `INCOMPLETE`)
+- `is_stale`, `stale_reasons`, `incomplete_reasons`
+- `migration_recommendation` / `migration_recommendation_text`
+- `contract_hash`, `baseline_hash`, `input_fingerprint`
+- `aggregate_migration_recommendation` / `ci_exit_code`
+
 ## Exit codes
+
+Driven by effective `MigrationRecommendation` (not raw historical `decision`):
 
 | Code | Meaning |
 |-----:|---------|
-| 0 | `PASS` / `PASS_WITH_WARNINGS` / `PASS_WITH_PATCH` |
-| 1 | `BLOCK` |
-| 2 | `REVIEW` (or `STALE`) |
-| 3 | Configuration / runtime error |
+| 0 | `SAFE TO MIGRATE` |
+| 1 | `MIGRATION BLOCKED` |
+| 2 | `REVIEW REQUIRED` or `STALE — REQUALIFY REQUIRED` |
+| 3 | `QUALIFICATION INCOMPLETE` or `NO EVIDENCE` / fatal config error |
+
+Offline smoke gate:
+
+```bash
+./scripts/application_contract_smoke.sh
+```
 
 ## GitHub Actions
 
@@ -44,3 +62,4 @@ jobs:
 ```
 
 Evidence remains in `.arsenic/qualifications/`; never treat the summary score alone as the decision.
+Never treat lock `qualified` or historical PASS as current safety after contract/baseline change.

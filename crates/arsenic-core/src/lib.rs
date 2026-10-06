@@ -24,34 +24,7 @@ pub mod semantic;
 pub mod tone;
 pub mod types;
 
-pub use contract::discovery::{
-    contract_from_discovery, discover_project, load_contract_file, write_contract_file,
-    DiscoveryHit, DiscoveryReport,
-};
-pub use contract::{
-    diff_contracts, ApplicationContract, ContractDiff, ContractExpectation, ContractItem,
-    ContractItemKind, ContractProvenance, ContractProvenanceSource, ContractSeverity,
-    SeverityChange, CONTRACT_SCHEMA_VERSION,
-};
-pub use project::{
-    count_stale_qualifications, filter_candidates, load_baseline, load_config, load_contract,
-    load_current_baseline, load_fixture_behaviours, load_lock, load_patch, load_qualification,
-    list_qualifications, mark_stale_qualifications, next_baseline_id, next_qualification_id,
-    parse_model_spec, save_baseline, save_config, save_contract, save_lock, save_patch,
-    save_qualification, update_lock_from_qualification, write_fixture_behaviours, ArsenicLock,
-    ArsenicProjectConfig, CandidateEntry, LockBlocked, LockProduction, LockQualified, ProjectPaths,
-};
-pub use qualify::{
-    attempt_validated_repair, behaviour_from_error, behaviour_from_response, build_impact,
-    candidate_input_fingerprint, capability_failures, capture_contract_live,
-    classify_provider_error, compatibility_summary_pct, content_hash, decide_overall,
-    evaluate_item, extract_tool_calls, json_hash, qualify_candidate, redact_json, redact_secrets,
-    scenarios_from_contract, BaselineSnapshot, CapturedBehaviour, CapturedToolCall, CaptureSource,
-    ContractItemResult, CostLatencyDelta, EvidenceSnippet, ExecutionErrorKind, ExecutionMeta,
-    ImpactReport, ItemOutcome, LiveCaptureConfig, ProviderCapabilities, QualificationDecision,
-    QualificationResult, QualificationThresholds, RepairAttempt, ValidatedPatch,
-    QUALIFICATION_SCHEMA_VERSION,
-};
+pub use adapter::ModelAdapter;
 pub use cache::{
     corpus_fingerprint, BaselineCache, BaselineManifest, BaselineModel, BaselineProbeEntry,
     CacheKey, CachedResponse, CachedRun, VerifyReport, CACHE_SCHEMA_VERSION,
@@ -64,6 +37,15 @@ pub use code_equivalence::{
 pub use comparison::{
     compute_latency_summary, compute_migration_profile, compute_probe_risk, dimension_severity,
     ComparisonEngine, RiskThresholds,
+};
+pub use contract::discovery::{
+    contract_from_discovery, discover_project, load_contract_file, write_contract_file,
+    DiscoveryHit, DiscoveryReport,
+};
+pub use contract::{
+    diff_contracts, ApplicationContract, ContractDiff, ContractExpectation, ContractItem,
+    ContractItemKind, ContractProvenance, ContractProvenanceSource, ContractSeverity,
+    SeverityChange, CONTRACT_SCHEMA_VERSION,
 };
 pub use embedding::{embed_batch_hash, hash_embed, weighted_sentence_similarity};
 pub use error::ArsenicError;
@@ -86,6 +68,26 @@ pub use materiality::{
 };
 pub use morphology::MorphologyAnalyser;
 pub use mutation::{apply_mutations, propose_strategies};
+pub use project::{
+    count_stale_qualifications, filter_candidates, list_qualifications, load_baseline, load_config,
+    load_contract, load_current_baseline, load_fixture_behaviours, load_lock, load_patch,
+    load_qualification, mark_stale_qualifications, next_baseline_id, next_qualification_id,
+    parse_model_spec, save_baseline, save_config, save_contract, save_lock, save_patch,
+    save_qualification, update_lock_from_qualification, write_fixture_behaviours, ArsenicLock,
+    ArsenicProjectConfig, CandidateEntry, LockBlocked, LockProduction, LockQualified, ProjectPaths,
+};
+pub use qualify::{
+    aggregate_migration, assess_all, assess_qualification, attempt_validated_repair,
+    behaviour_from_error, behaviour_from_response, build_impact, candidate_input_fingerprint,
+    capability_failures, capture_contract_live, classify_provider_error, compatibility_summary_pct,
+    content_hash, decide_overall, effective_to_json, evaluate_item, extract_tool_calls, json_hash,
+    latest_per_candidate, qualify_candidate, redact_json, redact_secrets, scenarios_from_contract,
+    BaselineSnapshot, CaptureSource, CapturedBehaviour, CapturedToolCall, ContractItemResult,
+    CostLatencyDelta, EffectiveQualification, EvidenceSnippet, EvidenceValidity,
+    ExecutionErrorKind, ExecutionMeta, ImpactReport, ItemOutcome, LiveCaptureConfig,
+    MigrationRecommendation, ProviderCapabilities, QualificationDecision, QualificationResult,
+    QualificationThresholds, RepairAttempt, ValidatedPatch, QUALIFICATION_SCHEMA_VERSION,
+};
 pub use reconcile::{
     ReconcileAttempt, ReconcileDimension, ReconcileResult, ReconcileSignal, SignalDetail,
 };
@@ -98,4 +100,3 @@ pub use runner::ProbeRunner;
 pub use semantic::SemanticAnalyser;
 pub use tone::ToneAnalyser;
 pub use types::*;
-pub use adapter::ModelAdapter;

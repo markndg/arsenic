@@ -94,7 +94,7 @@ async fn mocked_live_baseline_and_qualify_parity() {
         source: CaptureSource::MockedLive,
     };
     let live = capture_contract_live(&contract, adapter, "openai:gpt-mock", &cfg).await;
-    assert!(live.contains_key("refund_decision") || live.len() >= 1);
+    assert!(live.contains_key("refund_decision") || !live.is_empty());
 
     // Fixture-shaped copy of normalised live evidence → same evaluator.
     let mut baseline_beh = BTreeMap::new();

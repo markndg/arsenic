@@ -90,18 +90,50 @@ fn changed_fingerprint_reacts_to_contract_and_config() {
     let mut prompts = BTreeMap::new();
     prompts.insert("refund_decision".into(), content_hash("refund?"));
     let a = candidate_input_fingerprint(
-        "c1", "b1", "openai:gpt-x", &prompts, None, 0.0, Some(256), Some("https://api"), "th1",
+        "c1",
+        "b1",
+        "openai:gpt-x",
+        &prompts,
+        None,
+        0.0,
+        Some(256),
+        Some("https://api"),
+        "th1",
     );
     let b = candidate_input_fingerprint(
-        "c1", "b1", "openai:gpt-x", &prompts, None, 0.0, Some(256), Some("https://api"), "th1",
+        "c1",
+        "b1",
+        "openai:gpt-x",
+        &prompts,
+        None,
+        0.0,
+        Some(256),
+        Some("https://api"),
+        "th1",
     );
     assert_eq!(a, b);
     let c = candidate_input_fingerprint(
-        "c2", "b1", "openai:gpt-x", &prompts, None, 0.0, Some(256), Some("https://api"), "th1",
+        "c2",
+        "b1",
+        "openai:gpt-x",
+        &prompts,
+        None,
+        0.0,
+        Some(256),
+        Some("https://api"),
+        "th1",
     );
     assert_ne!(a, c);
     let d = candidate_input_fingerprint(
-        "c1", "b1", "openai:gpt-x", &prompts, None, 0.2, Some(256), Some("https://api"), "th1",
+        "c1",
+        "b1",
+        "openai:gpt-x",
+        &prompts,
+        None,
+        0.2,
+        Some(256),
+        Some("https://api"),
+        "th1",
     );
     assert_ne!(a, d);
 }

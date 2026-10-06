@@ -1,6 +1,7 @@
 //! Continuous model qualification against an application contract + baseline.
 
 pub mod capture;
+pub mod effective;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -22,11 +23,17 @@ pub use capture::{
     extract_tool_calls, json_hash, redact_json, redact_secrets, scenarios_from_contract,
     CaptureSource, ExecutionErrorKind, ExecutionMeta, LiveCaptureConfig, ProviderCapabilities,
 };
+pub use effective::{
+    aggregate_migration, assess_all, assess_qualification, effective_to_json, latest_per_candidate,
+    EffectiveQualification, EvidenceValidity, MigrationRecommendation,
+};
 
 pub const QUALIFICATION_SCHEMA_VERSION: u32 = 1;
 
 /// Overall qualification decision (deterministic from item outcomes).
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum QualificationDecision {
     #[default]
@@ -180,18 +187,23 @@ impl QualificationResult {
     }
 
     /// Effective decision given current contract/baseline hashes (does not mutate history).
+    /// Prefer [`assess_qualification`] for full evidence-validity + migration recommendation.
     pub fn effective_decision(
         &self,
         current_contract_hash: &str,
         current_baseline_hash: &str,
     ) -> QualificationDecision {
-        if self.contract_hash != current_contract_hash
-            || self.baseline_hash != current_baseline_hash
-        {
-            QualificationDecision::Stale
-        } else {
-            self.decision
-        }
+        assess_qualification(self, current_contract_hash, current_baseline_hash).effective_decision
+    }
+
+    /// Fail-closed migration recommendation for the current contract/baseline.
+    pub fn migration_recommendation(
+        &self,
+        current_contract_hash: &str,
+        current_baseline_hash: &str,
+    ) -> MigrationRecommendation {
+        assess_qualification(self, current_contract_hash, current_baseline_hash)
+            .migration_recommendation
     }
 }
 
@@ -300,10 +312,10 @@ pub fn decide_overall(
     for r in item_results {
         match (r.outcome, r.severity) {
             (ItemOutcome::Fail, ContractSeverity::Block) => has_block = true,
-            (ItemOutcome::Fail, ContractSeverity::Review)
-            | (ItemOutcome::Review, _)
-                if thresholds.review_escalates =>
-            {
+            // Review-severity failures and explicit Review outcomes always require review.
+            // `review_escalates` is retained on thresholds for serde compatibility but must
+            // never suppress review evidence into PASS (fail-closed).
+            (ItemOutcome::Fail, ContractSeverity::Review) | (ItemOutcome::Review, _) => {
                 has_review = true;
             }
             (ItemOutcome::Fail, ContractSeverity::Warn) | (ItemOutcome::Warn, _) => {
@@ -426,7 +438,10 @@ pub fn evaluate_item(
             };
             let outcome = if present {
                 ItemOutcome::Pass
-            } else if matches!(item.severity, ContractSeverity::Warn | ContractSeverity::Info) {
+            } else if matches!(
+                item.severity,
+                ContractSeverity::Warn | ContractSeverity::Info
+            ) {
                 ItemOutcome::Warn
             } else {
                 ItemOutcome::Fail
@@ -499,7 +514,10 @@ pub fn evaluate_item(
                     Ok(()) => (ItemOutcome::Pass, "Structured output matches schema".into()),
                     Err(e) => (ItemOutcome::Fail, e),
                 },
-                Err(_) => (ItemOutcome::Fail, "Candidate output is not valid JSON".into()),
+                Err(_) => (
+                    ItemOutcome::Fail,
+                    "Candidate output is not valid JSON".into(),
+                ),
             };
             ContractItemResult {
                 item_id: item.id.clone(),
@@ -563,7 +581,7 @@ pub fn evaluate_item(
                 None => (
                     ItemOutcome::Fail,
                     format!("Tool `{tool_name}` not called"),
-                    format!("missing tool"),
+                    "missing tool".to_string(),
                 ),
                 Some(t) => match t.arguments.get(argument) {
                     None => (
@@ -822,7 +840,10 @@ fn extract_json_object(s: &str) -> Result<serde_json::Value, serde_json::Error> 
 }
 
 /// Validate JSON against a schema using `jsonschema`. Unsupported constructs are reported.
-fn validate_json_schema(value: &serde_json::Value, schema: &serde_json::Value) -> Result<(), String> {
+fn validate_json_schema(
+    value: &serde_json::Value,
+    schema: &serde_json::Value,
+) -> Result<(), String> {
     // Detect obvious unsupported keywords we do not resolve across remote $ref.
     if schema_has_remote_ref(schema) {
         return Err(
@@ -854,9 +875,12 @@ fn schema_has_remote_ref(schema: &serde_json::Value) -> bool {
     }
 }
 
-/// Shallow required-properties + type checks kept for unit tests / fallback messaging.
-#[cfg(test)]
-fn validate_schema_shallow(value: &serde_json::Value, schema: &serde_json::Value) -> Result<(), String> {
+/// Shallow required-properties check retained for diagnostics (jsonschema is primary).
+#[allow(dead_code)]
+fn validate_schema_shallow(
+    value: &serde_json::Value,
+    schema: &serde_json::Value,
+) -> Result<(), String> {
     if let Some(req) = schema.get("required").and_then(|r| r.as_array()) {
         let obj = value
             .as_object()
@@ -1158,12 +1182,11 @@ pub fn build_impact(result: &QualificationResult) -> ImpactReport {
         let label = format!("{} ({})", r.item_id, r.reason);
         match (r.outcome, r.severity, r.regression_type.as_deref()) {
             (ItemOutcome::Fail, ContractSeverity::Block, _) => report.blockers.push(label),
-            (ItemOutcome::Fail, ContractSeverity::Review, _)
-            | (ItemOutcome::Review, _, _) => report.review.push(label),
-            (ItemOutcome::Warn, _, Some("presentation"))
-            | (ItemOutcome::Fail, _, Some("presentation")) => {
-                report.presentation_drift.push(label)
+            (ItemOutcome::Fail, ContractSeverity::Review, _) | (ItemOutcome::Review, _, _) => {
+                report.review.push(label)
             }
+            (ItemOutcome::Warn, _, Some("presentation"))
+            | (ItemOutcome::Fail, _, Some("presentation")) => report.presentation_drift.push(label),
             (ItemOutcome::Warn, _, _) => report.presentation_drift.push(label),
             (ItemOutcome::Pass, _, _) => report.unaffected.push(r.item_id.clone()),
             _ => report.review.push(label),
@@ -1234,7 +1257,10 @@ mod tests {
 
     #[test]
     fn required_claim_regression() {
-        let item = item_claim("refund_decision.required_claim.001", ContractSeverity::Block);
+        let item = item_claim(
+            "refund_decision.required_claim.001",
+            ContractSeverity::Block,
+        );
         let base = behaviour("Refunds over £500 require manager approval.");
         let cand = behaviour("Sure, we can refund that.");
         let r = evaluate_item(&item, Some(&base), Some(&cand));
@@ -1266,10 +1292,7 @@ mod tests {
             cost_usd: None,
             tool_calls: vec![CapturedToolCall {
                 name: "lookup_order".into(),
-                arguments: BTreeMap::from([(
-                    "order_id".into(),
-                    serde_json::json!(12345),
-                )]),
+                arguments: BTreeMap::from([("order_id".into(), serde_json::json!(12345))]),
             }],
             finish_reason: None,
             fingerprint: None,
@@ -1287,9 +1310,10 @@ mod tests {
     fn replay_is_deterministic() {
         let mut contract = ApplicationContract::new("app", "App");
         contract.created_at = "t".into();
-        contract
-            .items
-            .push(item_claim("refund_decision.required_claim.001", ContractSeverity::Block));
+        contract.items.push(item_claim(
+            "refund_decision.required_claim.001",
+            ContractSeverity::Block,
+        ));
         let mut behaviours = BTreeMap::new();
         behaviours.insert(
             "refund_decision".into(),
