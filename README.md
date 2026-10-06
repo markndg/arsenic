@@ -4,11 +4,62 @@
 
 > Using Arsenic? Drop a note — I read everything: [open a blank issue titled "Using this"](https://github.com/markndg/arsenic/issues/new)
 
-You upgraded the model. Your tests passed.
+The compatibility layer for changing LLMs.
 
-Three weeks later the support bot sounds different. Responses are shorter. A legal
-disclaimer stopped appearing. The JSON shape changed on one endpoint. Nobody noticed
-until a customer complained.
+Your application works on today's model.
+Before you replace it, Arsenic tells you whether the new model preserves
+the behaviours your application actually depends on.
+
+```bash
+arsenic init
+arsenic baseline openai:gpt-current
+arsenic qualify openai:gpt-next anthropic:claude-next
+arsenic report
+```
+
+Configure credentials via environment variables (never commit secrets):
+
+| Provider | Default env var |
+|----------|-----------------|
+| OpenAI / Ollama-compatible | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Google | `GOOGLE_API_KEY` |
+
+Optional flags: `--key-env`, `--endpoint` (OpenAI-compatible), `--concurrency`, `--timeout-secs`, `--temperature`.
+
+Offline / CI without providers:
+
+```bash
+arsenic baseline openai:gpt-current --from-fixtures examples/customer-support/fixtures/production.json
+arsenic qualify openai:gpt-safe --from-fixtures examples/customer-support/fixtures/candidates.json
+./scripts/application_contract_smoke.sh
+```
+
+Replay a stored qualification without contacting providers:
+
+```bash
+arsenic qualify --replay qual-0001
+```
+
+Arsenic does not ask which model is "best".
+
+It asks which models are compatible with your application.
+
+**compatibility ≠ intelligence · compatibility ≠ model quality · compatibility ≠ benchmark performance**
+
+A candidate can be a much “better” model and still be incompatible with an existing application.
+
+Primary docs: [Application Contracts](docs/application-contracts.md) · [Model Qualification](docs/model-qualification.md) · [Contract Discovery](docs/contract-discovery.md) · [CI Qualification](docs/ci-qualification.md)
+
+Offline demo: `examples/customer-support/` · smoke: `./scripts/application_contract_smoke.sh`
+
+---
+
+### Still available: pairwise comparison engine
+
+You upgraded the model. Your tests passed. Three weeks later the support bot sounds different.
+
+The existing **compare / fingerprint / mutate** workflow remains fully supported — it is now the internal engine behind Application Contracts, and also usable directly:
 
 **Arsenic tells you whether the upgrade is actually safe to deploy.**
 

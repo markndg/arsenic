@@ -54,6 +54,7 @@ pub fn build_reconcile_probe(prompt: String, system_prompt: Option<String>) -> P
         claim_anchor_policy: ClaimAnchorPolicy::default(),
         presentation_drift: PresentationDriftPolicy::default(),
         latency_slo_ms: None,
+        tools: None,
     }
 }
 

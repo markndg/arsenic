@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["decision", "requires_manager"],
+  "properties": {
+    "decision": { "type": "string" },
+    "requires_manager": { "type": "boolean" }
+  }
+}

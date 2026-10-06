@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Arsenic — {{ contract.application_name }}</title>
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --ink: #1a1a1a;
+    --muted: #5c5c5c;
+    --line: #d9d2c5;
+    --pass: #1f6b3a;
+    --block: #8b1e1e;
+    --review: #8a5a00;
+    --warn: #6b5a1f;
+    --card: #fffdf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, #efe6dc 0%, transparent 50%),
+      var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    padding: 2.5rem 2rem 1.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+  header .brand {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  header .sub { color: var(--muted); margin-top: 0.35rem; max-width: 42rem; }
+  main { padding: 1.5rem 2rem 3rem; max-width: 1100px; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+  .stat { padding: 0.85rem 1rem; background: var(--card); border: 1px solid var(--line); }
+  .stat .k { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
+  .stat .v { font-size: 1.15rem; font-weight: 600; margin-top: 0.2rem; }
+  .decision {
+    margin: 1.25rem 0;
+    padding: 1.25rem 1.5rem;
+    border: 2px solid var(--ink);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .decision.blocked { border-color: var(--block); color: var(--block); }
+  .decision.safe { border-color: var(--pass); color: var(--pass); }
+  .decision.review { border-color: var(--review); color: var(--review); }
+  table.matrix { width: 100%; border-collapse: collapse; background: var(--card); }
+  table.matrix th, table.matrix td {
+    border: 1px solid var(--line);
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    font-size: 0.92rem;
+  }
+  table.matrix th { background: #efe9df; font-weight: 600; }
+  .PASS { color: var(--pass); font-weight: 600; }
+  .BLOCK { color: var(--block); font-weight: 700; }
+  .REVIEW { color: var(--review); font-weight: 600; }
+  .WARN { color: var(--warn); font-weight: 600; }
+  .item {
+    border-top: 1px solid var(--line);
+    padding: 0.85rem 0;
+  }
+  .item .id { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+  .sev { display: inline-block; font-size: 0.7rem; text-transform: uppercase; border: 1px solid var(--line); padding: 0.1rem 0.35rem; margin-left: 0.4rem; }
+  details.evidence { margin-top: 0.4rem; color: var(--muted); }
+  pre.diff {
+    background: #1e1e1e; color: #e8e8e8; padding: 0.85rem; overflow: auto; font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="brand">Arsenic</p>
+  <p class="sub">Application compatibility for {{ contract.application_name }} — not a generic model benchmark. Compatibility ≠ intelligence.</p>
+</header>
+<main>
+  <div class="decision {% if migration == 'MIGRATION BLOCKED' %}blocked{% elif migration == 'SAFE TO MIGRATE' %}safe{% else %}review{% endif %}">
+    {{ migration }}
+  </div>
+
+  <h2>Overview</h2>
+  <div class="overview">
+    <div class="stat"><div class="k">Production</div><div class="v">{% if baseline %}{{ baseline.model }}{% else %}—{% endif %}</div></div>
+    <div class="stat"><div class="k">Contract</div><div class="v">v{{ contract.version }}</div></div>
+    <div class="stat"><div class="k">Requirements</div><div class="v">{{ requirement_count }}</div></div>
+    <div class="stat"><div class="k">Baseline</div><div class="v">{% if baseline %}{{ baseline.id }}{% else %}—{% endif %}</div></div>
+    <div class="stat"><div class="k">Source</div><div class="v">{% if baseline %}{{ baseline.runtime.source | default(value="—") }}{% else %}—{% endif %}</div></div>
+    <div class="stat"><div class="k">Qualified</div><div class="v">{% if lock %}{{ lock.qualified | length }}{% else %}0{% endif %}</div></div>
+    <div class="stat"><div class="k">Blocked</div><div class="v">{% if lock %}{{ lock.blocked | length }}{% else %}0{% endif %}</div></div>
+  </div>
+
+  <h2>Candidate matrix</h2>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th></th>
+        {% for m in models %}<th>{{ m }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in matrix %}
+      <tr>
+        <td>{{ row.label }}</td>
+        {% for cell in row.cells %}
+        <td class="{{ cell.status }}">{{ cell.status }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Contract</h2>
+  {% for item in contract.items %}
+  <div class="item">
+    <span class="id">{{ item.id }}</span>
+    <span class="sev">{{ item.severity }}</span>
+    <div>{{ item.kind }} · prompt <code>{{ item.prompt }}</code></div>
+    <div style="color:var(--muted);font-size:0.9rem">provenance: {{ item.provenance.source }}{% if item.provenance.file %} ({{ item.provenance.file }}){% endif %}</div>
+  </div>
+  {% endfor %}
+
+  <h2>Qualification detail</h2>
+  {% for q in qualifications %}
+    {% if not q.stale %}
+    <div class="item">
+      <strong>{{ q.candidate_model }}</strong> — {{ q.decision }}
+      <div style="font-size:0.9rem;color:var(--muted)">{{ q.id }} · contract {{ q.contract_hash | truncate(length=12) }} · baseline {{ q.baseline_hash | truncate(length=12) }}</div>
+      {% for r in q.item_results %}
+        {% if r.outcome == "fail" or r.outcome == "review" or r.outcome == "warn" %}
+        <details class="evidence" open>
+          <summary>{{ r.item_id }} — {{ r.outcome }} ({{ r.severity }})</summary>
+          <p>{{ r.reason }}</p>
+          {% for e in r.baseline_evidence %}<p><strong>{{ e.label }}:</strong> {{ e.text }}</p>{% endfor %}
+          {% for e in r.candidate_evidence %}<p><strong>{{ e.label }}:</strong> {{ e.text }}</p>{% endfor %}
+        </details>
+        {% endif %}
+      {% endfor %}
+      {% if q.validated_patch %}
+      <p>Validated repair (not applied):</p>
+      <pre class="diff">{{ q.validated_patch.prompt_diff }}</pre>
+      {% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+</main>
+</body>
+</html>

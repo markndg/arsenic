@@ -1240,6 +1240,7 @@ mod tests {
                 claim_anchor_policy: ClaimAnchorPolicy::default(),
                 presentation_drift: PresentationDriftPolicy::default(),
                 latency_slo_ms: None,
+                tools: None,
             },
             v1_content: "a".into(),
             v2_content: "b".into(),

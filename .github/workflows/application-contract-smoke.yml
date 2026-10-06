@@ -1,0 +1,18 @@
+name: application-contract-smoke
+
+on:
+  pull_request:
+  push:
+    paths:
+      - "crates/**"
+      - "examples/customer-support/**"
+      - "scripts/application_contract_smoke.sh"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Offline application contract smoke
+        run: ./scripts/application_contract_smoke.sh

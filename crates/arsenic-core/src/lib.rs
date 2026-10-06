@@ -6,6 +6,7 @@ pub mod category_infer;
 pub mod claim;
 pub mod code_equivalence;
 pub mod comparison;
+pub mod contract;
 pub mod embedding;
 pub mod error;
 pub mod fingerprint;
@@ -13,6 +14,8 @@ pub mod impact;
 pub mod materiality;
 pub mod morphology;
 pub mod mutation;
+pub mod project;
+pub mod qualify;
 pub mod reconcile;
 pub mod reconcile_engine;
 pub mod refusal;
@@ -21,7 +24,34 @@ pub mod semantic;
 pub mod tone;
 pub mod types;
 
-pub use adapter::ModelAdapter;
+pub use contract::discovery::{
+    contract_from_discovery, discover_project, load_contract_file, write_contract_file,
+    DiscoveryHit, DiscoveryReport,
+};
+pub use contract::{
+    diff_contracts, ApplicationContract, ContractDiff, ContractExpectation, ContractItem,
+    ContractItemKind, ContractProvenance, ContractProvenanceSource, ContractSeverity,
+    SeverityChange, CONTRACT_SCHEMA_VERSION,
+};
+pub use project::{
+    count_stale_qualifications, filter_candidates, load_baseline, load_config, load_contract,
+    load_current_baseline, load_fixture_behaviours, load_lock, load_patch, load_qualification,
+    list_qualifications, mark_stale_qualifications, next_baseline_id, next_qualification_id,
+    parse_model_spec, save_baseline, save_config, save_contract, save_lock, save_patch,
+    save_qualification, update_lock_from_qualification, write_fixture_behaviours, ArsenicLock,
+    ArsenicProjectConfig, CandidateEntry, LockBlocked, LockProduction, LockQualified, ProjectPaths,
+};
+pub use qualify::{
+    attempt_validated_repair, behaviour_from_error, behaviour_from_response, build_impact,
+    candidate_input_fingerprint, capability_failures, capture_contract_live,
+    classify_provider_error, compatibility_summary_pct, content_hash, decide_overall,
+    evaluate_item, extract_tool_calls, json_hash, qualify_candidate, redact_json, redact_secrets,
+    scenarios_from_contract, BaselineSnapshot, CapturedBehaviour, CapturedToolCall, CaptureSource,
+    ContractItemResult, CostLatencyDelta, EvidenceSnippet, ExecutionErrorKind, ExecutionMeta,
+    ImpactReport, ItemOutcome, LiveCaptureConfig, ProviderCapabilities, QualificationDecision,
+    QualificationResult, QualificationThresholds, RepairAttempt, ValidatedPatch,
+    QUALIFICATION_SCHEMA_VERSION,
+};
 pub use cache::{
     corpus_fingerprint, BaselineCache, BaselineManifest, BaselineModel, BaselineProbeEntry,
     CacheKey, CachedResponse, CachedRun, VerifyReport, CACHE_SCHEMA_VERSION,
@@ -68,3 +98,4 @@ pub use runner::ProbeRunner;
 pub use semantic::SemanticAnalyser;
 pub use tone::ToneAnalyser;
 pub use types::*;
+pub use adapter::ModelAdapter;

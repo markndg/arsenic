@@ -1033,6 +1033,7 @@ mod anchor_tests {
             claim_anchor_policy: ClaimAnchorPolicy::Balanced,
             presentation_drift: PresentationDriftPolicy::Review,
             latency_slo_ms: None,
+            tools: None,
         };
         let diff = ClaimMatcher::default()
             .match_claims(v1, v2, &probe)
@@ -1066,6 +1067,7 @@ mod anchor_tests {
             claim_anchor_policy: ClaimAnchorPolicy::Balanced,
             presentation_drift: PresentationDriftPolicy::Review,
             latency_slo_ms: None,
+            tools: None,
         };
         let diff = ClaimMatcher::default()
             .match_claims(v1, v2, &probe)

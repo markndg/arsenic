@@ -1,5 +1,6 @@
 //! HTML / JSON / Markdown report rendering.
 
+mod application_report;
 mod reconcile_report;
 
 use anyhow::Context;
@@ -9,6 +10,7 @@ use arsenic_core::{
 use serde_json::{json, Value};
 use tera::{Context as TeraContext, Tera};
 
+pub use application_report::render_application_report;
 pub use reconcile_report::{reconcile_json_value, render_reconcile_html, render_reconcile_json};
 
 pub struct ReportRenderer;

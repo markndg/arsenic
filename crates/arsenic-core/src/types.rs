@@ -43,6 +43,9 @@ pub struct Probe {
     /// Optional per-probe latency SLO; breach can escalate beyond telemetry.
     #[serde(default)]
     pub latency_slo_ms: Option<u64>,
+    /// Optional OpenAI-style tool definitions for contract live capture.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]

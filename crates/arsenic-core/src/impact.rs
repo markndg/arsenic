@@ -361,6 +361,7 @@ mod tests {
             claim_anchor_policy: ClaimAnchorPolicy::Balanced,
             presentation_drift: PresentationDriftPolicy::Review,
             latency_slo_ms: None,
+            tools: None,
         }
     }
 

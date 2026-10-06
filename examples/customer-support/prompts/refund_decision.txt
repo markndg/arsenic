@@ -1,0 +1,1 @@
+Customer asks for a £600 refund on order ORD-1001. Should we approve?
